@@ -74,6 +74,7 @@ void ProjectMSource::initGL(int width, int height)
 
 void ProjectMSource::releaseGL()
 {
+    callStats_.releaseGL.fetch_add(1, std::memory_order_relaxed);
 #ifdef AUDIODNA_HAS_PROJECTM
     if (pm_)
     {
@@ -91,6 +92,7 @@ void ProjectMSource::resize(int width, int height)
     if (width == fboWidth_ && height == fboHeight_)
         return;
 
+    callStats_.resize.fetch_add(1, std::memory_order_relaxed);
     fboWidth_ = width;
     fboHeight_ = height;
 
@@ -210,6 +212,7 @@ void ProjectMSource::feedAudio(const float* samples, int numSamples)
 void ProjectMSource::loadPreset(const std::string& path, bool smooth)
 {
     // Queue for GL thread — projectM compiles shaders internally
+    callStats_.loadPreset.fetch_add(1, std::memory_order_relaxed);
     std::lock_guard<std::mutex> lock(pendingPresetMutex_);
     pendingPresetPath_ = path;
     pendingPresetSmooth_ = smooth;

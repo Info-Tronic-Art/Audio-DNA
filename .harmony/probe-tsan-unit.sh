@@ -24,8 +24,9 @@ JOBS=${ADNA_JOBS:-3}
 # The [tsan] targets (each registered with LABELS tsan in tests/CMakeLists.txt). A new [tsan] target must be added
 # here AND counted in EXPECTED_TSAN_CASES: a target missing from this list is not (re)built.
 TARGETS=(test_layer_runtime_race test_manual_scalar_race)
-# R1 / R2 / R4 (test_layer_runtime_race) + R3 (test_manual_scalar_race).
-EXPECTED_TSAN_CASES=4
+# R1 / R2 / R4 / R-bf9b (test_layer_runtime_race; R-bf9b = lane bf9b, ruling-bf9b amendment 3(c)) + R3
+# (test_manual_scalar_race).
+EXPECTED_TSAN_CASES=5
 
 if [ ! -f "$B/CMakeCache.txt" ]; then
     COMMON=$(git -C "$TREE" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)

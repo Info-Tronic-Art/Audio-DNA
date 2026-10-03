@@ -1012,7 +1012,8 @@ def _teardown(
             _say("!!! SCREEN NOT VERIFIED CLEAN — an output window may still be up.")
         if orphan:
             _say("!!! ORPHAN PROCESS — this run launched an app it could not quit.")
-        _say("!!! Manual remedy: pkill -9 -f Audio-DNA")
+        _say("!!! Manual remedy: kill -9 <the pid this run launched> -- that pid ONLY, never by name "
+             "(any other Audio-DNA is Boris's)")
         return False
 
     if not drove_something:

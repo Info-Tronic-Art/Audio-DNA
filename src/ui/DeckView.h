@@ -30,8 +30,14 @@ public:
     void setComposition(Composition* comp);
     Composition* getComposition() const { return composition_; }
 
-    // Rebuild the grid from the current deck state
+    // Rebuild the grid from the current deck state (lane bf9b: strips over the show's SHARED layers, cells from the
+    // shown deck's rows)
     void rebuildGrid();
+
+    // Lane bf9b (plan-bf9b F16): show the deck the composition's activeDeckIndex names -- the strips stay (they are
+    // the same shared layers), only the cells, the column triggers and the tabs are re-pointed. A full rebuildGrid
+    // only when the layer count or the column count changed. Touches no playing state.
+    void showDeck();
 
     // s-rta-0929 g4cpu (probe-idle-paint a1's pass classes): the ROUTINES pads' union and the strip column of the grid
     // viewport, in DeckView coordinates.
@@ -44,6 +50,12 @@ public:
 
     // Refresh display state (active clips, button states, etc.)
     void refresh();
+
+    bool columnHeaderLitForTest(int col) const
+    {
+        return col >= 0 && col < static_cast<int>(columnTriggers_.size())
+            && columnTriggers_[static_cast<size_t>(col)]->findColour(juce::TextButton::buttonColourId) == juce::Colour(kHeaderLit);
+    }
 
     // s-rta-0928: the grid's image thumbnails, decoded off the message thread; every ClipCell / LayerStrip pulls from
     // it. Public for tests (setBackendsForTests before setComposition).
@@ -83,9 +95,6 @@ public:
     // plan6 §6.2: a deck tab row action chosen from a tab's right-click menu (deckIndex = that tab) or from the "+"
     // menu (deckIndex -1: NewDeck / LoadDeck). MainComponent runs the handler (message thread).
     std::function<void(int deckIndex, DeckTabRow::Action)> onDeckAction;
-    // plan6 §6.2: the "Undo Remove" button in the tab row was clicked (MainComponent undoes iff the top of the
-    // undo stack is still that removal).
-    std::function<void()> onUndoHint;
 
     // s-rta-0927 routine display (plan-routine-display-A.md 2.1-2.3): the ROUTINES row above the column
     // numbers. A pad press fires (restart while playing); a band's x or the pad menu's "Remove from layers"
@@ -102,16 +111,15 @@ public:
     void setRoutineView(const RoutineDeckView& view);
     void showRoutinePadMenu(int slot);
 
-    // plan6 §6.2: the deck tab row's menus (right-click a tab / click the "+"), and the 10-s "Undo Remove" button
-    // flush right in the row. Every structural change (rebuildGrid) and every later undoable command hides it.
+    // plan6 §6.2: the deck tab row's menus (right-click a tab / click the "+").
     void showDeckTabMenu(int deckIndex);
     void showPlusMenu();
-    void showUndoHint(const juce::String& text);
-    void hideUndoHint();
 
-    // Get active column (-1 if none)
+    // Get active column (-1 if none). Lane bf9b: the column header remembers {deckId, column} -- it is lit only while
+    // the deck it was fired from is shown.
     int getActiveColumn() const { return activeColumn_; }
-    void setActiveColumn(int col);
+    uint32_t getActiveColumnDeckId() const { return activeColumnDeckId_; }
+    void setActiveColumn(int col, uint32_t deckId = ClipRef::kNoDeck);
 
     // Multi-selection of clip cells
     struct CellPos { int layer; int column; };
@@ -232,15 +240,14 @@ private:
     void tabRowMouseDown(const juce::MouseEvent& e);
     void tabRowDoubleClick(const juce::MouseEvent& e);
     std::unique_ptr<juce::TextButton> plusTab_;          // "+" -- New Deck / Load Deck... (rebuilt with the tabs)
-    std::unique_ptr<juce::TextButton> undoHintBtn_;      // "Undo Remove \"<name>\"" -- created once, hidden (Pitfall 34)
-    int undoHintGeneration_ = 0;                         // bumps on every show/hide: a stale 10-s timer does nothing
-    static constexpr int kUndoHintMs = 10000;
 
     // Scroll viewport for the grid
     juce::Viewport gridViewport_;
     std::unique_ptr<juce::Component> gridContent_;
 
+    static constexpr juce::uint32 kHeaderLit = 0xff3a5a4a;   // the lit column header / shown deck tab (one palette)
     int activeColumn_ = -1;
+    uint32_t activeColumnDeckId_ = ClipRef::kNoDeck;   // the deck the column was fired from (lane bf9b)
     int selectedLayerIndex_ = -1;
     std::vector<CellPos> selectedCells_;
 
@@ -257,6 +264,7 @@ private:
 
     void layoutGrid();
     void setupColumnTriggers();
+    juce::Colour columnHeaderColour(int col) const;   // lit iff `col` was fired from the deck on screen
     void setupDeckTabs();
     void fanRoutineBands();
     static juce::String tabTooltipFor(const Deck& deck, bool showing);

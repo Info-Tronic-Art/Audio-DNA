@@ -1,5 +1,8 @@
 #pragma once
 #include "model/Deck.h"
+#include "model/Layer.h"
+#include "model/ClipRef.h"
+#include "model/ShowMigration.h"
 #include "model/Routine.h"
 #include "connect/ParamConnection.h"
 #include "connect/LiveValue.h"
@@ -14,6 +17,16 @@
 
 struct Composition;
 
+// C2 (lane bf9b): where Composition::forEachClip found a clip.
+struct ClipSite
+{
+    int deckIndex = -1;     // -1 = a retired deck
+    uint32_t deckId = 0;
+    int row = -1;           // = the shared layer the row feeds
+    int column = -1;
+    bool retired = false;
+};
+
 // The only place that names which Composition field backs each CompScalar
 // (s166 spec section 2.2's exact phrasing). Forward-declared here (defined
 // below the struct, where its fields are visible) so Composition::eff() --
@@ -23,19 +36,34 @@ struct Composition;
 RelaxedFloat& manualRef(Composition& c, CompScalar s);
 
 // Composition: the complete app state saved to disk.
-// Contains all decks, global effects, global settings.
+// Contains the shared layer stack, all decks (boxes of clips), global effects, global settings. Lane bf9b
+// (s-rta-1002b): ONE shared layer stack plays whatever deck the grid shows; a deck switch changes only the grid.
 struct Composition
 {
     // === Identity ===
     std::string name = "Untitled";
     juce::File filePath; // Where this composition is saved
 
-    // === Decks ===
+    // === The shared layer stack (lane bf9b) ===
+    // Every layer's settings and its playing tuple; no clips (row N of every deck feeds layer N). Index 0 = bottom.
+    // Written only on the message thread inside a fence for structure (insertLayer / eraseLayer / moveLayer); the GL
+    // thread walks it every frame (CompositorEngine::compositeShow, the show autopilot).
+    std::vector<Layer> layers;
+
+    // === Decks (boxes of clips) ===
     std::vector<Deck> decks;
     // Written by the message thread (deck switch, deck remove / undo, load); read by the httplib thread (/api/status,
     // /api/composition, /api/state): a relaxed atomic (Pitfall 63). The GL thread never reads it -- it derives its
     // index from the acquire-loaded deck pointer (Renderer::renderOpenGL).
     RelaxedInt activeDeckIndex = 0;
+
+    // Set by fromVar when an old show was converted (ShowMigration::convertShow, ruling-bf9b amendment 9) -- logged
+    // once by the load; never silent. Not serialized (like routineLoadNote).
+    std::string migrationNote;
+
+    // Deck ids at or above this renumber at load (amendment 7(b)): far below ClipRef::kMaxDeckId, so a session never
+    // runs out of deck numbers by accident.
+    static constexpr uint32_t kDeckIdCompactAt = 8192;
 
     // === Global Effects (post-composite chain) ===
     std::vector<Clip::EffectSlot> globalEffects;
@@ -111,7 +139,6 @@ struct Composition
     float handBackGlideMs = 120.0f;
 
     // === Global Settings ===
-    float globalTransitionSpeed = 0.3f; // seconds
     int bpmMultiplier = 1; // -4 = ÷4, -2 = ÷2, 1 = ×1, 2 = ×2, 4 = ×4
 
     enum class QuantizeMode : uint8_t { Off, NextBeat, NextDownbeat };
@@ -169,29 +196,59 @@ struct Composition
     int outputDisplay = -1; // -1 = no external output
 
     // === Initialization ===
+    // 3 shared layers (ids 0, 1, 2; layer 0 Opaque, the others Transparent) and one deck "Deck 1" with 3 rows.
     void initDefault()
     {
         name = "Untitled";
         filePath = juce::File();
+        layers.clear();
+        for (int i = 0; i < Deck::kDefaultLayers; ++i)
+        {
+            Layer layer;
+            layer.name = "Layer " + std::to_string(i + 1);
+            layer.id = static_cast<uint32_t>(i);
+            layer.type = (i == 0) ? Layer::Type::Opaque : Layer::Type::Transparent;
+            layers.push_back(std::move(layer));
+        }
+        nextLayerId_ = 100;
         decks.clear();
+        retiredDecks_.clear();
         Deck deck;
         deck.name = "Deck 1";
         deck.id = 0;
-        deck.initDefault();
+        deck.initDefault(getNumLayers());
         decks.push_back(std::move(deck));
         activeDeckIndex = 0;
         globalEffects.clear();
         routines.clear();
         routineBank.clear();
         routineLoadNote.clear();
+        migrationNote.clear();
         masterOpacity = 1.0f;
         masterSignal = 1.0f;
-        globalTransitionSpeed = 0.3f;
         bpmMultiplier = 1;
         quantizeMode = QuantizeMode::Off;
     }
 
-    // === Active Deck Access ===
+    // === The shared layer stack (lane bf9b) ===
+    Layer* getLayer(int index)
+    {
+        if (index >= 0 && index < static_cast<int>(layers.size()))
+            return &layers[static_cast<size_t>(index)];
+        return nullptr;
+    }
+
+    const Layer* getLayer(int index) const
+    {
+        if (index >= 0 && index < static_cast<int>(layers.size()))
+            return &layers[static_cast<size_t>(index)];
+        return nullptr;
+    }
+
+    int getNumLayers() const { return static_cast<int>(layers.size()); }
+    int topLayerIndex() const { return static_cast<int>(layers.size()) - 1; }
+
+    // === Active (SHOWN) Deck Access -- the grid's box, never what plays (Composition::playing) ===
     // ONE load of the index: the range check and the subscript see the same value.
     Deck* getActiveDeck()
     {
@@ -209,35 +266,403 @@ struct Composition
         return nullptr;
     }
 
-    // === Deck Management ===
-    void addDeck(const std::string& deckName = "New Deck")
+    // === Deck lookup by id (a ClipRef names a deck by id, never by index) ===
+    // findDeckById: live decks, then retired ones. findDeckIndexById: live decks only, -1 = removed / retired / none.
+    Deck* findDeckById(uint32_t id)
     {
-        Deck deck;
-        deck.name = deckName;
-        deck.id = nextDeckId_++;
-        deck.initDefault();
-        decks.push_back(std::move(deck));
+        return const_cast<Deck*>(static_cast<const Composition&>(*this).findDeckById(id));
     }
 
-    bool removeDeck(int index)
+    const Deck* findDeckById(uint32_t id) const
     {
-        if (index < 0 || index >= static_cast<int>(decks.size()))
+        if (id == ClipRef::kNoDeck)
+            return nullptr;
+        for (const auto& d : decks)
+            if (d.id == id)
+                return &d;
+        for (const auto& d : retiredDecks_)
+            if (d.id == id)
+                return &d;
+        return nullptr;
+    }
+
+    int findDeckIndexById(uint32_t id) const
+    {
+        if (id == ClipRef::kNoDeck)
+            return -1;
+        for (size_t i = 0; i < decks.size(); ++i)
+            if (decks[i].id == id)
+                return static_cast<int>(i);
+        return -1;
+    }
+
+    bool isRetiredDeck(uint32_t id) const
+    {
+        return std::any_of(retiredDecks_.begin(), retiredDecks_.end(), [id](const Deck& d) { return d.id == id; });
+    }
+
+    // Decks that were removed while one of their clips still plays (plan-bf9b F3): not shown, not saved, not
+    // indexed; their ids stay reserved. Read-only outside the structure ops below.
+    const std::vector<Deck>& retiredDecks() const { return retiredDecks_; }
+    int getNumRetiredDecks() const { return static_cast<int>(retiredDecks_.size()); }
+
+    // The clip a ref names in row `row` (live or retired deck); nullptr when the deck is gone or the cell is empty.
+    Clip* clipAt(ClipRef ref, int row)
+    {
+        if (ref.column < 0)
+            return nullptr;
+        if (Deck* d = findDeckById(ref.deckId))
+            return d->getClip(row, ref.column);
+        return nullptr;
+    }
+
+    const Clip* clipAt(ClipRef ref, int row) const
+    {
+        if (ref.column < 0)
+            return nullptr;
+        if (const Deck* d = findDeckById(ref.deckId))
+            return d->getClip(row, ref.column);
+        return nullptr;
+    }
+
+    // === C1 (contract for bf6): what a shared layer plays ===
+    // ONE runtime() load; the INCOMING (active) clip; nullptr when the layer is clear or its cell is empty; it may
+    // point into ANY deck box, retired ones included. Message thread (and the GL thread inside its deckActive gate).
+    struct PlayingClip
+    {
+        Clip* clip = nullptr;
+        ClipRef ref;
+        int deckIndex = -1;   // -1 = retired or none
+        bool retired = false;
+    };
+
+    PlayingClip playing(int layerIndex) const
+    {
+        PlayingClip p;
+        const Layer* layer = getLayer(layerIndex);
+        if (layer == nullptr)
+            return p;
+        p.ref = layer->runtime().activeRef();
+        if (p.ref.column < 0)
+            return p;
+        p.deckIndex = findDeckIndexById(p.ref.deckId);
+        p.retired = p.deckIndex < 0 && isRetiredDeck(p.ref.deckId);
+        p.clip = const_cast<Clip*>(clipAt(p.ref, layerIndex));
+        return p;
+    }
+
+    Clip* playingClip(int layerIndex) { return playing(layerIndex).clip; }
+    const Clip* playingClip(int layerIndex) const { return playing(layerIndex).clip; }
+
+    // How shared layer `layerIndex` reaches the clips of its row in any deck (Layer's trigger API).
+    RowClips rowClips(int layerIndex)
+    {
+        RowClips rc;
+        rc.fn = &Composition::rowClipFn;
+        rc.cellsFn = &Composition::rowCellsFn;
+        rc.ctx = this;
+        rc.row = layerIndex;
+        return rc;
+    }
+
+    // === C2 (contract for bf6 / bf45): the walks ===
+    // forEachLayer: fn(Layer&, int layerIndex), each shared layer exactly once, bottom to top.
+    template <class Fn>
+    void forEachLayer(Fn&& fn)
+    {
+        for (size_t i = 0; i < layers.size(); ++i)
+            fn(layers[i], static_cast<int>(i));
+    }
+
+    template <class Fn>
+    void forEachLayer(Fn&& fn) const
+    {
+        for (size_t i = 0; i < layers.size(); ++i)
+            fn(layers[i], static_cast<int>(i));
+    }
+
+    // forEachClip: fn(Clip&, const ClipSite&), each clip of every deck box exactly once: live decks by index, then
+    // retired decks; rows and columns ascending.
+    template <class Fn>
+    void forEachClip(Fn&& fn)
+    {
+        auto walk = [&](Deck& d, int deckIndex, bool retired) {
+            for (size_t r = 0; r < d.rows.size(); ++r)
+                for (size_t c = 0; c < d.rows[r].clips.size(); ++c)
+                    if (d.rows[r].clips[c].has_value())
+                        fn(*d.rows[r].clips[c], ClipSite{ deckIndex, d.id, static_cast<int>(r), static_cast<int>(c),
+                                                          retired });
+        };
+        for (size_t i = 0; i < decks.size(); ++i)
+            walk(decks[i], static_cast<int>(i), false);
+        for (auto& d : retiredDecks_)
+            walk(d, -1, true);
+    }
+
+    template <class Fn>
+    void forEachClip(Fn&& fn) const
+    {
+        auto walk = [&](const Deck& d, int deckIndex, bool retired) {
+            for (size_t r = 0; r < d.rows.size(); ++r)
+                for (size_t c = 0; c < d.rows[r].clips.size(); ++c)
+                    if (d.rows[r].clips[c].has_value())
+                        fn(*d.rows[r].clips[c], ClipSite{ deckIndex, d.id, static_cast<int>(r), static_cast<int>(c),
+                                                          retired });
+        };
+        for (size_t i = 0; i < decks.size(); ++i)
+            walk(decks[i], static_cast<int>(i), false);
+        for (const auto& d : retiredDecks_)
+            walk(d, -1, true);
+    }
+
+    // === Firing (model level; MainComponent::handleClipTrigger / handleColumnTrigger stay the app's only entries) ===
+    // Fire (deckIndex, row layerIndex, column) into shared layer layerIndex. An unknown layer / deck, or a ref the
+    // tuple cannot hold (amendment 2(c)), is refused: the unchanged transition.
+    LayerRuntimeTransition fire(int layerIndex, int deckIndex, int column,
+                                Clip::BeatSnapMode forcedSnap = Clip::BeatSnapMode::Off, bool immediate = false)
+    {
+        Layer* layer = getLayer(layerIndex);
+        if (layer == nullptr)
+            return {};
+        const ClipRef ref = refFor(deckIndex, column);
+        if (!ref.valid())
+        {
+            const auto r = layer->runtime();
+            return { r, r, true };
+        }
+        return immediate ? layer->triggerClipImmediate(ref, rowClips(layerIndex))
+                         : layer->triggerClip(ref, rowClips(layerIndex), forcedSnap);
+    }
+
+    // A column fire: the column of deck `deckIndex` into every shared layer that does not ignore column triggers; an
+    // empty cell clears its layer (plan F12 / Q5's default). out (optional): one entry per layer -- the exact
+    // transition, nullopt for a layer that ignores column triggers.
+    void triggerColumn(int deckIndex, int column, Clip::BeatSnapMode forcedSnap = Clip::BeatSnapMode::Off,
+                       std::vector<std::optional<LayerRuntimeTransition>>* out = nullptr)
+    {
+        if (out != nullptr)
+            out->assign(layers.size(), std::nullopt);
+        const ClipRef ref = refFor(deckIndex, column);
+        if (!ref.valid())
+            return;
+        for (size_t i = 0; i < layers.size(); ++i)
+        {
+            auto& layer = layers[i];
+            if (layer.ignoreColumnTrigger)
+                continue;
+            const auto t = layer.triggerClip(ref, rowClips(static_cast<int>(i)), forcedSnap);
+            if (out != nullptr)
+                (*out)[i] = t;
+        }
+    }
+
+    // The ClipRef of (live deck index, column); an unknown deck gives a deck-less ref (refused by every trigger).
+    ClipRef refFor(int deckIndex, int column) const
+    {
+        if (deckIndex < 0 || deckIndex >= static_cast<int>(decks.size()))
+            return ClipRef{ ClipRef::kNoDeck, column };
+        return ClipRef{ decks[static_cast<size_t>(deckIndex)].id, column };
+    }
+
+    // === Layer structure (every live AND retired deck keeps rows == layers) ===
+    // Callers fence (UndoService::withDeckDetached): the GL thread walks `layers` and every deck's rows.
+    // A new layer as Add Layer makes it: "Layer N", a fresh id, empty rows.
+    Layer makeLayer(Layer::Type type = Layer::Type::Transparent)
+    {
+        Layer layer;
+        layer.name = "Layer " + std::to_string(layers.size() + 1);
+        layer.id = nextLayerId_++;
+        layer.type = type;
+        return layer;
+    }
+
+    // Insert `layer` at `at` (clamped) with an empty row in every deck (live and retired). Returns its index.
+    int insertLayer(int at, Layer layer)
+    {
+        const size_t pos = static_cast<size_t>(std::clamp(at, 0, static_cast<int>(layers.size())));
+        nextLayerId_ = std::max(nextLayerId_, layer.id + 1u);
+        layers.insert(layers.begin() + static_cast<std::ptrdiff_t>(pos), std::move(layer));
+        auto addRow = [pos](Deck& d) {
+            ClipRow row;
+            row.ensureColumns(d.numColumns);
+            d.rows.insert(d.rows.begin() + static_cast<std::ptrdiff_t>(std::min(pos, d.rows.size())), std::move(row));
+        };
+        for (auto& d : decks)
+            addRow(d);
+        for (auto& d : retiredDecks_)
+            addRow(d);
+        return static_cast<int>(pos);
+    }
+
+    // Insert `layer` at `at` and the given row into each deck by id (live and retired); a deck the map lacks gets an
+    // empty row (RemoveLayerCmd's undo, ruling-bf9b amendment 22).
+    int insertLayerWithRows(int at, Layer layer, const std::vector<std::pair<uint32_t, ClipRow>>& rowsByDeckId)
+    {
+        const int pos = insertLayer(at, std::move(layer));
+        auto fill = [&](Deck& d) {
+            for (const auto& [id, row] : rowsByDeckId)
+                if (id == d.id && pos < static_cast<int>(d.rows.size()))
+                {
+                    d.rows[static_cast<size_t>(pos)] = row;
+                    d.rows[static_cast<size_t>(pos)].ensureColumns(d.numColumns);
+                    return;
+                }
+        };
+        for (auto& d : decks)
+            fill(d);
+        for (auto& d : retiredDecks_)
+            fill(d);
+        return pos;
+    }
+
+    // Erase layer `index` and row `index` of every deck. The show keeps >= 1 layer.
+    bool eraseLayer(int index)
+    {
+        if (index < 0 || index >= static_cast<int>(layers.size()) || layers.size() <= 1)
             return false;
-        if (decks.size() <= 1)
-            return false; // Must have at least one deck
-        decks.erase(decks.begin() + index);
-        if (activeDeckIndex >= static_cast<int>(decks.size()))
-            activeDeckIndex = static_cast<int>(decks.size()) - 1;
+        layers.erase(layers.begin() + index);
+        auto dropRow = [index](Deck& d) {
+            if (index < static_cast<int>(d.rows.size()))
+                d.rows.erase(d.rows.begin() + index);
+        };
+        for (auto& d : decks)
+            dropRow(d);
+        for (auto& d : retiredDecks_)
+            dropRow(d);
         return true;
     }
 
-    // Append a fully-formed deck (e.g. loaded from a deck file) under a fresh id.
-    // Returns its index. Caller is responsible for the GL fence (push_back reallocates).
+    // P24.13: move a layer -- and row `from` of every deck in step, so every ref (active / previous / pending)
+    // resolves to the same Clip afterwards.
+    bool moveLayer(int fromIndex, int toIndex)
+    {
+        const int n = static_cast<int>(layers.size());
+        if (fromIndex < 0 || fromIndex >= n || toIndex < 0 || toIndex >= n || fromIndex == toIndex)
+            return false;
+        Layer temp = std::move(layers[static_cast<size_t>(fromIndex)]);
+        layers.erase(layers.begin() + fromIndex);
+        layers.insert(layers.begin() + toIndex, std::move(temp));
+        auto moveRow = [fromIndex, toIndex](Deck& d) {
+            if (fromIndex >= static_cast<int>(d.rows.size()) || toIndex >= static_cast<int>(d.rows.size()))
+                return;
+            ClipRow row = std::move(d.rows[static_cast<size_t>(fromIndex)]);
+            d.rows.erase(d.rows.begin() + fromIndex);
+            d.rows.insert(d.rows.begin() + toIndex, std::move(row));
+        };
+        for (auto& d : decks)
+            moveRow(d);
+        for (auto& d : retiredDecks_)
+            moveRow(d);
+        return true;
+    }
+
+    // Every deck at exactly layers.size() rows: a short deck is padded with empty rows (sized to its columns).
+    void padRows(Deck& d) const
+    {
+        if (d.rows.size() < layers.size())
+        {
+            const size_t from = d.rows.size();
+            d.rows.resize(layers.size());
+            for (size_t r = from; r < d.rows.size(); ++r)
+                d.rows[r].ensureColumns(d.numColumns);
+        }
+    }
+
+    // === Deck Management ===
+    // Deck ids are never reused in a session (ruling-bf9b amendment 7): the mint refuses past ClipRef::kMaxDeckId.
+    bool canMintDeckId() const { return nextDeckId_ <= ClipRef::kMaxDeckId; }
+
+    bool addDeck(const std::string& deckName = "New Deck")
+    {
+        Deck deck;
+        deck.name = deckName;
+        deck.initDefault(getNumLayers());
+        return appendDeck(std::move(deck)) >= 0;
+    }
+
+    // Append a fully-formed deck (e.g. loaded from a deck file) under a fresh id, padded to the show's layer count.
+    // Returns its index, or -1 when the show has used all its deck numbers (nothing added). Caller is responsible
+    // for the GL fence (push_back reallocates).
     int appendDeck(Deck deck)
     {
+        if (!canMintDeckId())
+            return -1;
         deck.id = nextDeckId_++;
+        padRows(deck);
         decks.push_back(std::move(deck));
         return static_cast<int>(decks.size()) - 1;
+    }
+
+    // Insert a deck that keeps its id (undo / redo of a deck command) at `at` (clamped). Returns its index.
+    int insertDeckKeepingId(int at, Deck deck)
+    {
+        padRows(deck);
+        const size_t pos = static_cast<size_t>(std::clamp(at, 0, static_cast<int>(decks.size())));
+        decks.insert(decks.begin() + static_cast<std::ptrdiff_t>(pos), std::move(deck));
+        return static_cast<int>(pos);
+    }
+
+    // Does any shared layer's active ref, or the previous ref of a fade still running, name deck `id`? (a fading-out
+    // clip keeps its deck alive until its fade completes -- ruling-bf9b amendment 4(b). A Cut or a clear leaves
+    // `previous` set at progress 1: nothing draws that clip, so it keeps nothing alive.)
+    bool deckIsPlaying(uint32_t id) const
+    {
+        for (const auto& l : layers)
+        {
+            const auto rt = l.runtime();
+            if ((rt.activeClipColumn >= 0 && rt.activeDeckId == id)
+                || (rt.previousClipColumn >= 0 && rt.previousDeckId == id && rt.crossfadeProgress < 1.0f))
+                return true;
+        }
+        return false;
+    }
+
+    // Remove live deck `index` (plan-bf9b F3): while a layer plays from it (deckIsPlaying: its active ref, or a running
+    // fade's previous ref, names it) it is RETIRED -- moved, with every clip at its address, to the retired list --
+    // else erased. Returns true when it was retired; `erased` (optional) receives an erased deck. The caller fences
+    // and adjusts activeDeckIndex.
+    bool retireOrEraseDeck(int index, std::optional<Deck>* erased = nullptr)
+    {
+        if (index < 0 || index >= static_cast<int>(decks.size()))
+            return false;
+        const bool retire = deckIsPlaying(decks[static_cast<size_t>(index)].id);
+        if (retire)
+            retiredDecks_.push_back(std::move(decks[static_cast<size_t>(index)]));
+        else if (erased != nullptr)
+            *erased = std::move(decks[static_cast<size_t>(index)]);
+        decks.erase(decks.begin() + index);
+        return retire;
+    }
+
+    // Undo of a Remove Deck: move the retired deck `id` back to live index `at` (clamped), live playheads kept.
+    // false when it is not retired any more (reaped).
+    bool restoreRetiredDeck(uint32_t id, int at)
+    {
+        auto it = std::find_if(retiredDecks_.begin(), retiredDecks_.end(), [id](const Deck& d) { return d.id == id; });
+        if (it == retiredDecks_.end())
+            return false;
+        Deck deck = std::move(*it);
+        retiredDecks_.erase(it);
+        insertDeckKeepingId(at, std::move(deck));
+        return true;
+    }
+
+    // Every retired deck no layer plays from (deckIsPlaying) leaves the model; the caller disposes their media
+    // (ruling-bf9b amendment 4(a): called inside every fenced edit, UndoService::withDeckDetached).
+    std::vector<Deck> reapRetiredDecks()
+    {
+        std::vector<Deck> reaped;
+        for (auto it = retiredDecks_.begin(); it != retiredDecks_.end();)
+        {
+            if (deckIsPlaying(it->id))
+            {
+                ++it;
+                continue;
+            }
+            reaped.push_back(std::move(*it));
+            it = retiredDecks_.erase(it);
+        }
+        return reaped;
     }
 
     // === Routine bank ===
@@ -313,7 +738,6 @@ struct Composition
         obj->setProperty("name", juce::String(name));
         obj->setProperty("activeDeckIndex", activeDeckIndex.load());
         obj->setProperty("masterOpacity", static_cast<double>(masterOpacity));
-        obj->setProperty("globalTransitionSpeed", static_cast<double>(globalTransitionSpeed));
         obj->setProperty("bpmMultiplier", bpmMultiplier);
         obj->setProperty("quantizeMode", static_cast<int>(quantizeMode));
         obj->setProperty("outputWidth", outputWidth);
@@ -371,7 +795,13 @@ struct Composition
             genrePresetArray.add(juce::String(genrePresetNames[i]));
         obj->setProperty("genrePresetNames", genrePresetArray);
 
-        // Decks
+        // The shared layer stack (settings only; lane bf9b -- a file with this key is a bf9b show)
+        juce::Array<juce::var> layerArray;
+        for (const auto& layer : layers)
+            layerArray.add(layer.toVar());
+        obj->setProperty("layers", layerArray);
+
+        // Decks (rows of clips)
         juce::Array<juce::var> deckArray;
         for (const auto& deck : decks)
             deckArray.add(deck.toVar());
@@ -446,7 +876,6 @@ struct Composition
             name = obj->getProperty("name").toString().toStdString();
             activeDeckIndex = static_cast<int>(obj->getProperty("activeDeckIndex"));
             masterOpacity = static_cast<float>(static_cast<double>(obj->getProperty("masterOpacity")));
-            globalTransitionSpeed = static_cast<float>(static_cast<double>(obj->getProperty("globalTransitionSpeed")));
             bpmMultiplier = static_cast<int>(obj->getProperty("bpmMultiplier"));
             quantizeMode = static_cast<QuantizeMode>(static_cast<int>(obj->getProperty("quantizeMode")));
             // s-rta-0926b plan4 S4: guarded like masterSpeed below -- the canvas size is the render
@@ -557,14 +986,62 @@ struct Composition
                     if (gi < 8) genrePresetNames[gi++] = gp.toString().toStdString();
             }
 
+            // Lane bf9b: a bf9b show carries top-level "layers" (settings) + decks of clip rows; an old show (no
+            // "layers") is converted by ShowMigration -- the first deck's layer settings win (plan-bf9b F7).
+            layers.clear();
             decks.clear();
-            if (auto* deckArray = obj->getProperty("decks").getArray())
+            retiredDecks_.clear();
+            migrationNote.clear();
+            if (ShowMigration::isLegacyShow(v))
             {
-                for (const auto& deckVar : *deckArray)
+                migrationNote = ShowMigration::convertShow(v, layers, decks, nextLayerId_);
+            }
+            else
+            {
+                if (auto* layerArray = obj->getProperty("layers").getArray())
+                    for (const auto& layerVar : *layerArray)
+                    {
+                        Layer layer;
+                        layer.fromVar(layerVar);
+                        layers.push_back(std::move(layer));
+                    }
+                if (auto* deckArray = obj->getProperty("decks").getArray())
+                    for (const auto& deckVar : *deckArray)
+                    {
+                        Deck deck;
+                        deck.fromVar(deckVar);
+                        decks.push_back(std::move(deck));
+                    }
+                // Layer ids unique per show (GL history keys by layer id, Pitfall 35); id 0 stays valid (Pitfall 15).
+                for (const auto& l : layers)
+                    nextLayerId_ = std::max(nextLayerId_, l.id + 1u);
+                for (size_t i = 0; i < layers.size(); ++i)
+                    for (size_t j = 0; j < i; ++j)
+                        if (layers[j].id == layers[i].id)
+                        {
+                            layers[i].id = nextLayerId_++;
+                            break;
+                        }
+            }
+            normalizeRows();
+
+            // Deck ids (ruling-bf9b amendment 7(b)): any id above ClipRef::kMaxDeckId, or a largest id at or above
+            // kDeckIdCompactAt, renumbers every deck 100, 101, ... in file order (safe at load: nothing outside the
+            // file names a deck id, and a load clears undo). Otherwise ids are kept and duplicates re-minted below.
+            {
+                uint32_t maxId = 0;
+                bool renumber = false;
+                for (const auto& deck : decks)
                 {
-                    Deck deck;
-                    deck.fromVar(deckVar);
-                    decks.push_back(std::move(deck));
+                    renumber = renumber || deck.id > ClipRef::kMaxDeckId;
+                    maxId = std::max(maxId, deck.id);
+                }
+                if (renumber || maxId >= kDeckIdCompactAt)
+                {
+                    uint32_t next = 100;
+                    for (auto& deck : decks)
+                        deck.id = next++;
+                    nextDeckId_ = next;
                 }
             }
 
@@ -575,9 +1052,8 @@ struct Composition
                 nextDeckId_ = std::max(nextDeckId_, deck.id + 1u);
 
             // F1 (s-rta-0926b plan6): a file saved by a build whose New Deck left every deck at id 0 carries
-            // DUPLICATE deck ids; LayerStateKey keys per-layer GL history by (deckId, layerId), so two decks sharing an id
-            // alias each other's temporal buffers. Re-mint any repeat (the bump above already put nextDeckId_ past every
-            // loaded id).
+            // DUPLICATE deck ids; a ClipRef names a deck by id, so two decks sharing an id would alias each other's
+            // clips. Re-mint any repeat (the bump above already put nextDeckId_ past every loaded id).
             {
                 std::vector<uint32_t> seen;
                 for (auto& deck : decks)
@@ -691,8 +1167,42 @@ struct Composition
         return true;
     }
 
+    // Every deck at exactly layers.size() rows: a deck with MORE rows than the show has layers adds shared layers
+    // (plan-bf9b F6: never drop clips), then every short deck is padded.
+    void normalizeRows()
+    {
+        size_t most = 0;
+        for (const auto& d : decks)
+            most = std::max(most, d.rows.size());
+        while (layers.size() < most)
+            layers.push_back(makeLayer());
+        for (auto& d : decks)
+            padRows(d);
+        for (auto& d : retiredDecks_)
+            padRows(d);
+    }
+
 private:
     uint32_t nextDeckId_ = 100;
+    uint32_t nextLayerId_ = 100;
+    std::vector<Deck> retiredDecks_;
+
+    static Clip* rowClipFn(void* ctx, uint32_t deckId, int row, int column)
+    {
+        auto* self = static_cast<Composition*>(ctx);
+        if (Deck* d = self->findDeckById(deckId))
+            return d->getClip(row, column);
+        return nullptr;
+    }
+
+    static int rowCellsFn(void* ctx, uint32_t deckId, int row)
+    {
+        auto* self = static_cast<Composition*>(ctx);
+        if (const Deck* d = self->findDeckById(deckId))
+            if (const ClipRow* r = d->getRow(row))
+                return r->getNumColumns();
+        return -1;
+    }
 
     void eraseRoutineIfUnreferenced(const std::string& uuid)
     {

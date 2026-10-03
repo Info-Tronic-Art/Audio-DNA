@@ -1,7 +1,6 @@
 #include "Renderer.h"
 #include "core/LogLine.h"
 #include "render/EmbeddedShaders.h"
-#include "render/DeckClock.h"
 #include "render/ClipTransportSync.h"
 #include "render/PixelConvert.h"
 #include "render/PngWrite.h"
@@ -386,10 +385,12 @@ void Renderer::renderOpenGL()
 
     // Check for active deck compositing. s-rta-0928b mediaopen (adoption P3): the deck and the withDeckDetached fence
     // state come from ONE load of one atomic word -- no window between two loads on the fence's begin or end edge.
+    // Lane bf9b (plan-bf9b F5): the pointer is the fence token only -- never dereferenced (lint B4c); the frame
+    // composites the show's SHARED layer stack (composition_), whatever deck the grid shows.
     const auto deckView = activeDeck_.view();
-    Deck* deck = deckView.ptr;
-    bool deckActive = (deck != nullptr);
+    bool deckActive = (deckView.ptr != nullptr) && composition_ != nullptr;
     const bool fenced = deckView.fenced;
+    showReadable_ = deckActive;   // the Layer Router may read the shared stack this frame (renderSource)
 
     // Read latest audio features (R5: coherent caller-owned value copy).
     // Onset render-path fix: read the bus FIRST (before the early return below) so idle
@@ -407,8 +408,7 @@ void Renderer::renderOpenGL()
     // s-rta-0928b mediaopen: inside a withDeckDetached fence the model is being mutated -- HOLD the canvas exactly as
     // the previous frame left it (nothing has touched canvasFBO_ yet this frame), re-present it, re-publish it to the
     // outputs. No capture is answered (a held frame is not this frame's picture; the fence lasts 1-2 frames), no
-    // recorder / Syphon frame (as the two early returns below), no deck-transition detection (the first unfenced
-    // frame detects it with the held picture as the outgoing one), no canvas-size debounce step, no composite (no
+    // recorder / Syphon frame (as the two early returns below), no canvas-size debounce step, no composite (no
     // history key is touched: Pitfall 35). It used to fall to the "nothing to render" path and show one black frame
     // per fenced frame on every output (5-14 on a video drop, diag-media S2). The present geometry is the canvas
     // block's (compW / compH below), recomputed here because this path returns before it.
@@ -448,7 +448,7 @@ void Renderer::renderOpenGL()
     float compH = component != nullptr ? static_cast<float>(component->getHeight()) * scale : 1.0f;
 
     {
-        // Plain-int reads of message-thread-written fields: the house class (globalTransitionSpeed below; the R5
+        // Plain-int reads of message-thread-written fields: the house class (the R5
         // config scalars, not yet Relaxed<T> -- Pitfall 63). The debounce removes the one new hazard -- a half-applied
         // pair (the Composition inspector writes width, then height) reallocating everything for one frame.
         const int reqW = composition_ != nullptr ? composition_->outputWidth : 0;
@@ -460,44 +460,6 @@ void Renderer::renderOpenGL()
     const RenderGeometry::Size canvas = RenderGeometry::resolveCanvas(
         static_cast<int>(static_cast<uint32_t>(lockPacked >> 32)), static_cast<int>(static_cast<uint32_t>(lockPacked)),
         stableW_, stableH_);
-
-    // P25: Detect a deck switch and start the cross-deck transition. s-rta-0926b plan4 F2: detected HERE, at the
-    // top of the frame, because only here does the canvas still hold the previous frame -- the outgoing deck's
-    // last picture, exactly what was on screen (mid-transition too). Detected after the composite (as it used to
-    // be), the "outgoing" copy was the NEW deck's first frame and every deck transition was a cut. Blitted
-    // (scaled if the canvas size changes this frame) into prevDeckFBO_ before ensureCanvasFBO / the clear (R5).
-    // s-rta-1002 tsan T6: the deck index is DERIVED from the acquire-loaded deck pointer above (as the autopilot
-    // block below does), never read from Composition::activeDeckIndex (the message thread's field): the index and
-    // the deck this frame renders can never disagree. No deck this frame (fenced before the first canvas, or none)
-    // keeps prevActiveDeckIndex_.
-    if (composition_ != nullptr && deck != nullptr && !composition_->decks.empty()
-        && deck >= composition_->decks.data() && deck < composition_->decks.data() + composition_->decks.size())
-    {
-        const int currentDeckIdx = static_cast<int>(deck - composition_->decks.data());
-        if (currentDeckIdx != prevActiveDeckIndex_)
-        {
-            // globalTransitionSpeed is a DURATION in seconds (see its comment in Composition.h), same
-            // misleading-name pattern as Layer::transitionSpeed. S167-L4b DT-FIX: progress-per-SECOND
-            // (1.0 / duration), multiplied by the real measured dt each frame -- not a hardcoded assume-60fps
-            // progress-per-frame constant.
-            const float transSpeed = composition_->globalTransitionSpeed;
-            if (transSpeed > 0.001f && canvasTex_ != 0)
-            {
-                ensurePrevDeckFBO(canvas.w, canvas.h);
-                glBindFramebuffer(GL_READ_FRAMEBUFFER, canvasFBO_);
-                glBindFramebuffer(GL_DRAW_FRAMEBUFFER, prevDeckFBO_);
-                glBlitFramebuffer(0, 0, canvasW_, canvasH_, 0, 0, canvas.w, canvas.h, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-                glBindFramebuffer(GL_FRAMEBUFFER, 0);
-                deckTransitionProgress_ = 0.0f;
-                deckTransitionSpeed_ = 1.0f / transSpeed;
-            }
-            else
-            {
-                deckTransitionProgress_ = 1.0f;   // Instant cut
-            }
-            prevActiveDeckIndex_ = currentDeckIdx;
-        }
-    }
 
     ensureCanvasFBO(canvas.w, canvas.h);
     const float renderW = static_cast<float>(canvas.w);
@@ -541,16 +503,14 @@ void Renderer::renderOpenGL()
     // while this GL context is detached (previewPanel_ hidden). See
     // MainComponent::tickFeaturePipeline().
 
-    // P13.5.9: Process autopilot (beat-synced clip advancement + beat snap). plan4 T5: the active deck's own
-    // instance (by deck index); the decks that are not on screen run theirs at the inactive-deck tick below.
+    // P13.5.9: Process autopilot (beat-synced clip advancement + beat snap). Lane bf9b: ONE show autopilot over the
+    // shared layer stack, once per frame, inside the deckActive gate (the fence).
     if (deckActive)
     {
-        size_t activeIndex = 0;
-        if (composition_ != nullptr && !composition_->decks.empty()
-            && deck >= composition_->decks.data() && deck < composition_->decks.data() + composition_->decks.size())
-            activeIndex = static_cast<size_t>(deck - composition_->decks.data());
+        showAutopilot_.setPerTypeConfig(autopilotPerTypeConfig_.load(std::memory_order_acquire));
+        showAutopilot_.setSmartRandomEnabled(autopilotSmartRandom_.load(std::memory_order_relaxed));
         Autopilot::FrameReport apReport;
-        bool clipAdvanced = autopilots_.forIndex(activeIndex).processFrame(*deck, snap, &apReport);
+        bool clipAdvanced = showAutopilot_.processFrame(*composition_, snap, &apReport);
         countAutopilot(apReport);
         if (clipAdvanced && onAutopilotAdvanced_)
         {
@@ -591,15 +551,14 @@ void Renderer::renderOpenGL()
     // P20.5: Process MilkDrop preset playlist cycling (beat-synced preset advance within clips)
     // Beats since the previous frame -- the totalBeatCount delta, taken ONCE per frame so every playlist layer sees
     // it (the old per-layer wrap baseline let only the first layer see a crossing; Pitfalls 38 / 42).
+    // Lane bf9b (ruling-bf10 H3): the PLAYING layers' clips, whatever deck the grid shows -- browsing decks never
+    // freezes a playing MilkDrop clip's playlist.
     const uint32_t playlistBeats = playlistBeatCrossings_.consume(snap.totalBeatCount);
     if (deckActive)
     {
-        for (int li = 0; li < deck->getNumLayers(); ++li)
+        for (int li = 0; li < composition_->getNumLayers(); ++li)
         {
-            auto* layer = deck->getLayer(li);
-            if (!layer) continue;
-
-            auto* clip = layer->getActiveClip();   // lane tsan: ONE tuple load (null when no clip is active)
+            auto* clip = composition_->playingClip(li);   // lane tsan: ONE tuple load (null when no clip is active)
             if (!clip || clip->sourceType != "projectm_visualizer") continue;
             if (!clip->hasPresetPlaylist()) continue;
             if (clip->presetPlaylist.size() <= 1) continue;
@@ -689,9 +648,9 @@ void Renderer::renderOpenGL()
         : static_cast<float>(juce::Time::getMillisecondCounterHiRes() / 1000.0 - startTime_);
 
     // S167-L4b DT-FIX: real measured frame delta, fed to scaledTime_ below
-    // (procedural-source clock) and to compositeDeck()/
-    // compositePersistentLayers() further down (video/image-sequence
-    // playhead advancement) -- see lastFrameTimestampMs_'s comment in
+    // (procedural-source clock) and to compositeShow() further down
+    // (video/image-sequence playhead advancement) -- see
+    // lastFrameTimestampMs_'s comment in
     // Renderer.h for why this must be a REAL delta, not a hardcoded 1/60.
     // Clamped to [0, 0.25]s so a debugger pause, backgrounding, or the very
     // first frame (lastFrameTimestampMs_ == -1) can't make video (or
@@ -732,63 +691,11 @@ void Renderer::renderOpenGL()
     {
         // P18: provide audio snapshot to compositor for audio-reactive effects
         compositor_.setLatestSnapshot(snap);
-        sourceTexture = compositor_.compositeDeck(*deck, shaderMgr_, quad_, time, realDt,
+        sourceTexture = compositor_.compositeShow(*composition_, shaderMgr_, quad_, time, realDt,
                                                    static_cast<int>(renderW),
                                                    static_cast<int>(renderH));
 
-        // P21: Composite persistent layers from non-active decks
-        if (composition_)
-        {
-            // s-rta-0926b: an EMPTY active deck (compositeDeck returned 0) used
-            // to drop every persistent layer as well -- the fallback below was
-            // presented and the accumulator they had drawn into was discarded.
-            // When another deck has persistent content, the frame starts as over
-            // a black active deck instead.
-            if (sourceTexture == 0)
-            {
-                for (const auto& otherDeck : composition_->decks)
-                {
-                    if (&otherDeck != deck && CompositorEngine::hasPersistentContent(otherDeck))
-                    {
-                        sourceTexture = compositor_.beginEmptyActiveDeck(static_cast<int>(renderW),
-                                                                         static_cast<int>(renderH));
-                        break;
-                    }
-                }
-            }
-
-            for (auto& otherDeck : composition_->decks)
-            {
-                if (&otherDeck == deck) continue; // Skip active deck
-                compositor_.compositePersistentLayers(otherDeck, shaderMgr_, quad_, time, realDt,
-                                                       static_cast<int>(renderW),
-                                                       static_cast<int>(renderH));
-            }
-
-            // plan4 item 2 -- decks that are not on screen keep time (Boris 2026-09-26: "finish the fade ...
-            // does not touch the clips playing in the layer"). Inside `if (deckActive)` on purpose:
-            // withDeckDetached's fence (active deck = nullptr) covers this exactly as it covers
-            // compositePersistentLayers above. Not gated on sourceTexture: an empty active deck still lets
-            // the other decks run. Persistent layers are owned by compositePersistentLayers (DeckClock).
-            for (size_t di = 0; di < composition_->decks.size(); ++di)
-            {
-                Deck& other = composition_->decks[di];
-                if (&other == deck) continue;
-                // B2 (Boris Q1: "keep playing"): media clocks run without decoding; autopilot keeps advancing.
-                const int adopts = DeckClock::tick(other, realDt,
-                                                   [this](const Clip* c, float dt) { tickMediaClock(c, dt); });
-                renderTupleAdopts_.fetch_add(static_cast<uint64_t>(adopts), std::memory_order_relaxed);
-                Autopilot::FrameReport apReport;
-                const bool advanced = autopilots_.forIndex(di).processFrame(other, snap, &apReport);
-                countAutopilot(apReport);
-                if (advanced && onAutopilotAdvanced_)
-                {
-                    auto callback = onAutopilotAdvanced_;
-                    juce::MessageManager::callAsync([callback]() { callback(); });
-                }
-            }
-        }
-        // Lane tsan (amendment 13): the active deck's and the persistent layers' fade-tick adopts this frame.
+        // Lane tsan (amendment 13): the shared stack's fade-tick adopts this frame.
         renderTupleAdopts_.fetch_add(compositor_.takeTupleAdopts(), std::memory_order_relaxed);
 
         // Update persistent feedback buffer for feedback effects
@@ -797,11 +704,10 @@ void Renderer::renderOpenGL()
                                           static_cast<int>(renderH));
 
         // S166: Apply Composition::globalEffects to the fully-composited
-        // frame now that the active deck AND any persistent layers from
-        // other decks have both been written into the accumulator —
-        // CompositorEngine.h's documented pipeline stage between layer
+        // frame now that the shared stack has been written into the
+        // accumulator — CompositorEngine.h's documented pipeline stage between layer
         // compositing and Master Opacity/output. Guarded on sourceTexture
-        // != 0 so a deck with no active layers (compositeDeck returned 0)
+        // != 0 so a show with no active layers (compositeShow returned 0)
         // does not run effects over nothing.
         if (composition_ && sourceTexture != 0)
         {
@@ -907,64 +813,7 @@ void Renderer::renderOpenGL()
         glDisable(GL_BLEND);
     }
 
-    // P25: Cross-deck transition blending. s-rta-0926b plan4 F2: AFTER master opacity -- the outgoing picture
-    // (prevDeckFBO_, the canvas as it left the app, see the top of the frame) is already final, so the incoming
-    // one is made final first; blending the two final pictures starts exactly on the frame that was on screen
-    // (blending before master opacity would dim the outgoing picture twice).
-    if (composition_ && deckTransitionProgress_ < 1.0f)
-    {
-        const int w = canvas.w;
-        const int h = canvas.h;
-        if (prevDeckTexture_ != 0)
-        {
-            // Copy the canvas (new deck) to a temp texture
-            ensureCompTransformFBO(w, h);
-            glBindFramebuffer(GL_READ_FRAMEBUFFER, canvasFBO_);
-            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, compTransformFBO_);
-            glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-
-            // Draw the transition shader (old deck → new deck)
-            glBindFramebuffer(GL_FRAMEBUFFER, canvasFBO_);
-            glViewport(0, 0, w, h);
-
-            auto* prog = shaderMgr_.getProgram("deck_transition");
-            if (prog)
-            {
-                prog->use();
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, prevDeckTexture_);
-                glActiveTexture(GL_TEXTURE1);
-                glBindTexture(GL_TEXTURE_2D, compTransformTexture_);
-                glActiveTexture(GL_TEXTURE0);
-
-                auto l = prog->getUniformIDFromName("u_textureA");
-                if (l >= 0) glUniform1i(l, 0);
-                l = prog->getUniformIDFromName("u_textureB");
-                if (l >= 0) glUniform1i(l, 1);
-                l = prog->getUniformIDFromName("u_progress");
-                if (l >= 0) glUniform1f(l, deckTransitionProgress_);
-                l = prog->getUniformIDFromName("u_blendMode");
-                if (l >= 0) glUniform1i(l, static_cast<int>(composition_->crossfaderBlendMode));
-
-                glDisable(GL_BLEND);
-                quad_.draw();
-            }
-        }
-
-        // Advance transition progress. S167-L4b DT-FIX (deck-transition
-        // instance, found sweeping for the same shape as the layer-
-        // crossfade fix above): deckTransitionSpeed_ is progress-per-SECOND
-        // now (see its computation below), so multiplying by the real
-        // measured frame delta keeps total transition duration constant
-        // regardless of callback rate -- a hardcoded progress-per-frame
-        // constant here used to make deck transitions run 2x fast at
-        // 120fps / 2x slow at 30fps, same as the layer-crossfade defect.
-        deckTransitionProgress_ += deckTransitionSpeed_ * realDt;
-        if (deckTransitionProgress_ >= 1.0f)
-            deckTransitionProgress_ = 1.0f;
-    }
-
-    // s-rta-0927 outputs-c1: the canvas is final here (the deck transition above is its last writer) -- copy it
+    // s-rta-0927 outputs-c1: the canvas is final here (master opacity above is its last writer) -- copy it
     // once into the shared frames the output windows present. Inside the measured window: its cost shows in
     // frame_time_ms / gpu_time_ms. No-op (zero cost) when no output is live.
     publishToOutputs(canvas.w, canvas.h);
@@ -1234,9 +1083,6 @@ void Renderer::openGLContextClosing()
     // P25: Release composition transform FBO
     if (compTransformFBO_ != 0) { glDeleteFramebuffers(1, &compTransformFBO_); compTransformFBO_ = 0; }
     if (compTransformTexture_ != 0) { glDeleteTextures(1, &compTransformTexture_); compTransformTexture_ = 0; }
-    // P25: Release previous deck FBO
-    if (prevDeckFBO_ != 0) { glDeleteFramebuffers(1, &prevDeckFBO_); prevDeckFBO_ = 0; }
-    if (prevDeckTexture_ != 0) { glDeleteTextures(1, &prevDeckTexture_); prevDeckTexture_ = 0; }
 
     // P22.1: Stop the Syphon server (must run on the GL thread while the context
     // is still alive) and release its blit FBO/texture.
@@ -1442,17 +1288,14 @@ GLuint Renderer::renderSource(const std::string& sourceId, float time, int width
         // Map [0,1] to layer index. Assumes max ~10 layers.
         int layerIndex = static_cast<int>(layerParam * 9.0f + 0.5f);
 
-        // Find layer ID from index in the active deck
-        Deck* deck = activeDeck_.get();
-        if (deck)
+        // Find layer ID from index in the show's shared stack (lane bf9b; GL thread inside the fence's deckActive
+        // gate -- renderSource runs from compositeShow)
+        if (showReadable_ && composition_ != nullptr && layerIndex >= 0 && layerIndex < composition_->getNumLayers())
         {
-            if (layerIndex >= 0 && layerIndex < deck->getNumLayers())
-            {
-                uint32_t targetLayerId = deck->layers[static_cast<size_t>(layerIndex)].id;
-                GLuint tex = compositor_.getLayerOutputTexture(targetLayerId);
-                if (tex != 0)
-                    return tex;
-            }
+            uint32_t targetLayerId = composition_->layers[static_cast<size_t>(layerIndex)].id;
+            GLuint tex = compositor_.getLayerOutputTexture(targetLayerId);
+            if (tex != 0)
+                return tex;
         }
         return 0; // No layer output available yet
     }
@@ -1765,10 +1608,10 @@ ImageSequence* Renderer::getImageSequence(uint32_t clipId)
 
 GLuint Renderer::getVideoFrameTexture(const Clip* clip, float dt, bool* pending)
 {
-    return syncMedia(clip, dt, true, pending);
+    return syncMedia(clip, dt, pending);
 }
 
-GLuint Renderer::syncMedia(const Clip* clip, float dt, bool decode, bool* pending)
+GLuint Renderer::syncMedia(const Clip* clip, float dt, bool* pending)
 {
     if (pending != nullptr)
         *pending = false;
@@ -1827,16 +1670,11 @@ GLuint Renderer::syncMedia(const Clip* clip, float dt, bool decode, bool* pendin
             player->setSpeed(effectiveClipSpeed(clip->speed, masterSpeedVal, false));
         }
 
-        if (decode)
-            player->advanceFrame(static_cast<double>(dt));
-        else
-            player->advanceClock(static_cast<double>(dt));   // plan4 T4: the clock only, no decode
+        player->advanceFrame(static_cast<double>(dt));
         // The playhead, the player's state back to the clip model (OneShot stops, PingPong reverses) as a CAS on the
         // intent read above, and the in/out points on the playhead just read (ClipTransportSync.h).
         ClipTransportSync::writeBack(*clip, *player, wanted);
 
-        if (!decode)
-            return 0;
         // s-rta-0928b video: picks the newest ring frame <= the clock, uploads only a new one, never waits. A player
         // that has never shown a frame is PENDING (Pitfall 53): the render_frame gate's counter (C3), as sequences do.
         // s-rta-0929 vupload P1: within this frame's video upload budget (both chains of a crossfade count).
@@ -1902,12 +1740,9 @@ GLuint Renderer::syncMedia(const Clip* clip, float dt, bool decode, bool* pendin
         // The playhead, the CAS write-back of the play state, the in/out points (ClipTransportSync.h; as the video).
         ClipTransportSync::writeBack(*clip, *seq, wanted);
 
-        // plan4 T4: no lazy PNG load for a deck that is not on screen. s-rta-0928 R1.4: the frames decode off the GL
-        // thread (look-ahead); a sequence with nothing to show yet is PENDING, and counts for the render_frame gate
-        // (C3: the same framePendingImages counter the compositor's images bump). s-rta-0928b seqvram: the sequence
-        // gets a SeqVram::Grant (its window's allowance).
-        if (!decode)
-            return 0;
+        // s-rta-0928 R1.4: the frames decode off the GL thread (look-ahead); a sequence with nothing to show yet is
+        // PENDING, and counts for the render_frame gate (C3: the same framePendingImages counter the compositor's
+        // images bump). s-rta-0928b seqvram: the sequence gets a SeqVram::Grant (its window's allowance).
         bool seqPending = false;
         // s-rta-0928b seqvram: the allowance = the free share of the sequence budget as the frame stands (a RUNNING
         // total, H3: the frame-top sum, updated after each drawn sequence), never below the floor. F3: the idle
@@ -1959,7 +1794,6 @@ void Renderer::compileAllShaders()
     compile("effect_dry_wet",       EmbeddedShaders::effectDryWet);
     compile("effect_drywet",        EmbeddedShaders::effectDryWet);
     compile("comp_transform",       EmbeddedShaders::compTransform);
-    compile("deck_transition",      EmbeddedShaders::deckTransition);
 
     // Warp
     compile("ripple",               EmbeddedShaders::ripple);
@@ -2709,32 +2543,6 @@ void Renderer::applyCompTransform(GLuint targetFBO, float vpX, float vpY, float 
 
     glDisable(GL_BLEND);
     quad_.draw();
-}
-
-// P25: Ensure previous deck FBO exists at the right size
-void Renderer::ensurePrevDeckFBO(int width, int height)
-{
-    if (prevDeckTexture_ != 0 && prevDeckWidth_ == width && prevDeckHeight_ == height)
-        return;
-
-    if (prevDeckFBO_ != 0) glDeleteFramebuffers(1, &prevDeckFBO_);
-    if (prevDeckTexture_ != 0) glDeleteTextures(1, &prevDeckTexture_);
-
-    glGenTextures(1, &prevDeckTexture_);
-    glBindTexture(GL_TEXTURE_2D, prevDeckTexture_);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-    glGenFramebuffers(1, &prevDeckFBO_);
-    glBindFramebuffer(GL_FRAMEBUFFER, prevDeckFBO_);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, prevDeckTexture_, 0);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    prevDeckWidth_ = width;
-    prevDeckHeight_ = height;
 }
 
 // P22.1: Ensure the Syphon publish FBO/texture exists at the right size

@@ -3,8 +3,8 @@
 #include <algorithm>
 
 // LayerClock: a layer's clip-to-clip crossfade clock, pure on Layer (no GL) -- s-rta-0926b plan4 item 2 T1.
-// ONE body for every caller: CompositorEngine (the active deck and persistent layers) and DeckClock::tick (decks
-// that are not on screen) call tick() with the tuple they loaded once for the layer this frame.
+// ONE body for every caller: CompositorEngine::compositeShow calls tick() with the tuple it loaded once for the
+// shared layer this frame (lane bf9b: every layer is on screen, whatever deck the grid shows).
 namespace LayerClock
 {
 // P14: the tuple one frame later -- pure. S167-L4b DT-FIX: `transitionSpeed` is actually a DURATION in seconds
@@ -23,7 +23,10 @@ inline LayerRuntimeSnapshot advanced(LayerRuntimeSnapshot rt, float transitionSp
         const float step = dt / speed;
         rt.crossfadeProgress = std::min(rt.crossfadeProgress + step, 1.0f);
         if (rt.crossfadeProgress >= 1.0f)
+        {
             rt.previousClipColumn = -1; // transition complete
+            rt.previousDeckId = ClipRef::kNoDeck;
+        }
     }
     return rt;
 }

@@ -13,17 +13,6 @@ DeckView::DeckView()
     gridViewport_.setScrollBarsShown(true, true);
     addAndMakeVisible(gridViewport_);
 
-    // plan6 §6.2: the Remove-Deck undo hint -- created once, hidden until showUndoHint (Pitfall 34: a Component is
-    // invisible by default; addChildComponent keeps it so), never rebuilt with the tabs.
-    undoHintBtn_ = std::make_unique<juce::TextButton>();
-    undoHintBtn_->setColour(juce::TextButton::buttonColourId, juce::Colour(0xff2a2a2a));
-    undoHintBtn_->setColour(juce::TextButton::textColourOffId, juce::Colour(0xffcccccc));
-    undoHintBtn_->onClick = [this] {
-        if (onUndoHint) onUndoHint();
-        hideUndoHint();
-    };
-    addChildComponent(undoHintBtn_.get());
-
     // s-rta-1002b ui U3.2 (BF8; ruling AM2 / AM3): the deck-name box -- created once, hidden (Pitfall 34), never rebuilt
     // with the tabs -- and the ONE nested listener that opens it on a double-click and commits it on a click elsewhere.
     renameEditor_.onClose = [this](bool keep) { finishRename(keep); };
@@ -100,8 +89,7 @@ void DeckView::resized()
     // Calculate grid height to know where tabs should go
     int numLayers = 0;
     if (composition_)
-        if (auto* deck = composition_->getActiveDeck())
-            numLayers = deck->getNumLayers();
+        numLayers = composition_->getNumLayers();
 
     int gridHeight = (kCellHeight + kCellGap) * numLayers;
 
@@ -109,20 +97,15 @@ void DeckView::resized()
     int viewportHeight = std::min(gridHeight, area.getHeight() - kDeckTabHeight);
     gridViewport_.setBounds(area.removeFromTop(viewportHeight));
 
-    // Deck tabs immediately after the grid (attached to bottom of last layer); the "+" after the last tab and the
-    // Remove-Deck undo hint flush right (plan6 §6.1 DeckTabRow::layout -- tabs never move for the hint).
+    // Deck tabs immediately after the grid (attached to bottom of last layer); the "+" after the last tab
+    // (plan6 §6.1 DeckTabRow::layout).
     auto tabArea = area.removeFromTop(kDeckTabHeight);
     tabRow_ = tabArea;
-    const auto L = DeckTabRow::layout(tabArea.getWidth(), static_cast<int>(deckTabs_.size()),
-                                      undoHintBtn_->isVisible() ? undoHintBtn_->getWidth() : 0);
+    const auto L = DeckTabRow::layout(tabArea.getWidth(), static_cast<int>(deckTabs_.size()));
     for (size_t i = 0; i < deckTabs_.size(); ++i)
         deckTabs_[i]->setBounds(tabArea.getX() + L.tabs[i].x, tabArea.getY(), L.tabs[i].w, kDeckTabHeight);
     if (plusTab_)
         plusTab_->setBounds(tabArea.getX() + L.plus.x, tabArea.getY(), L.plus.w, kDeckTabHeight);
-    if (L.hint.w > 0)
-        undoHintBtn_->setBounds(tabArea.getX() + L.hint.x, tabArea.getY(), L.hint.w, kDeckTabHeight);
-    else if (undoHintBtn_->isVisible())
-        hideUndoHint();                         // no room next to the "+": never overlap it
     placeRenameEditor();                        // s-rta-1002b ui U3.2: the open box follows its deck's tab
 
     // Layout grid content inside viewport
@@ -137,9 +120,6 @@ void DeckView::setComposition(Composition* comp)
 
 void DeckView::rebuildGrid()
 {
-    // plan6 §6.2: every structural change retires the Remove-Deck undo hint (removeDeck shows it AFTER its rebuild).
-    hideUndoHint();
-
     // Clear existing
     layerStrips_.clear();
     clipCells_.clear();
@@ -158,7 +138,8 @@ void DeckView::rebuildGrid()
     if (!deck)
         return;
 
-    int numLayers = deck->getNumLayers();
+    // Lane bf9b: one strip per SHARED layer (the same on every deck); the cells are the shown deck's rows.
+    int numLayers = composition_->getNumLayers();
     int numCols = deck->numColumns;
 
     // Create layer strips and clip cells
@@ -169,13 +150,14 @@ void DeckView::rebuildGrid()
     {
         // Display row 0 = highest layer index (top of screen = top layer)
         int layerIdx = numLayers - 1 - displayRow;
-        auto* layer = deck->getLayer(layerIdx);
+        auto* layer = composition_->getLayer(layerIdx);
         if (!layer) continue;
 
         // Layer strip
         auto strip = std::make_unique<LayerStrip>();
         strip->setThumbnails(&thumbnails_);
-        strip->setLayer(layer, layerIdx);
+        strip->setLayer(layer, layerIdx, composition_);
+        strip->setSelected(layerIdx == selectedLayerIndex_);   // a rebuild keeps the selected layer's highlight
 
         // Wire callbacks
         strip->onSelect = [this](int idx) {
@@ -215,8 +197,8 @@ void DeckView::rebuildGrid()
             cell->setGridPosition(layerIdx, col);
             cell->setThumbnails(&thumbnails_);
             cell->setVideoInfoSource(&videoInfoSource_);   // s-rta-1002b ui U2.3 (BF3)
-            cell->setClip(layer->getClipAt(col));
-            cell->setActive(layer->runtime().activeClipColumn == col);
+            cell->setClip(deck->getClip(layerIdx, col));
+            cell->setActive(layer->runtime().activeRef() == ClipRef{ deck->id, col });
 
             // Wire callbacks
             cell->onTrigger = [this](int li, int c) {
@@ -280,7 +262,7 @@ void DeckView::rebuildGrid()
     selectedCells_.erase(
         std::remove_if(selectedCells_.begin(), selectedCells_.end(),
             [&](const CellPos& p) {
-                return p.column < 0 || p.column >= numCols || deck->getLayer(p.layer) == nullptr;
+                return p.column < 0 || p.column >= numCols || deck->getRow(p.layer) == nullptr;
             }),
         selectedCells_.end());
     updateSelectionVisuals();
@@ -296,35 +278,34 @@ void DeckView::refresh()
     auto* deck = composition_->getActiveDeck();
     if (!deck) return;
 
-    int numLayers = deck->getNumLayers();
+    int numLayers = composition_->getNumLayers();
 
     for (int displayRow = 0; displayRow < static_cast<int>(layerStrips_.size()); ++displayRow)
     {
         int layerIdx = numLayers - 1 - displayRow;
-        auto* layer = deck->getLayer(layerIdx);
+        auto* layer = composition_->getLayer(layerIdx);
         if (!layer) continue;
 
         layerStrips_[static_cast<size_t>(displayRow)]->refresh();
 
+        // Lane bf9b: a cell is lit iff it is the active ref of its row's layer -- a clip playing from another deck
+        // lights no cell of this one.
+        const ClipRef active = layer->runtime().activeRef();
         auto& layerCells = clipCells_[static_cast<size_t>(displayRow)];
         for (size_t col = 0; col < layerCells.size(); ++col)
         {
             if (layerCells[col])
             {
-                layerCells[col]->setClip(layer->getClipAt(static_cast<int>(col)));
-                layerCells[col]->setActive(layer->runtime().activeClipColumn == static_cast<int>(col));
+                layerCells[col]->setClip(deck->getClip(layerIdx, static_cast<int>(col)));
+                layerCells[col]->setActive(active == ClipRef{ deck->id, static_cast<int>(col) });
             }
         }
     }
 
-    // Update column trigger highlights
+    // Update column trigger highlights (lane bf9b, ruling-bf9b 16(e): lit only on the deck the column was fired from --
+    // a column remembered without a deck lights on none)
     for (size_t col = 0; col < columnTriggers_.size(); ++col)
-    {
-        bool isActive = static_cast<int>(col) == activeColumn_;
-        columnTriggers_[col]->setColour(
-            juce::TextButton::buttonColourId,
-            isActive ? juce::Colour(0xff3a5a4a) : juce::Colour(0xff2a2a2a));
-    }
+        columnTriggers_[col]->setColour(juce::TextButton::buttonColourId, columnHeaderColour(static_cast<int>(col)));
 
     // Update deck tabs: active colour, plus the label and tooltip (a Rename / Save As changes them) --
     // compare-before-set, refresh runs at UI rate.
@@ -344,27 +325,42 @@ void DeckView::refresh()
                 deckTabs_[i]->setTooltip(tip);
         }
     }
-
     repaint();
 }
 
-void DeckView::setActiveColumn(int col)
+void DeckView::setActiveColumn(int col, uint32_t deckId)
 {
     activeColumn_ = col;
+    activeColumnDeckId_ = deckId;
     refresh();
+}
+
+void DeckView::showDeck()
+{
+    if (!composition_) return;
+    auto* deck = composition_->getActiveDeck();
+    if (!deck) return;
+    const bool sameShape = static_cast<int>(layerStrips_.size()) == composition_->getNumLayers()
+                        && static_cast<int>(columnTriggers_.size()) == deck->numColumns
+                        && std::all_of(clipCells_.begin(), clipCells_.end(), [deck](const auto& row) {
+                               return static_cast<int>(row.size()) == deck->numColumns;
+                           });
+    if (!sameShape)
+    {
+        rebuildGrid();
+        return;
+    }
+    refresh();   // the cells re-point at the shown deck's rows; the strips (the shared layers) stay as they are
 }
 
 int DeckView::getNaturalHeight() const
 {
     if (!composition_) return 200;
-    auto* deck = composition_->getActiveDeck();
-    if (!deck) return 200;
-
     static constexpr int kFoldedHeight = 22;
     int totalRowHeight = 0;
-    for (int i = 0; i < deck->getNumLayers(); ++i)
+    for (int i = 0; i < composition_->getNumLayers(); ++i)
     {
-        auto* layer = deck->getLayer(i);
+        auto* layer = composition_->getLayer(i);
         totalRowHeight += (layer && layer->folded) ? (kFoldedHeight + kCellGap) : (kCellHeight + kCellGap);
     }
     return kRoutineRowHeight + kColumnTriggerHeight + totalRowHeight + kDeckTabHeight;
@@ -377,7 +373,7 @@ void DeckView::layoutGrid()
     if (!deck) return;
 
     int numCols = deck->numColumns;
-    int numLayers = deck->getNumLayers();
+    int numLayers = composition_->getNumLayers();
     static constexpr int kFoldedHeight = 22; // P24.12: collapsed row height
 
     // Calculate total content height with variable row heights
@@ -385,7 +381,7 @@ void DeckView::layoutGrid()
     int contentHeight = 0;
     for (int i = 0; i < numLayers; ++i)
     {
-        auto* layer = deck->getLayer(i);
+        auto* layer = composition_->getLayer(i);
         contentHeight += (layer && layer->folded) ? (kFoldedHeight + kCellGap) : (kCellHeight + kCellGap);
     }
     gridContent_->setSize(contentWidth, contentHeight);
@@ -397,7 +393,7 @@ void DeckView::layoutGrid()
         // mirror the index like rebuildGrid()/refresh()/updateSelectionVisuals()
         // do, so a folded layer's row height is read from the right layer.
         int layerIdx = numLayers - 1 - displayRow;
-        auto* layer = deck->getLayer(layerIdx);
+        auto* layer = composition_->getLayer(layerIdx);
         int rowH = (layer && layer->folded) ? kFoldedHeight : kCellHeight;
 
         // Layer strip on the left
@@ -417,6 +413,13 @@ void DeckView::layoutGrid()
     }
 }
 
+juce::Colour DeckView::columnHeaderColour(int col) const
+{
+    const Deck* deck = composition_ != nullptr ? composition_->getActiveDeck() : nullptr;
+    const bool lit = deck != nullptr && col == activeColumn_ && activeColumnDeckId_ == deck->id;
+    return juce::Colour(lit ? kHeaderLit : juce::uint32 { 0xff2a2a2a });
+}
+
 void DeckView::setupColumnTriggers()
 {
     columnTriggers_.clear();
@@ -428,7 +431,8 @@ void DeckView::setupColumnTriggers()
     for (int col = 0; col < deck->numColumns; ++col)
     {
         auto btn = std::make_unique<juce::TextButton>(juce::String(col + 1));
-        btn->setColour(juce::TextButton::buttonColourId, juce::Colour(0xff2a2a2a));
+        // Lit at creation too (refresh()'s predicate): a rebuild is not always followed by refresh().
+        btn->setColour(juce::TextButton::buttonColourId, columnHeaderColour(col));
         btn->setColour(juce::TextButton::textColourOffId, juce::Colour(0xff888888));
 
         int capturedCol = col;
@@ -490,10 +494,7 @@ void DeckView::selectLayer(int layerIndex)
 void DeckView::updateSelectionVisuals()
 {
     if (!composition_) return;
-    auto* deck = composition_->getActiveDeck();
-    if (!deck) return;
-
-    int numLayers = deck->getNumLayers();
+    int numLayers = composition_->getNumLayers();
 
     for (int displayRow = 0; displayRow < static_cast<int>(clipCells_.size()); ++displayRow)
     {
@@ -985,30 +986,4 @@ void DeckView::showPlusMenu()
                            if (result > 0 && onDeckAction)
                                onDeckAction(-1, static_cast<DeckTabRow::Action>(result));
                        });
-}
-
-void DeckView::showUndoHint(const juce::String& text)
-{
-    undoHintBtn_->setButtonText(text);
-    // Measured like the tab text (drawButtonText's 14 pt font) + 8 px each side.
-    const int w = juce::GlyphArrangement::getStringWidthInt(juce::Font(juce::FontOptions(14.0f)), text) + 16;
-    undoHintBtn_->setSize(w, kDeckTabHeight);
-    undoHintBtn_->setVisible(true);
-    resized();
-
-    const int gen = ++undoHintGeneration_;
-    juce::Timer::callAfterDelay(kUndoHintMs, [sp = juce::Component::SafePointer<DeckView>(this), gen] {
-        if (sp != nullptr && sp->undoHintGeneration_ == gen)
-            sp->hideUndoHint();
-    });
-}
-
-void DeckView::hideUndoHint()
-{
-    ++undoHintGeneration_;
-    if (undoHintBtn_->isVisible())
-    {
-        undoHintBtn_->setVisible(false);
-        resized();
-    }
 }

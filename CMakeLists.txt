@@ -204,6 +204,9 @@ target_sources(AudioDNA PRIVATE
     src/model/Deck.h
     src/model/Layer.h
     src/model/Layer.cpp
+    src/model/ClipRef.h
+    src/model/ClipRow.h
+    src/model/ShowMigration.h
     src/model/Clip.h
     src/model/Clip.cpp
     src/model/Autopilot.h
@@ -242,6 +245,7 @@ target_sources(AudioDNA PRIVATE
 
     # Binding (v2)
     src/binding/Binding.h
+    src/binding/BindingTarget.h
     src/binding/BindingManager.h
     src/binding/BindingManager.cpp
 

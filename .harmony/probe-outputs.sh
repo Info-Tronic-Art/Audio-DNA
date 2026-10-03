@@ -35,8 +35,8 @@ if [ -n "${AUDIODNA_LOCK_OWNER:-}" ]; then
 fi
 adna_pids() { ps -eo pid=,ucomm= | awk '$2=="Audio-DNA"{print $1}'; }
 adna_running() { [ -n "$(adna_pids)" ]; }
-adna_kill() { local p; p="$(adna_pids)"; [ -n "$p" ] && kill $p 2>/dev/null; }
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; A='http://127.0.0.1:7070'
+. "$ROOT/.harmony/probe-quit-ours.sh"   # refuse_foreign_start / record_ourpid / quit_ours: quit ONLY the app this run launched
 MAIN="$(cd "$(git -C "$ROOT" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)/.." 2>/dev/null && pwd)"
 APP="${OUTP_APP:-$ROOT/build/AudioDNA_artefacts/Release/Audio-DNA.app}"
 PY="${OUTP_PY:-}"
@@ -45,7 +45,7 @@ MEDIA="$ROOT/media"; [ -f "$MEDIA/P16_01_baseline.png" ] || MEDIA="$MAIN/media"
 [ -d "$APP" ] || { echo "REFUSE: no app at $APP (set OUTP_APP)"; exit 64; }
 [ -n "$PY" ] && "$PY" -c 'import PIL, numpy, requests, Quartz' 2>/dev/null || { echo "REFUSE: no python with PIL+numpy+requests+Quartz (set OUTP_PY)"; exit 64; }
 [ -f "$MEDIA/P16_01_baseline.png" ] || { echo "REFUSE: media/P16_01_baseline.png not found"; exit 64; }
-adna_running && { echo "REFUSE: Audio-DNA already running"; exit 64; }
+refuse_foreign_start || exit 64
 for PORT in 7070 8080; do
   lsof -nP -iTCP:$PORT -sTCP:LISTEN >/dev/null 2>&1 && { echo "REFUSE: port $PORT already has a listener: $(lsof -nP -iTCP:$PORT -sTCP:LISTEN | tail -n +2 | awk '{print $1" "$2}' | head -2 | tr '\n' ' ')"; exit 64; }
 done
@@ -56,6 +56,7 @@ if [ -n "${OUTP_SETTINGS:-}" ]; then cp "$OUTP_SETTINGS" "$SETTINGS_FILE" || { e
 echo "settings: $SETTINGS_FILE ($([ -f "$SETTINGS_FILE" ] && echo "seeded, sha256 $(shasum -a 256 "$SETTINGS_FILE" | cut -c1-16)" || echo absent))"
 ENVARGS=(--env "AUDIODNA_SETTINGS_FILE=$SETTINGS_FILE"); [ -n "${OUTP_ENV:-}" ] && ENVARGS+=(--env "$OUTP_ENV")
 open -g --stdout "$OUT/out.log" --stderr "$OUT/err.log" ${ENVARGS[@]+"${ENVARGS[@]}"} "$APP" --args --test-mode
+record_ourpid; echo "ours: pid ${OURPID:-none}"
 UP=0; for _ in $(seq 1 60); do [ -n "$(curl -s --max-time 1 "$A/api/health")" ] && { UP=1; break; }; sleep 1; done
 sleep 2
 RC=1
@@ -84,9 +85,7 @@ if wins:
 else:
     print("      no on-screen Audio-DNA main window to capture")
 PYEOF
-osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
-for _ in $(seq 1 30); do adna_running || break; sleep 1; done
-adna_running && { adna_kill; sleep 2; }
+quit_ours || RC=1
 if adna_running; then echo "FAIL  app still running"; RC=1; else echo "PASS  app terminated"; fi
 W="$("$PY" -c "
 import Quartz

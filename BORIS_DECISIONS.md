@@ -354,6 +354,13 @@ See `FEATURE_CONNECTIONS.md` Scenario 11 for full details.
   whichever deck is being looked at; switching decks changes only which clips the grid shows; nothing plays invisibly;
   Persistent is removed (redundant); ignore-column stays. Consequence defaults put to Boris the same turn are recorded in
   .harmony/binding-decisions.md "2026-10-02 (s-rta-1002b)".
+  Built (bf9b, s-rta-1002b; screen as of s-rta-1003): one shared layer stack (`Composition::layers`); decks are boxes
+  (`Deck::rows`); a deck switch changes only the grid; a layer strip shows the clip its layer plays and nothing about a
+  deck (Boris 2026-10-03: "The layer strip does not need to show the deck a clip is playing from."), a deck tab carries
+  no mark for a playing clip (asked whether the dot stays: "drop"); the deck-to-deck Fade is gone; old shows convert
+  with the first deck's layer looks, with no note on screen. Defaults taken until Boris answers: Q1 a deleted deck's playing clip keeps playing until replaced;
+  Q2 a loaded deck with more rows adds layers; Q3 withdrawn (genre deck auto-switch stays off); Q4 Undo skips deck
+  switches; Q5 a column fire empties a layer whose cell in that column is empty (Ignore Column keeps a layer).
 
 - **No stop model; routines live like clips (2026-09-26, verbatim):** "this is a playing app. there is no stop buttons
   anywhere. to end a routine it is replaced or removed from the layer control. it would be smart to figure out the best way
@@ -367,7 +374,7 @@ See `FEATURE_CONNECTIONS.md` Scenario 11 for full details.
   should not change aspect ratios. they should be what the composition is setup for, typically 1920x1080, 2k, 4k, or
   whatever the setting is.."
 
-- **Decks keep playing while off screen (2026-09-26):** Q "when you leave a deck, do its clips keep playing in time
+- **[CLARIFIED 2026-10-02 -- see "Decks are boxes of clips": clips in layers keep playing on screen; nothing plays unseen] Decks keep playing while off screen (2026-09-26):** Q "when you leave a deck, do its clips keep playing in time
   (video 10 s in is 40 s in when you come back 30 s later; autopilot keeps going), or freeze?" -> "keep playing".
 - **Clip fit mode (2026-09-26):** a picture whose shape differs from the composition: "default stretch but there should be
   a way to select stretch/bars/crop" -> per-clip setting Stretch (default) / Bars / Crop.

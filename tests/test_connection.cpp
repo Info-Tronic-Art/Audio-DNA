@@ -862,10 +862,10 @@ TEST_CASE("ConnectionEngine::tick: a gripped source-param connection publishes N
     sp.conn.source.lfo.shape = ConnSource::Lfo::Shape::SawUp;
     sp.conn.source.lfo.cycleBeats = 1.0f;
     clip.sourceParams.push_back(sp);
-    comp.decks[0].layers[0].clips[0] = clip;
+    comp.decks[0].rows[0].clips[0] = clip;
 
     auto liveOf = [&]() {
-        return comp.decks[0].layers[0].clips[0]->sourceParams[0].live.v.load(std::memory_order_relaxed);
+        return comp.decks[0].rows[0].clips[0]->sourceParams[0].live.v.load(std::memory_order_relaxed);
     };
 
     ConnectionEngine engine;
@@ -873,11 +873,11 @@ TEST_CASE("ConnectionEngine::tick: a gripped source-param connection publishes N
     engine.tick(comp, ctx);
     REQUIRE(liveOf() == Approx(0.5f).margin(0.01f));
 
-    comp.decks[0].layers[0].clips[0]->sourceParams[0].conn.gripHeld();
+    comp.decks[0].rows[0].clips[0]->sourceParams[0].conn.gripHeld();
     engine.tick(comp, ctx);
     REQUIRE(std::isnan(liveOf()));
 
-    comp.decks[0].layers[0].clips[0]->sourceParams[0].conn.release(1.0);
+    comp.decks[0].rows[0].clips[0]->sourceParams[0].conn.release(1.0);
     engine.tick(comp, ctx);   // handBackGlideMs == 0 -> snaps back immediately
     REQUIRE(!std::isnan(liveOf()));
 }
@@ -898,10 +898,10 @@ TEST_CASE("ConnectionEngine::tick: a disabled source-param connection clears its
     sp.conn.source.kind = ConnSource::Kind::Lfo;
     sp.conn.source.lfo.cycleBeats = 1.0f;
     clip.sourceParams.push_back(sp);
-    comp.decks[0].layers[0].clips[0] = clip;
+    comp.decks[0].rows[0].clips[0] = clip;
 
     auto liveOf = [&]() {
-        return comp.decks[0].layers[0].clips[0]->sourceParams[0].live.v.load(std::memory_order_relaxed);
+        return comp.decks[0].rows[0].clips[0]->sourceParams[0].live.v.load(std::memory_order_relaxed);
     };
 
     ConnectionEngine engine;
@@ -909,7 +909,7 @@ TEST_CASE("ConnectionEngine::tick: a disabled source-param connection clears its
     engine.tick(comp, ctx);
     REQUIRE(!std::isnan(liveOf()));
 
-    comp.decks[0].layers[0].clips[0]->sourceParams[0].conn.enabled = false;
+    comp.decks[0].rows[0].clips[0]->sourceParams[0].conn.enabled = false;
     engine.tick(comp, ctx);
     REQUIRE(std::isnan(liveOf()));
 }

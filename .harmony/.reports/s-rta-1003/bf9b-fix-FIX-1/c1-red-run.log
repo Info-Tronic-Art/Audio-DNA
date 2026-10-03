@@ -1,0 +1,544 @@
+probe-asan-unit: configure /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b/build-asan (ADNA_SANITIZE=address, RelWithDebInfo) 2026-10-03 15:01:13
+probe-asan-unit: build test_show_model 2026-10-03 15:01:43
+[  0%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/benchmark/catch_chronometer.cpp.o
+[  0%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/generators/catch_generator_exception.cpp.o
+[  0%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/benchmark/detail/catch_run_for_at_least.cpp.o
+[  0%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/benchmark/detail/catch_analyse.cpp.o
+[  0%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/benchmark/detail/catch_stats.cpp.o
+[  0%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/benchmark/detail/catch_benchmark_function.cpp.o
+[ 11%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/generators/catch_generators.cpp.o
+[ 11%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/generators/catch_generators_random.cpp.o
+[ 11%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_automake.cpp.o
+[ 11%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_common_base.cpp.o
+[ 11%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_compact.cpp.o
+[ 11%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_console.cpp.o
+[ 11%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_cumulative_base.cpp.o
+[ 11%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_event_listener.cpp.o
+[ 11%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_helpers.cpp.o
+[ 11%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_json.cpp.o
+[ 11%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_junit.cpp.o
+[ 11%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_multi.cpp.o
+[ 11%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_registrars.cpp.o
+[ 11%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_sonarqube.cpp.o
+[ 11%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_streaming_base.cpp.o
+[ 11%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_tap.cpp.o
+[ 11%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_teamcity.cpp.o
+[ 11%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_xml.cpp.o
+[ 11%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_capture.cpp.o
+[ 22%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_config.cpp.o
+[ 22%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_exception.cpp.o
+[ 22%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_generatortracker.cpp.o
+[ 22%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_registry_hub.cpp.o
+[ 22%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_reporter.cpp.o
+[ 22%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_reporter_factory.cpp.o
+[ 22%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_testcase.cpp.o
+[ 22%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/catch_approx.cpp.o
+[ 22%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/catch_assertion_result.cpp.o
+[ 22%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/catch_config.cpp.o
+[ 22%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/catch_get_random_seed.cpp.o
+[ 22%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/catch_message.cpp.o
+[ 22%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/catch_registry_hub.cpp.o
+[ 22%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/catch_session.cpp.o
+[ 22%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/catch_tag_alias_autoregistrar.cpp.o
+[ 22%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/catch_test_case_info.cpp.o
+[ 22%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/catch_test_spec.cpp.o
+[ 22%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/catch_timer.cpp.o
+[ 22%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/catch_tostring.cpp.o
+[ 33%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/catch_totals.cpp.o
+[ 33%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/catch_translate_exception.cpp.o
+[ 33%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/catch_version.cpp.o
+[ 33%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_assertion_handler.cpp.o
+[ 33%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_case_insensitive_comparisons.cpp.o
+[ 33%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_clara.cpp.o
+[ 33%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_commandline.cpp.o
+[ 33%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_console_colour.cpp.o
+[ 33%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_context.cpp.o
+[ 33%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_debug_console.cpp.o
+[ 33%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_debugger.cpp.o
+[ 33%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_decomposer.cpp.o
+[ 33%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_enforce.cpp.o
+[ 33%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_enum_values_registry.cpp.o
+[ 33%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_errno_guard.cpp.o
+[ 33%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_exception_translator_registry.cpp.o
+[ 33%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_fatal_condition_handler.cpp.o
+[ 33%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_floating_point_helpers.cpp.o
+[ 33%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_getenv.cpp.o
+[ 33%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_istream.cpp.o
+[ 44%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_jsonwriter.cpp.o
+[ 44%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_lazy_expr.cpp.o
+[ 44%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_leak_detector.cpp.o
+[ 44%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_list.cpp.o
+[ 44%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_message_info.cpp.o
+[ 44%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_output_redirect.cpp.o
+[ 44%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_parse_numbers.cpp.o
+[ 44%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_polyfills.cpp.o
+[ 44%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_random_number_generator.cpp.o
+[ 44%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_random_seed_generation.cpp.o
+[ 44%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_reporter_registry.cpp.o
+[ 44%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_reporter_spec_parser.cpp.o
+[ 44%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_reusable_string_stream.cpp.o
+[ 44%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_run_context.cpp.o
+[ 44%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_section.cpp.o
+[ 44%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_singletons.cpp.o
+[ 44%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_source_line_info.cpp.o
+[ 44%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_startup_exception_registry.cpp.o
+[ 44%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_stdstreams.cpp.o
+[ 55%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_string_manip.cpp.o
+[ 55%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_stringref.cpp.o
+[ 55%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_tag_alias_registry.cpp.o
+[ 55%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_test_case_info_hasher.cpp.o
+[ 55%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_test_case_registry_impl.cpp.o
+[ 55%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_test_case_tracker.cpp.o
+[ 55%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_test_failure_exception.cpp.o
+[ 55%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_test_registry.cpp.o
+[ 55%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_test_spec_parser.cpp.o
+[ 55%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_textflow.cpp.o
+[ 55%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_uncaught_exceptions.cpp.o
+[ 55%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_wildcard_pattern.cpp.o
+[ 55%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_xmlwriter.cpp.o
+[ 55%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers.cpp.o
+[ 55%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_container_properties.cpp.o
+[ 55%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_exception.cpp.o
+[ 55%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_floating_point.cpp.o
+[ 55%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_predicate.cpp.o
+[ 55%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_quantifiers.cpp.o
+[ 55%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_string.cpp.o
+[ 66%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_templated.cpp.o
+[ 66%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/matchers/internal/catch_matchers_impl.cpp.o
+[ 66%] Linking CXX static library libCatch2.a
+[ 66%] Built target Catch2
+[ 66%] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2WithMain.dir/catch2/internal/catch_main.cpp.o
+[ 66%] Linking CXX static library libCatch2Main.a
+[ 66%] Built target Catch2WithMain
+[ 66%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/connect/ConnSerialization.cpp.o
+[ 66%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/model/Layer.cpp.o
+[ 66%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/model/Clip.cpp.o
+[ 66%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/core/UndoManager.cpp.o
+[ 66%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/model/Autopilot.cpp.o
+[ 66%] Building CXX object tests/CMakeFiles/test_show_model.dir/test_show_model.cpp.o
+[ 66%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/core/UndoService.cpp.o
+[ 66%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/midi/MidiOutputHandler.cpp.o
+[ 66%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/effects/EffectLibrary.cpp.o
+[ 77%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/effects/Effect.cpp.o
+[ 77%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/effects/EffectChain.cpp.o
+[ 77%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/recording/TempoMap.cpp.o
+[ 77%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/recording/PerfState.cpp.o
+[ 77%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/recording/PerfStateCapture.cpp.o
+[ 77%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/recording/Take.cpp.o
+[ 77%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/recording/Program.cpp.o
+[ 77%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/recording/RoutineSlice.cpp.o
+[ 77%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/recording/Player.cpp.o
+[ 77%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/recording/RecorderClock.cpp.o
+[ 77%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/recording/RoutineEngine.cpp.o
+[ 77%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/binding/BindingManager.cpp.o
+[ 77%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/ui/DeckView.cpp.o
+[ 77%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/ui/ClipCell.cpp.o
+[ 77%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/ui/RoutinePad.cpp.o
+[ 77%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/ui/LayerStrip.cpp.o
+[ 77%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/ui/LookAndFeel.cpp.o
+[ 77%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/ui/UniversalParamControl.cpp.o
+[ 77%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/connect/ConnPicker.cpp.o
+[ 77%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/connect/ManualWrite.cpp.o
+[ 88%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/signal/SignalRegistry.cpp.o
+[ 88%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/mapping/MappingEngine.cpp.o
+[ 88%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/render/ShaderManager.cpp.o
+[ 88%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/render/TextureManager.cpp.o
+[ 88%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/render/FullscreenQuad.cpp.o
+[ 88%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/render/LUTLoader.cpp.o
+[ 88%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/ui/LayerInspector.cpp.o
+[ 88%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/ui/ClipInspector.cpp.o
+[ 88%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/ui/MacroPanel.cpp.o
+[ 88%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/ui/Knob.cpp.o
+[ 88%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/render/FeedbackProcessor.cpp.o
+[ 88%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/ui/EffectStackView.cpp.o
+[ 88%] Building OBJCXX object tests/CMakeFiles/test_show_model.dir/Users/boriskarpman/projects/RealTimeAudio/build/_deps/juce-src/modules/juce_gui_basics/juce_gui_basics.mm.o
+[ 88%] Building CXX object tests/CMakeFiles/test_show_model.dir/Users/boriskarpman/projects/RealTimeAudio/build/_deps/juce-src/modules/juce_graphics/juce_graphics_Harfbuzz.cpp.o
+[ 88%] Building C object tests/CMakeFiles/test_show_model.dir/Users/boriskarpman/projects/RealTimeAudio/build/_deps/juce-src/modules/juce_graphics/juce_graphics_Sheenbidi.c.o
+[ 88%] Building OBJCXX object tests/CMakeFiles/test_show_model.dir/Users/boriskarpman/projects/RealTimeAudio/build/_deps/juce-src/modules/juce_graphics/juce_graphics.mm.o
+[ 88%] Building OBJCXX object tests/CMakeFiles/test_show_model.dir/Users/boriskarpman/projects/RealTimeAudio/build/_deps/juce-src/modules/juce_events/juce_events.mm.o
+[ 88%] Building CXX object tests/CMakeFiles/test_show_model.dir/Users/boriskarpman/projects/RealTimeAudio/build/_deps/juce-src/modules/juce_core/juce_core_CompilationTime.cpp.o
+[ 88%] Building OBJCXX object tests/CMakeFiles/test_show_model.dir/Users/boriskarpman/projects/RealTimeAudio/build/_deps/juce-src/modules/juce_core/juce_core.mm.o
+In file included from /Users/boriskarpman/projects/RealTimeAudio/build/_deps/juce-src/modules/juce_gui_basics/juce_gui_basics.mm:35:
+/Users/boriskarpman/projects/RealTimeAudio/build/_deps/juce-src/modules/juce_gui_basics/juce_gui_basics.cpp:61:2: warning: This version of JUCE does not use the splash screen, the flag JUCE_DISPLAY_SPLASH_SCREEN is ignored [-W#pragma-messages]
+   61 |  JUCE_COMPILER_WARNING ("This version of JUCE does not use the splash screen, the flag JUCE_DISPLAY_SPLASH_SCREEN is ignored")
+      |  ^
+/Users/boriskarpman/projects/RealTimeAudio/build/_deps/juce-src/modules/juce_core/system/juce_PlatformDefs.h:286:38: note: expanded from macro 'JUCE_COMPILER_WARNING'
+  286 |  #define JUCE_COMPILER_WARNING(msg)  _Pragma (JUCE_STRINGIFY (message (msg)))
+      |                                      ^
+<scratch space>:42:2: note: expanded from here
+   42 |  message ("This version of JUCE does not use the splash screen, the flag JUCE_DISPLAY_SPLASH_SCREEN is ignored")
+      |  ^
+[100%] Building OBJCXX object tests/CMakeFiles/test_show_model.dir/Users/boriskarpman/projects/RealTimeAudio/build/_deps/juce-src/modules/juce_data_structures/juce_data_structures.mm.o
+[100%] Building OBJCXX object tests/CMakeFiles/test_show_model.dir/Users/boriskarpman/projects/RealTimeAudio/build/_deps/juce-src/modules/juce_opengl/juce_opengl.mm.o
+[100%] Building OBJCXX object tests/CMakeFiles/test_show_model.dir/Users/boriskarpman/projects/RealTimeAudio/build/_deps/juce-src/modules/juce_gui_extra/juce_gui_extra.mm.o
+[100%] Building OBJCXX object tests/CMakeFiles/test_show_model.dir/Users/boriskarpman/projects/RealTimeAudio/build/_deps/juce-src/modules/juce_audio_devices/juce_audio_devices.mm.o
+[100%] Building OBJCXX object tests/CMakeFiles/test_show_model.dir/Users/boriskarpman/projects/RealTimeAudio/build/_deps/juce-src/modules/juce_audio_basics/juce_audio_basics.mm.o
+1 warning generated.
+[100%] Linking CXX executable test_show_model
+[100%] Built target test_show_model
+probe-asan-unit: ctest -L asan finds 4 asan cases (expected 4)
+probe-asan-unit: ctest -L asan 2026-10-03 15:02:40
+Test project /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b/build-asan
+    Start 150: asan:bf9b fix: a fenced edit that moves or resizes the shared layer stack calls onLayerStackMoved, so a Layer inspector re-pointed there never holds a moved or removed Layer (Load Deck of a 5-row deck into a 3-layer show; Add / Remove Layer; their undos)
+1/4 Test #150: asan:bf9b fix: a fenced edit that moves or resizes the shared layer stack calls onLayerStackMoved, so a Layer inspector re-pointed there never holds a moved or removed Layer (Load Deck of a 5-row deck into a 3-layer show; Add / Remove Layer; their undos) ...***Failed  Error regular expression found in output. Regex=[ERROR: AddressSanitizer] 28.87 sec
+=================================================================
+==48080==ERROR: AddressSanitizer: heap-use-after-free on address 0x621000003020 at pc 0x00010039c910 bp 0x00016fc817f0 sp 0x00016fc817e8
+READ of size 1 at 0x621000003020 thread T0
+    #0 0x00010039c90c in UniversalParamControl::setParamValue(float) UniversalParamControl.cpp:349
+    #1 0x0001003c8294 in LayerInspector::syncFromLayer() LayerInspector.cpp:911
+    #2 0x0001003c7fa0 in LayerInspector::setLayer(Layer*, EffectScope) LayerInspector.cpp:734
+    #3 0x00010028aabc in UndoService::withDeckDetached(std::__1::function<void ()> const&) UndoService.cpp:78
+    #4 0x0001001c5394 in CATCH2_INTERNAL_TEST_83() test_show_model.cpp:1491
+    #5 0x00010108559c in Catch::RunContext::runCurrentTest() catch_run_context.cpp:543
+    #6 0x000101085104 in Catch::RunContext::runTest(Catch::TestCaseHandle const&) catch_run_context.cpp:240
+    #7 0x000101063a20 in Catch::(anonymous namespace)::TestGroup::execute() catch_session.cpp:117
+    #8 0x0001010632b4 in Catch::Session::runInternal() catch_session.cpp:337
+    #9 0x000101062e18 in Catch::Session::run() catch_session.cpp:269
+    #10 0x0001010469f8 in main catch_main.cpp:36
+    #11 0x0001813b2b94  (<unknown module>)
+
+0x621000003020 is located 1824 bytes inside of 4704-byte region [0x621000002900,0x621000003b60)
+freed by thread T0 here:
+    #0 0x0001027bb850 in _ZdlPv+0x74 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x4b850)
+    #1 0x0001001d9a90 in std::__1::vector<Layer, std::__1::allocator<Layer>>::insert(std::__1::__wrap_iter<Layer const*>, Layer&&) vector.h:1218
+    #2 0x0001001d1190 in Composition::insertLayer(int, Layer) Composition.h:484
+    #3 0x000100212388 in InsertDeckCmd::execute()::'lambda'()::operator()() const DeckCommands.h:806
+    #4 0x00010028a950 in UndoService::withDeckDetached(std::__1::function<void ()> const&) UndoService.cpp:75
+    #5 0x0001001c5394 in CATCH2_INTERNAL_TEST_83() test_show_model.cpp:1491
+    #6 0x00010108559c in Catch::RunContext::runCurrentTest() catch_run_context.cpp:543
+    #7 0x000101085104 in Catch::RunContext::runTest(Catch::TestCaseHandle const&) catch_run_context.cpp:240
+    #8 0x000101063a20 in Catch::(anonymous namespace)::TestGroup::execute() catch_session.cpp:117
+    #9 0x0001010632b4 in Catch::Session::runInternal() catch_session.cpp:337
+    #10 0x000101062e18 in Catch::Session::run() catch_session.cpp:269
+    #11 0x0001010469f8 in main catch_main.cpp:36
+    #12 0x0001813b2b94  (<unknown module>)
+
+previously allocated by thread T0 here:
+    #0 0x0001027bb428 in _Znwm+0x74 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x4b428)
+    #1 0x000100263f34 in std::__1::vector<Layer, std::__1::allocator<Layer>>::shrink_to_fit() vector.h:1097
+    #2 0x0001001c4a9c in CATCH2_INTERNAL_TEST_83() test_show_model.cpp:1469
+    #3 0x00010108559c in Catch::RunContext::runCurrentTest() catch_run_context.cpp:543
+    #4 0x000101085104 in Catch::RunContext::runTest(Catch::TestCaseHandle const&) catch_run_context.cpp:240
+    #5 0x000101063a20 in Catch::(anonymous namespace)::TestGroup::execute() catch_session.cpp:117
+    #6 0x0001010632b4 in Catch::Session::runInternal() catch_session.cpp:337
+    #7 0x000101062e18 in Catch::Session::run() catch_session.cpp:269
+    #8 0x0001010469f8 in main catch_main.cpp:36
+    #9 0x0001813b2b94  (<unknown module>)
+
+SUMMARY: AddressSanitizer: heap-use-after-free UniversalParamControl.cpp:349 in UniversalParamControl::setParamValue(float)
+Shadow bytes around the buggy address:
+  0x621000002d80: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000002e00: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000002e80: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000002f00: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000002f80: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+=>0x621000003000: fd fd fd fd[fd]fd fd fd fd fd fd fd fd fd fd fd
+  0x621000003080: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000003100: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000003180: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000003200: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000003280: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==48080==ABORTING
+
+    Start 151: asan:AS5 a model swap inside the fence with both inspectors bound, then the app's setClip(nullptr) / setLayer(nullptr) and its timer calls, reads no Layer or Clip the swap destroyed (bf9b fix, AM-4)
+2/4 Test #151: asan:AS5 a model swap inside the fence with both inspectors bound, then the app's setClip(nullptr) / setLayer(nullptr) and its timer calls, reads no Layer or Clip the swap destroyed (bf9b fix, AM-4) ...........................................................***Failed  Error regular expression found in output. Regex=[ERROR: AddressSanitizer]  0.21 sec
+=================================================================
+==48097==ERROR: AddressSanitizer: heap-use-after-free on address 0x623000000820 at pc 0x000100618910 bp 0x00016f9fc530 sp 0x00016f9fc528
+READ of size 1 at 0x623000000820 thread T0
+    #0 0x00010061890c in UniversalParamControl::setParamValue(float) UniversalParamControl.cpp:349
+    #1 0x000100644294 in LayerInspector::syncFromLayer() LayerInspector.cpp:911
+    #2 0x000100643fa0 in LayerInspector::setLayer(Layer*, EffectScope) LayerInspector.cpp:734
+    #3 0x000100506abc in UndoService::withDeckDetached(std::__1::function<void ()> const&) UndoService.cpp:78
+    #4 0x000100445df4 in CATCH2_INTERNAL_TEST_88() test_show_model.cpp:1599
+    #5 0x00010130159c in Catch::RunContext::runCurrentTest() catch_run_context.cpp:543
+    #6 0x000101301104 in Catch::RunContext::runTest(Catch::TestCaseHandle const&) catch_run_context.cpp:240
+    #7 0x0001012dfa20 in Catch::(anonymous namespace)::TestGroup::execute() catch_session.cpp:117
+    #8 0x0001012df2b4 in Catch::Session::runInternal() catch_session.cpp:337
+    #9 0x0001012dee18 in Catch::Session::run() catch_session.cpp:269
+    #10 0x0001012c29f8 in main catch_main.cpp:36
+    #11 0x0001813b2b94  (<unknown module>)
+
+0x623000000820 is located 1824 bytes inside of 6272-byte region [0x623000000100,0x623000001980)
+freed by thread T0 here:
+    #0 0x000102a4b850 in _ZdlPv+0x74 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x4b850)
+    #1 0x0001004e4fc8 in Composition::operator=(Composition&&) Composition.h:41
+    #2 0x000100506950 in UndoService::withDeckDetached(std::__1::function<void ()> const&) UndoService.cpp:75
+    #3 0x000100445df4 in CATCH2_INTERNAL_TEST_88() test_show_model.cpp:1599
+    #4 0x00010130159c in Catch::RunContext::runCurrentTest() catch_run_context.cpp:543
+    #5 0x000101301104 in Catch::RunContext::runTest(Catch::TestCaseHandle const&) catch_run_context.cpp:240
+    #6 0x0001012dfa20 in Catch::(anonymous namespace)::TestGroup::execute() catch_session.cpp:117
+    #7 0x0001012df2b4 in Catch::Session::runInternal() catch_session.cpp:337
+    #8 0x0001012dee18 in Catch::Session::run() catch_session.cpp:269
+    #9 0x0001012c29f8 in main catch_main.cpp:36
+    #10 0x0001813b2b94  (<unknown module>)
+
+previously allocated by thread T0 here:
+    #0 0x000102a4b428 in _Znwm+0x74 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x4b428)
+    #1 0x000100452004 in Layer* std::__1::vector<Layer, std::__1::allocator<Layer>>::__emplace_back_slow_path<Layer>(Layer&&) vector.h:1114
+    #2 0x00010044c6e8 in Composition::initDefault() Composition.h:211
+    #3 0x00010044a8c4 in ShowFixture::makeShow(int, int, int, bool) ShowFixture.h:18
+    #4 0x0001004458d0 in CATCH2_INTERNAL_TEST_88() test_show_model.cpp:1586
+    #5 0x00010130159c in Catch::RunContext::runCurrentTest() catch_run_context.cpp:543
+    #6 0x000101301104 in Catch::RunContext::runTest(Catch::TestCaseHandle const&) catch_run_context.cpp:240
+    #7 0x0001012dfa20 in Catch::(anonymous namespace)::TestGroup::execute() catch_session.cpp:117
+    #8 0x0001012df2b4 in Catch::Session::runInternal() catch_session.cpp:337
+    #9 0x0001012dee18 in Catch::Session::run() catch_session.cpp:269
+    #10 0x0001012c29f8 in main catch_main.cpp:36
+    #11 0x0001813b2b94  (<unknown module>)
+
+SUMMARY: AddressSanitizer: heap-use-after-free UniversalParamControl.cpp:349 in UniversalParamControl::setParamValue(float)
+Shadow bytes around the buggy address:
+  0x623000000580: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x623000000600: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x623000000680: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x623000000700: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x623000000780: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+=>0x623000000800: fd fd fd fd[fd]fd fd fd fd fd fd fd fd fd fd fd
+  0x623000000880: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x623000000900: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x623000000980: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x623000000a00: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x623000000a80: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==48097==ABORTING
+
+    Start 152: asan:AS6 Undo of a wide Load Deck while the Clip inspector shows a clip of that deck, then the app's setClip(fresh), reads no Clip the undo destroyed (bf9b fix, AM-4)
+3/4 Test #152: asan:AS6 Undo of a wide Load Deck while the Clip inspector shows a clip of that deck, then the app's setClip(fresh), reads no Clip the undo destroyed (bf9b fix, AM-4) ...........................................................................................***Failed  Error regular expression found in output. Regex=[ERROR: AddressSanitizer]  0.22 sec
+=================================================================
+==48099==ERROR: AddressSanitizer: heap-use-after-free on address 0x61f00000b0c8 at pc 0x00010506c910 bp 0x00016afa8190 sp 0x00016afa8188
+READ of size 1 at 0x61f00000b0c8 thread T0
+    #0 0x00010506c90c in UniversalParamControl::setParamValue(float) UniversalParamControl.cpp:349
+    #1 0x0001050aef44 in ClipInspector::syncFromClip() ClipInspector.cpp:1467
+    #2 0x0001050ada5c in ClipInspector::setClip(Clip*, EffectScope) ClipInspector.cpp:820
+    #3 0x000104e9c2c0 in CATCH2_INTERNAL_TEST_90() test_show_model.cpp:1642
+    #4 0x000105d5559c in Catch::RunContext::runCurrentTest() catch_run_context.cpp:543
+    #5 0x000105d55104 in Catch::RunContext::runTest(Catch::TestCaseHandle const&) catch_run_context.cpp:240
+    #6 0x000105d33a20 in Catch::(anonymous namespace)::TestGroup::execute() catch_session.cpp:117
+    #7 0x000105d332b4 in Catch::Session::runInternal() catch_session.cpp:337
+    #8 0x000105d32e18 in Catch::Session::run() catch_session.cpp:269
+    #9 0x000105d169f8 in main catch_main.cpp:36
+    #10 0x0001813b2b94  (<unknown module>)
+
+0x61f00000b0c8 is located 2120 bytes inside of 3408-byte region [0x61f00000a880,0x61f00000b5d0)
+freed by thread T0 here:
+    #0 0x0001073b3850 in _ZdlPv+0x74 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x4b850)
+    #1 0x000104eaffac in std::__1::vector<ClipRow, std::__1::allocator<ClipRow>>::__destroy_vector::operator()[abi:ne200100]() vector.h:248
+    #2 0x000104ec532c in std::__1::vector<Deck, std::__1::allocator<Deck>>::__destruct_at_end[abi:ne200100](Deck*) vector.h:667
+    #3 0x000104ee49d0 in InsertDeckCmd::undo()::'lambda'()::operator()() const DeckCommands.h:824
+    #4 0x000104f5a950 in UndoService::withDeckDetached(std::__1::function<void ()> const&) UndoService.cpp:75
+    #5 0x000104e9bc60 in CATCH2_INTERNAL_TEST_90() test_show_model.cpp:1635
+    #6 0x000105d5559c in Catch::RunContext::runCurrentTest() catch_run_context.cpp:543
+    #7 0x000105d55104 in Catch::RunContext::runTest(Catch::TestCaseHandle const&) catch_run_context.cpp:240
+    #8 0x000105d33a20 in Catch::(anonymous namespace)::TestGroup::execute() catch_session.cpp:117
+    #9 0x000105d332b4 in Catch::Session::runInternal() catch_session.cpp:337
+    #10 0x000105d32e18 in Catch::Session::run() catch_session.cpp:269
+    #11 0x000105d169f8 in main catch_main.cpp:36
+    #12 0x0001813b2b94  (<unknown module>)
+
+previously allocated by thread T0 here:
+    #0 0x0001073b3428 in _Znwm+0x74 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x4b428)
+    #1 0x000104ead74c in std::__1::vector<std::__1::optional<Clip>, std::__1::allocator<std::__1::optional<Clip>>>::__append(unsigned long) vector.h:943
+    #2 0x000104ea2260 in Deck::initDefault(int) Deck.h:35
+    #3 0x000104e9b1a4 in CATCH2_INTERNAL_TEST_90() test_show_model.cpp:1620
+    #4 0x000105d5559c in Catch::RunContext::runCurrentTest() catch_run_context.cpp:543
+    #5 0x000105d55104 in Catch::RunContext::runTest(Catch::TestCaseHandle const&) catch_run_context.cpp:240
+    #6 0x000105d33a20 in Catch::(anonymous namespace)::TestGroup::execute() catch_session.cpp:117
+    #7 0x000105d332b4 in Catch::Session::runInternal() catch_session.cpp:337
+    #8 0x000105d32e18 in Catch::Session::run() catch_session.cpp:269
+    #9 0x000105d169f8 in main catch_main.cpp:36
+    #10 0x0001813b2b94  (<unknown module>)
+
+SUMMARY: AddressSanitizer: heap-use-after-free UniversalParamControl.cpp:349 in UniversalParamControl::setParamValue(float)
+Shadow bytes around the buggy address:
+  0x61f00000ae00: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x61f00000ae80: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x61f00000af00: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x61f00000af80: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x61f00000b000: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+=>0x61f00000b080: fd fd fd fd fd fd fd fd fd[fd]fd fd fd fd fd fd
+  0x61f00000b100: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x61f00000b180: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x61f00000b200: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x61f00000b280: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x61f00000b300: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==48099==ABORTING
+
+    Start 153: asan:AS7 Layer > Clear Clips while the Clip inspector shows a clip of that row that has one effect: the inspector's next timer calls read no dead clip, and it shows no clip (bf9b fix, adoption item 2)
+4/4 Test #153: asan:AS7 Layer > Clear Clips while the Clip inspector shows a clip of that row that has one effect: the inspector's next timer calls read no dead clip, and it shows no clip (bf9b fix, adoption item 2) .........................................................***Failed  Error regular expression found in output. Regex=[ERROR: AddressSanitizer]  0.22 sec
+Filters: "AS7 Layer > Clear Clips while the Clip inspector shows a clip of that row that has one effect: the inspector's next timer calls read no dead clip\, and it shows no clip (bf9b fix\, adoption item 2)"
+Randomness seeded to: 2035239333
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+test_show_model is a Catch2 v3.7.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+AS7 Layer > Clear Clips while the Clip inspector shows a clip of that row that
+has one effect: the inspector's next timer calls read no dead clip, and it
+shows no clip (bf9b fix, adoption item 2)
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b/tests/test_show_model.cpp:1649
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b/tests/test_show_model.cpp:1677: FAILED:
+  CHECK( ui.clip.getClip() == nullptr )
+with expansion:
+  0x000062a000006200 == nullptr
+
+=================================================================
+==48101==ERROR: AddressSanitizer: heap-use-after-free on address 0x6100000246b8 at pc 0x000102459e30 bp 0x00016dbb8f20 sp 0x00016dbb8f18
+READ of size 1 at 0x6100000246b8 thread T0
+    #0 0x000102459e2c in UniversalParamControl::~UniversalParamControl() UniversalParamControl.cpp:122
+    #1 0x000102459e6c in UniversalParamControl::~UniversalParamControl() UniversalParamControl.cpp:119
+    #2 0x000102326848 in std::__1::vector<std::__1::unique_ptr<UniversalParamControl, std::__1::default_delete<UniversalParamControl>>, std::__1::allocator<std::__1::unique_ptr<UniversalParamControl, std::__1::default_delete<UniversalParamControl>>>>::__destroy_vector::operator()[abi:ne200100]() vector.h:248
+    #3 0x000102326540 in std::__1::vector<std::__1::unique_ptr<EffectStackView::EffectRow, std::__1::default_delete<EffectStackView::EffectRow>>, std::__1::allocator<std::__1::unique_ptr<EffectStackView::EffectRow, std::__1::default_delete<EffectStackView::EffectRow>>>>::__base_destruct_at_end[abi:ne200100](std::__1::unique_ptr<EffectStackView::EffectRow, std::__1::default_delete<EffectStackView::EffectRow>>*) vector.h:749
+    #4 0x000102326314 in std::__1::vector<std::__1::unique_ptr<EffectStackView::EffectRow, std::__1::default_delete<EffectStackView::EffectRow>>, std::__1::allocator<std::__1::unique_ptr<EffectStackView::EffectRow, std::__1::default_delete<EffectStackView::EffectRow>>>>::__destroy_vector::operator()[abi:ne200100]() vector.h:248
+    #5 0x000102325f4c in EffectStackView::~EffectStackView() EffectStackView.h:27
+    #6 0x000102327970 in ClipInspector::~ClipInspector() ClipInspector.h:27
+    #7 0x00010228dfcc in CATCH2_INTERNAL_TEST_92() test_show_model.cpp:1678
+    #8 0x00010314559c in Catch::RunContext::runCurrentTest() catch_run_context.cpp:543
+    #9 0x000103145104 in Catch::RunContext::runTest(Catch::TestCaseHandle const&) catch_run_context.cpp:240
+    #10 0x000103123a20 in Catch::(anonymous namespace)::TestGroup::execute() catch_session.cpp:117
+    #11 0x0001031232b4 in Catch::Session::runInternal() catch_session.cpp:337
+    #12 0x000103122e18 in Catch::Session::run() catch_session.cpp:269
+    #13 0x0001031069f8 in main catch_main.cpp:36
+    #14 0x0001813b2b94  (<unknown module>)
+
+0x6100000246b8 is located 120 bytes inside of 184-byte region [0x610000024640,0x6100000246f8)
+freed by thread T0 here:
+    #0 0x000104763850 in _ZdlPv+0x74 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x4b850)
+    #1 0x000102297cfc in Clip::EffectSlot::~EffectSlot() Clip.h:60
+    #2 0x00010229cdd4 in std::__1::vector<Clip::EffectSlot, std::__1::allocator<Clip::EffectSlot>>::__destroy_vector::operator()[abi:ne200100]() vector.h:248
+    #3 0x0001022ab7dc in Clip::~Clip() Clip.h:16
+    #4 0x00010232b8a0 in std::__1::__function::__func<CATCH2_INTERNAL_TEST_92()::$_0, std::__1::allocator<CATCH2_INTERNAL_TEST_92()::$_0>, void ()>::operator()() function.h:319
+    #5 0x00010234a950 in UndoService::withDeckDetached(std::__1::function<void ()> const&) UndoService.cpp:75
+    #6 0x00010228d9e4 in CATCH2_INTERNAL_TEST_92() test_show_model.cpp:1668
+    #7 0x00010314559c in Catch::RunContext::runCurrentTest() catch_run_context.cpp:543
+    #8 0x000103145104 in Catch::RunContext::runTest(Catch::TestCaseHandle const&) catch_run_context.cpp:240
+    #9 0x000103123a20 in Catch::(anonymous namespace)::TestGroup::execute() catch_session.cpp:117
+    #10 0x0001031232b4 in Catch::Session::runInternal() catch_session.cpp:337
+    #11 0x000103122e18 in Catch::Session::run() catch_session.cpp:269
+    #12 0x0001031069f8 in main catch_main.cpp:36
+    #13 0x0001813b2b94  (<unknown module>)
+
+previously allocated by thread T0 here:
+    #0 0x000104763428 in _Znwm+0x74 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x4b428)
+    #1 0x0001022a6d58 in void std::__1::vector<ParamConnection, std::__1::allocator<ParamConnection>>::__init_with_size[abi:ne200100]<ParamConnection*, ParamConnection*>(ParamConnection*, ParamConnection*, unsigned long) vector.h:580
+    #2 0x0001022a6838 in Clip::EffectSlot::EffectSlot(Clip::EffectSlot const&) Clip.h:60
+    #3 0x000102315094 in Clip::EffectSlot* std::__1::vector<Clip::EffectSlot, std::__1::allocator<Clip::EffectSlot>>::__emplace_back_slow_path<Clip::EffectSlot const&>(Clip::EffectSlot const&) vector.h:1116
+    #4 0x00010228d940 in CATCH2_INTERNAL_TEST_92() test_show_model.cpp:1661
+    #5 0x00010314559c in Catch::RunContext::runCurrentTest() catch_run_context.cpp:543
+    #6 0x000103145104 in Catch::RunContext::runTest(Catch::TestCaseHandle const&) catch_run_context.cpp:240
+    #7 0x000103123a20 in Catch::(anonymous namespace)::TestGroup::execute() catch_session.cpp:117
+    #8 0x0001031232b4 in Catch::Session::runInternal() catch_session.cpp:337
+    #9 0x000103122e18 in Catch::Session::run() catch_session.cpp:269
+    #10 0x0001031069f8 in main catch_main.cpp:36
+    #11 0x0001813b2b94  (<unknown module>)
+
+SUMMARY: AddressSanitizer: heap-use-after-free UniversalParamControl.cpp:122 in UniversalParamControl::~UniversalParamControl()
+Shadow bytes around the buggy address:
+  0x610000024400: fa fa fa fa fa fa fa fa fd fd fd fd fd fd fd fd
+  0x610000024480: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x610000024500: fa fa fa fa fa fa fa fa fd fd fd fd fd fd fd fd
+  0x610000024580: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fa
+  0x610000024600: fa fa fa fa fa fa fa fa fd fd fd fd fd fd fd fd
+=>0x610000024680: fd fd fd fd fd fd fd[fd]fd fd fd fd fd fd fd fa
+  0x610000024700: fa fa fa fa fa fa fa fa 00 00 00 00 00 00 00 00
+  0x610000024780: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x610000024800: fa fa fa fa fa fa fa fa 00 00 00 00 00 00 00 00
+  0x610000024880: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x610000024900: fa fa fa fa fa fa fa fa fd fd fd fd fd fd fd fd
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==48101==ABORTING
+
+
+0% tests passed, 4 tests failed out of 4
+
+Label Time Summary:
+asan    =  29.52 sec*proc (4 tests)
+
+Total Test time (real) =  29.53 sec
+
+The following tests FAILED:
+	150 - asan:bf9b fix: a fenced edit that moves or resizes the shared layer stack calls onLayerStackMoved, so a Layer inspector re-pointed there never holds a moved or removed Layer (Load Deck of a 5-row deck into a 3-layer show; Add / Remove Layer; their undos) (Failed) asan
+	151 - asan:AS5 a model swap inside the fence with both inspectors bound, then the app's setClip(nullptr) / setLayer(nullptr) and its timer calls, reads no Layer or Clip the swap destroyed (bf9b fix, AM-4) (Failed) asan
+	152 - asan:AS6 Undo of a wide Load Deck while the Clip inspector shows a clip of that deck, then the app's setClip(fresh), reads no Clip the undo destroyed (bf9b fix, AM-4) (Failed) asan
+	153 - asan:AS7 Layer > Clear Clips while the Clip inspector shows a clip of that row that has one effect: the inspector's next timer calls read no dead clip, and it shows no clip (bf9b fix, adoption item 2) (Failed) asan
+Errors while running CTest
+probe-asan-unit: ctest rc=8 2026-10-03 15:03:10
+PROBE-ASAN-UNIT RED (4 of 4 failed)
+exit=8

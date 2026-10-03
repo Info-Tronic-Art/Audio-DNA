@@ -47,15 +47,15 @@ if [ -n "${AUDIODNA_LOCK_OWNER:-}" ]; then
 fi
 adna_pids() { ps -eo pid=,ucomm= | awk '$2=="Audio-DNA"{print $1}'; }
 adna_running() { [ -n "$(adna_pids)" ]; }
-adna_kill() { local p; p="$(adna_pids)"; [ -n "$p" ] && kill $p 2>/dev/null; }
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; A='http://127.0.0.1:7070'
+. "$ROOT/.harmony/probe-quit-ours.sh"   # refuse_foreign_start / record_ourpid / quit_ours: quit ONLY the app this run launched
 MAIN="$(cd "$(git -C "$ROOT" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)/.." 2>/dev/null && pwd)"
 APP="${BTGUARD_APP:-$ROOT/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app}"
 PY="${BTGUARD_PY:-}"
 if [ -z "$PY" ]; then for c in "$ROOT/.venv/bin/python" "$MAIN/.venv/bin/python"; do [ -x "$c" ] && { PY="$c"; break; }; done; fi
 [ -d "$APP" ] || { echo "REFUSE: no app at $APP (set BTGUARD_APP)"; exit 64; }
 [ -n "$PY" ] && "$PY" -c 'import Quartz, PIL' 2>/dev/null || { echo "REFUSE: no python with pyobjc Quartz + PIL (set BTGUARD_PY)"; exit 64; }
-adna_running && { echo "REFUSE: Audio-DNA already running"; exit 64; }
+refuse_foreign_start || exit 64
 lsof -nP -iTCP:7070 -sTCP:LISTEN >/dev/null 2>&1 && { echo "REFUSE: port 7070 already has a listener"; exit 64; }
 BASE="${1:-/tmp}"; mkdir -p "$BASE"; OUT="$(mktemp -d "$BASE/btguard.XXXXXX")" || exit 64
 echo "app: $APP"; echo "out: $OUT"
@@ -75,6 +75,7 @@ launch() {  # launch <arm> [env]
   else
     open -g --stdout "$OUT/out-$1.log" --stderr "$OUT/err-$1.log" "$APP"
   fi
+  record_ourpid; echo "ours: pid ${OURPID:-none}"
   local up=0; for _ in $(seq 1 60); do [ -n "$(curl -s --max-time 1 -H 'Connection: close' "$A/api/health")" ] && { up=1; break; }; sleep 1; done
   sleep 2
   local l7070; l7070="$(lsof -nP -iTCP:7070 -sTCP:LISTEN 2>/dev/null | awk 'NR>1{print $1}' | head -1)"
@@ -83,12 +84,12 @@ launch() {  # launch <arm> [env]
 }
 quit_check() {  # quit_check <row-id>: graceful quit within 30 s, no new .ips, no dialog on screen
   local t0; t0=$(date +%s)
-  osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1 &
+  ask_ours_to_quit &   # only when the app this run launched is the ONLY Audio-DNA running (probe-quit-ours.sh)
   local osa=$!
   for _ in $(seq 1 30); do adna_running || break; sleep 1; done
-  kill "$osa" 2>/dev/null; wait "$osa" 2>/dev/null
+  pkill -P "$osa" 2>/dev/null; kill "$osa" 2>/dev/null; wait "$osa" 2>/dev/null
   local dt=$(( $(date +%s) - t0 )) bad=""
-  if adna_running; then bad="still running $dt s after the quit (killed)"; adna_kill; sleep 3; fi
+  if adna_running; then bad="still running $dt s after the quit (killed)"; kill_ours; sleep 3; fi
   sleep 2
   local ips; ips="$(find "$HOME/Library/Logs/DiagnosticReports" -name 'Audio-DNA*' -newer "$OUT/start.stamp" 2>/dev/null | head -3)"
   [ -n "$ips" ] && bad="$bad new crash report(s): $ips"

@@ -1,0 +1,63 @@
+app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a868a537-8200-4641-a63f-f3029b3cf7ee/scratchpad/bf9b-merge-M3/boxes/green/boxes.EDaa0O
+ours: pid 35596
+--- k1d_ia_speed_half
+PASS  k1d_ia_speed_half: speed 0.5 keeps its clock across 0 -> 1 -> 0 (deck shown at W 1; t(W) 1.98, t(W+1.5) 2.73, delta 0.75 in [0.25, 1.25])
+PASS  k1d_ia_speed_half: REST playheadPosition moved 0.0624 (expected 0.0625 +- 0.06)
+--- k1d_ib_pingpong
+PASS  k1d_ib_pingpong: speed 1.0 keeps its clock across 0 -> 1 -> 0 (deck shown at W 1; t(W) 10.96, t(W+1.5) 9.41, delta -1.55 in [-2.0, -1.0])
+PASS  k1d_ib_pingpong: REST playheadPosition moved -0.1237 (expected -0.125 +- 0.06)
+--- k1d_ii_opacity_blend
+      k1d_ii: noise d(ref1, ref2) = 0.00 -> floor 1.50
+PASS  k1d_ii_opacity_blend: VALID -- layer 1's opacity 0.5 + Screen shows (d(R, A-only)=45.75 >= 5.0)
+PASS  k1d_ii_opacity_blend: opacity + blend unchanged across 0 -> 1 -> 0 (deck shown at W+0.5 1; d to R at W, W+0.5, W+2.0 = [0.0, 0.0, 0.0], floor 1.50)
+--- k1d_iii_connection
+      k1d_iii_connection: source = signal 'Volume' (RMS) driven by POST /api/inject_features rms
+      k1d_iii_max: noise d(ref1, ref2) = 0.00 -> floor 1.50
+PASS  k1d_iii_connection: VALID -- the connection drives the clip opacity (d(Rmax, Rmin)=51.26 >= 5.0)
+PASS  k1d_iii_connection: the connected clip parameter keeps working with deck 1 shown (activeDeck 1; d(Cmax, Rmax)=0.00, d(Cmin, Rmin)=0.00, floor 1.50)
+--- k2_nothing_unseen
+      k2_nothing_unseen: 5 switches in 7.6 s; activeDeck 0
+      k2_nothing_unseen: advancing clips (deck, row, col) [(0, 0, 0), (1, 1, 0)]
+PASS  k2_nothing_unseen: VALID -- 2 clips advance (>= 2)
+PASS  k2_nothing_unseen: no clip advances unseen (advancing AND not in a layer = 0: [])
+--- k2v_decode
+PASS  k2v_decode: VALID -- video_players 60 == 60
+      k2v_decode: video_threads_awake per sample [3, 3, 3, 3, 3, 3, 3, 3, 3, 3]; video_frames_decoded 1797 -> 2248
+PASS  k2v_decode: (1) only the 3 layer clips decode (awake <= 4 on every sample, == 3 on 10 of 10, need >= 8)
+PASS  k2v_decode: (2) video_frames_decoded 5-s delta 451 in [225, 705] (fps 30)
+PASS  k2v_decode: (3) the left clip (deck 4 row 0) and every non-layer clip stay still (moved > 0.001: [])
+--- k3_autopilot
+      k3_R1: noise d(ref1, ref2) = 0.00 -> floor 1.50
+      k3_R2: noise d(ref1, ref2) = 0.00 -> floor 1.50
+PASS  k3_autopilot: VALID -- R1's autopilot advanced (layer 0 at beat 4 plays (0, 1), expected (0, 1))
+PASS  k3_autopilot: R2 (switches at beats 3 and 9) shows R1's frames at beats 4 / 8 / 12 (d {4: 0.0, 8: 0.0, 12: 0.0}, floor 1.50)
+PASS  k3_autopilot: nothing outside a playing layer changes (activeClipColumn / playheadPosition; 0 changes: [])
+      k3_autopilot: beatsPlayed is not in GET /api/composition on either arm -- not read
+--- k4_ignore_column_across
+      k4_ignore_column_across: before (deck 0 shown): layers play [(0, 0), (0, 0), (0, 1)]
+      k4: noise d(ref1, ref2) = 0.00 -> floor 1.50
+      k4_ignore_column_across: after (deck 1 shown, column 1 fired): layers play [(1, 1), (1, 1), (0, 1)]
+PASS  k4_ignore_column_across: the Ignore Column layer keeps deck 0's X (REST (0, 1); its region d=0.00, floor 1.50)
+PASS  k4_ignore_column_across: the other layers play deck 1's column 1 ([(1, 1), (1, 1)])
+      k4_ignore_column_across: regions 0 / 1 moved d=55.70 / 55.58
+--- k4b_empty_cell
+      k4b: noise d(ref1, ref2) = 0.00 -> floor 1.50
+      k4b_empty_cell: deck ids [100, 101]; layers' activeClip [(101, 1), (-1, -1), (100, 0)]
+PASS  k4b_empty_cell: layer 0 plays deck 1's column 1 ({'deck': 1, 'deckId': 101, 'column': 1, 'clipId': 1099, 'retired': False})
+PASS  k4b_empty_cell: layer 1 goes empty (Q5's default; activeClip column -1; region d to the layer-1-empty capture 0.00, floor 1.50)
+PASS  k4b_empty_cell: the Ignore Column layer keeps deck 0's clip ({'deck': 0, 'deckId': 100, 'column': 0, 'clipId': 1098, 'retired': False}; region d=0.00)
+--- k5_queue_link_off
+      k5_refB: noise d(ref1, ref2) = 0.00 -> floor 1.50
+      k5_queue_link_off: queued at beatInBar 1: layer 0 active (0, 0), pending (0, 1)
+      k5_queue_link_off: activeDeck 1; layer 0 before the bar (0, 0), after (0, 1)
+PASS  k5_queue_link_off: the queued trigger survives the switch and fires ON the bar (before the bar (0, 0), after (0, 1); expected (0, 0) -> (0, 1))
+PASS  k5_queue_link_off: the frame after the bar is B (d=0.00, floor 1.50)
+--- k5_queue_link_on
+BLOCKED  k5_queue_link_on: no driver -- neither arm is built with Ableton Link (CMake AUDIODNA_BUILD_LINK OFF, build-lane/CMakeCache.txt) and Link's only switch is the TopBar toggle (no REST / OSC route; no synthetic input). Bar unchanged; needs a Link build + a Link driver (Harmony's call)
+
+PY 24 PASS / 0 FAIL / 1 BLOCKED (arm BF9B)
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-BOXES BLOCKED 1 (0 FAIL; 1 pre-registered bar(s) did not run -- not a pass)

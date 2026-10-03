@@ -171,9 +171,10 @@ TEST_CASE("DeckView B0: a refresh never decodes a fresh image on the calling thr
     deck.setClip(0, 2, imageClip(102, b));
     deck.setClip(2, 1, imageClip(103, a));
     {
-        LayerRuntimeSnapshot rt = deck.layers[0].runtime();
+        LayerRuntimeSnapshot rt = comp.layers[0].runtime();   // lane bf9b: the shared layer plays deck 0's cell
         rt.activeClipColumn = 0;
-        deck.layers[0].setRuntime(rt);
+        rt.activeDeckId = deck.id;
+        comp.layers[0].setRuntime(rt);
     }
 
     DeckView dv;
@@ -216,16 +217,17 @@ struct StormRig
         comp.initDefault();
         auto& deck = comp.decks[0];
         for (int i = 0; i < 5; ++i)
-            deck.addLayer();
+            comp.insertLayer(comp.getNumLayers(), comp.makeLayer());   // lane bf9b: a shared layer + a row per deck
         uint32_t id = 200;
-        for (int l = 0; l < deck.getNumLayers(); ++l)
+        for (int l = 0; l < comp.getNumLayers(); ++l)
         {
             for (int c = 0; c < 4; ++c)
                 deck.setClip(l, c, imageClip(id++, files[static_cast<size_t>(c)]));
             {
-                LayerRuntimeSnapshot rt = deck.layers[static_cast<size_t>(l)].runtime();
+                LayerRuntimeSnapshot rt = comp.layers[static_cast<size_t>(l)].runtime();
                 rt.activeClipColumn = 0;
-                deck.layers[static_cast<size_t>(l)].setRuntime(rt);
+                rt.activeDeckId = deck.id;
+                comp.layers[static_cast<size_t>(l)].setRuntime(rt);
             }
         }
         dv.getThumbnails().setBackendsForTests(dec.decoder(), post.poster());
@@ -288,9 +290,9 @@ TEST_CASE("DeckView B2: an unchanged cell re-derives nothing; a changed strip re
     CHECK(store.lookups() == lookups);                // 32 image cells + 8 strips x 30 refreshes: compares only
 
     {
-        LayerRuntimeSnapshot rt = rig.comp.decks[0].layers[0].runtime();
+        LayerRuntimeSnapshot rt = rig.comp.layers[0].runtime();
         rt.activeClipColumn = 1;
-        rig.comp.decks[0].layers[0].setRuntime(rt);
+        rig.comp.layers[0].setRuntime(rt);
     }
     rig.dv.refresh();
     CHECK(store.lookups() == lookups + 1);            // only L0's strip: its active clip's source changed
@@ -318,9 +320,10 @@ TEST_CASE("DeckView B3: a SEQUENCE cell's thumbnail comes from ClipThumbnails (i
     seq.sequenceFiles = frames;
     deck.setClip(0, 0, seq);
     {
-        LayerRuntimeSnapshot rt = deck.layers[0].runtime();
+        LayerRuntimeSnapshot rt = comp.layers[0].runtime();   // lane bf9b: the shared layer plays deck 0's cell
         rt.activeClipColumn = 0;
-        deck.layers[0].setRuntime(rt);
+        rt.activeDeckId = deck.id;
+        comp.layers[0].setRuntime(rt);
     }
     Clip cachedSeq = seq;                             // a clip that already carries its picture
     cachedSeq.id = 302;

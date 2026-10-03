@@ -23,7 +23,6 @@
 #include "model/Clip.h"
 #include "model/Deck.h"
 #include "model/Autopilot.h"
-#include "model/AutopilotBank.h"
 #include "output/SharedFrameSet.h"
 #include <mutex>
 #include <future>
@@ -107,12 +106,13 @@ public:
     // Effect library (for looking up effect definitions by name)
     EffectLibrary& getEffectLibrary() { return effectLibrary_; }
 
-    // Set the active deck for compositor rendering. Thread-safe.
-    // Pass nullptr to disable deck compositing (reverts to single-image mode).
+    // Set the shown deck: the FENCE TOKEN of compositing (lane bf9b, plan-bf9b F5). Thread-safe. A non-null deck lets
+    // the frame composite the show's shared layer stack (composition_); the GL thread never dereferences it (lint
+    // B4c). Pass nullptr to disable deck compositing (reverts to single-image mode).
     // s-rta-0928b mediaopen (adoption P3): the deck pointer and the withDeckDetached fence share ONE atomic word
     // (FencedPtrSlot): setActiveDeck stores the deck UNFENCED -- the fence's restore ends the fence with it.
     void setActiveDeck(Deck* deck) { activeDeck_.set(deck); }
-    Deck* getActiveDeck() const { return activeDeck_.get(); }
+    Deck* getFenceToken() const { return activeDeck_.get(); }   // lane bf9b: the shown deck as the fence token only
     // s-rta-0928b mediaopen: UndoService::withDeckDetached begins its fence here -- no deck AND fenced, in one store
     // (it ends it with setActiveDeck(restored)). A frame that finds the renderer fenced and deck-less is counted:
     // fence_hold_frames when it re-presents the canvas as the previous frame left it, fence_black_frames when it
@@ -127,7 +127,7 @@ public:
     uint64_t getRenderAutopilotAdvances() const { return renderAutopilotAdvances_.load(std::memory_order_relaxed); }
     uint64_t getRenderTupleAdopts() const { return renderTupleAdopts_.load(std::memory_order_relaxed); }
 
-    // P21: Set composition pointer for persistent layer rendering across decks.
+    // P21: Set composition pointer (the shared layer stack the frame composites; lane bf9b).
     void setComposition(Composition* comp) { composition_ = comp; }
 
     // Callback when autopilot advances a clip (called async on message thread)
@@ -142,13 +142,14 @@ public:
     void setOnStructuralStateChanged(std::function<void(uint8_t)> fn) { onStructuralStateChanged_ = std::move(fn); }
 
     // P20: Set per-type autopilot config (from Composition)
+    // Any thread: only stores; the GL thread applies it to the show autopilot before each frame's processFrame.
     void setPerTypeAutopilotConfig(const Composition::PerTypeAutopilotConfig* config)
     {
-        autopilots_.setPerTypeConfig(config);
+        autopilotPerTypeConfig_.store(config, std::memory_order_release);
     }
 
-    // P23: Enable smart random autopilot (energy-aware clip selection)
-    void setSmartRandomEnabled(bool enabled) { autopilots_.setSmartRandomEnabled(enabled); }
+    // P23: Enable smart random autopilot (energy-aware clip selection). Any thread (as above).
+    void setSmartRandomEnabled(bool enabled) { autopilotSmartRandom_.store(enabled, std::memory_order_relaxed); }
 
     // Signal routing — P16: wire signals into render loop
     void setSignalRegistry(SignalRegistry* reg) { signalRegistry_ = reg; }
@@ -364,7 +365,7 @@ private:
     // S167-L4b DT-FIX: wall-clock timestamp (ms) of the previous
     // renderOpenGL() call, used to compute a REAL measured frame delta fed
     // to scaledTime_ above (procedural sources) and to
-    // CompositorEngine::compositeDeck()/compositePersistentLayers(), which
+    // CompositorEngine::compositeShow(), which
     // pass it straight through to VideoPlayer::advanceFrame() and
     // ImageSequence::advanceFrame() (both do `currentTime_ += dt * speed`
     // literally, no other timing source). Previously those call sites
@@ -529,17 +530,6 @@ private:
     void ensureCompTransformFBO(int width, int height);
     void applyCompTransform(GLuint targetFBO, float vpX, float vpY, float vpW, float vpH);
 
-    // P25: Cross-deck transition state
-    GLuint prevDeckFBO_ = 0;
-    GLuint prevDeckTexture_ = 0;
-    int prevDeckWidth_ = 0;
-    int prevDeckHeight_ = 0;
-    void ensurePrevDeckFBO(int width, int height);
-    int prevActiveDeckIndex_ = 0;
-    float deckTransitionProgress_ = 1.0f;  // 1.0 = complete (no transition)
-    float deckTransitionSpeed_ = 0.0f;     // Progress per SECOND (0 = instant) -- S167-L4b
-                                            // DT-FIX: was progress-per-frame assuming 60fps
-
     // P22.1: Syphon output — blit the final composited frame into a texture
     // so it can be published to Syphon clients. Only allocated/used when the
     // Syphon server is enabled and initialized.
@@ -582,10 +572,14 @@ private:
         renderPendingFired_.fetch_add(r.pendingFired, std::memory_order_relaxed);
         renderAutopilotAdvances_.fetch_add(r.advances, std::memory_order_relaxed);
     }
-    Composition* composition_ = nullptr; // P21: for persistent layer rendering across decks
-    // Beat-synced clip advancement: one Autopilot per deck INDEX (s-rta-0926b plan4 T5) -- the active deck's
-    // and, every frame, the decks that are not on screen (never one instance for two decks: Pitfall 38).
-    AutopilotBank autopilots_;
+    Composition* composition_ = nullptr; // P21: the show (its shared layer stack is what the frame composites)
+    // Beat-synced clip advancement: ONE Autopilot for the show (lane bf9b), called once per frame inside the
+    // deckActive gate (one beat-crossing baseline: Pitfall 38). GL thread only; its config arrives through the two
+    // atomics below (setPerTypeAutopilotConfig / setSmartRandomEnabled may be called from any thread).
+    Autopilot showAutopilot_;
+    bool showReadable_ = false;   // GL thread: this frame is inside the deckActive gate (the Layer Router reads the stack)
+    std::atomic<const Composition::PerTypeAutopilotConfig*> autopilotPerTypeConfig_{ nullptr };
+    std::atomic<bool> autopilotSmartRandom_{ false };
     std::function<void()> onAutopilotAdvanced_;  // UI refresh callback
 
     // P23: Genre/structural change detection
@@ -686,19 +680,17 @@ private:
     // most the frame's remaining seqDeletes_ and stays on the list until it holds none (fix round F2).
     void drainRetiredMedia(bool contextClosing = false);
 
-    // Get video frame texture for a clip (used as compositor callback) -- syncMedia(clip, dt, true, pending).
+    // Get video frame texture for a clip (used as compositor callback) -- syncMedia(clip, dt, pending).
     GLuint getVideoFrameTexture(const Clip* clip, float dt, bool* pending);
 
     // s-rta-0926b plan4 T4: ONE body for a clip's media transport -- transport sync from the clip, BPM-sync /
-    // master speed, advance, playhead / playing propagation (Pitfalls 2 and 7), in/out points. decode = true is
-    // the on-screen path (a video: a frame request to the player's decode thread + the upload of the newest ring
-    // frame <= its clock, the GL thread never decodes -- s-rta-0928b; returns the texture);
-    // decode = false advances the CLOCK only (VideoPlayer::advanceClock, no ImageSequence texture load) and
-    // returns 0 -- for clips of a deck that is not on screen (tickMediaClock).
+    // master speed, advance, playhead / playing propagation (Pitfalls 2 and 7), in/out points, and the frame: a
+    // video's frame request to the player's decode thread + the upload of the newest ring frame <= its clock (the
+    // GL thread never decodes -- s-rta-0928b); returns the texture. Only drawn clips come here (lane bf9b: nothing
+    // plays unseen, so no clock-only path exists).
     // pending (s-rta-0928 R1.4): an image sequence whose current frame -- and every earlier one -- is still decoding,
     // or a video that has never shown a frame (s-rta-0928b).
-    GLuint syncMedia(const Clip* clip, float dt, bool decode, bool* pending = nullptr);
-    void tickMediaClock(const Clip* clip, float dt) { syncMedia(clip, dt, false); }
+    GLuint syncMedia(const Clip* clip, float dt, bool* pending = nullptr);
 
     // s-rta-0928 R1.3: the legacy single image (the fallback picture when no deck layer and no source draws).
     // Written under pendingImageMutex_ by any thread: the latest request (gen increases per call; last call wins) and

@@ -30,7 +30,7 @@
 # `playing` lane point (routines-1a carried concern (a)).
 #
 # Mechanics copied from probe-step3.sh (helpers, `open -g` launch, graceful osascript quit,
-# Quartz 0-Output-window witness, adna_pids/adna_running/adna_kill (ucomm-based)) and
+# Quartz 0-Output-window witness, adna_pids/adna_running (ucomm-based)) and
 # probe-mastersignal.sh (pixel oracle:
 # decode with PIL+numpy, non-blank first, mean-absolute-difference thresholds, never md5).
 # Production mode, port 7070, NO --test-mode. No audio device needed: POST /api/set_bpm puts the
@@ -58,7 +58,7 @@
 # pkill only as the last resort. The caller holds the live lock (/tmp/audiodna-live.lock, now enforced -- see PROBE RIG GATE below).
 # PROBE RIG GATE (probehygiene2, s-rta-0926b): refuses (exit 64) unless
 # /tmp/audiodna-live.lock/owner exists; if AUDIODNA_LOCK_OWNER is set, it must match the owner
-# file's first field. Every pgrep/pkill below is replaced by adna_pids/adna_running/adna_kill
+# file's first field. Every pgrep below is replaced by adna_pids/adna_running; every quit is quit_ours
 # (defined right after the lock gate), which filter on `ps -o ucomm=` -- the KERNEL's real
 # exec-time process name, set from the actual binary that was exec'd, NOT from argv[0] -- being
 # exactly "Audio-DNA". Verified both directions: (1) a build's linker/compiler command line whose
@@ -76,14 +76,14 @@ if [ -n "${AUDIODNA_LOCK_OWNER:-}" ]; then
   [ "$LOCK_OWNER" = "$AUDIODNA_LOCK_OWNER" ] || { echo "REFUSE: live lock owner '$LOCK_OWNER' != AUDIODNA_LOCK_OWNER '$AUDIODNA_LOCK_OWNER'"; exit 64; }
 fi
 # adna_pids: PIDs whose REAL kernel process name (ucomm, set at exec() time from the actual binary
-# run -- immune to argv[0] spoofing) is exactly "Audio-DNA". adna_running/adna_kill build on it.
+# run -- immune to argv[0] spoofing) is exactly "Audio-DNA". adna_running builds on it.
 adna_pids() { ps -eo pid=,ucomm= | awk '$2=="Audio-DNA"{print $1}'; }
 adna_running() { [ -n "$(adna_pids)" ]; }
-adna_kill() { local p; p="$(adna_pids)"; [ -n "$p" ] && kill $p 2>/dev/null; }
 OUT_BASE="${1:-/tmp/audiodna-routines}"
 OUT="$OUT_BASE/run-$(date +%Y%m%d-%H%M%S)-$$"
 mkdir -p "$OUT"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+. "$ROOT/.harmony/probe-quit-ours.sh"   # refuse_foreign_start / record_ourpid / quit_ours: quit ONLY the app this run launched
 BUILD_DIR="${ROUTINES_BUILD_DIR:-build}"
 APPBUNDLE="${ROUTINES_APP:-$ROOT/$BUILD_DIR/AudioDNA_artefacts/Release/Audio-DNA.app}"
 PXPY="${ROUTINES_PY:-$ROOT/.venv/bin/python}"
@@ -670,7 +670,7 @@ now(){ perl -MTime::HiRes=time -e 'printf "%.3f", time'; }
 since(){ perl -e "printf '%.3f', $(now) - $1"; }
 
 # --- 0. preconditions --------------------------------------------------------
-adna_running && { echo "REFUSE: an Audio-DNA instance is already running. Quit it, then re-run."; exit 64; }
+refuse_foreign_start || exit 64
 [ -d "$APPBUNDLE" ] || { echo "REFUSE: no built app at $APPBUNDLE (set ROUTINES_APP or ROUTINES_BUILD_DIR)"; exit 64; }
 [ -x "$PXPY" ] || { echo "REFUSE: no python at $PXPY with PIL+numpy (set ROUTINES_PY)"; exit 64; }
 "$PXPY" -c "import PIL, numpy" >/dev/null 2>&1 || { echo "REFUSE: $PXPY lacks PIL and/or numpy"; exit 64; }
@@ -683,6 +683,7 @@ echo "(artifacts: $OUT)"
 # --- 1. launch, beat clock, fixture, reference frame -------------------------
 : > "$OUT/app-out.log"; : > "$OUT/app-err.log"
 open -g --stdout "$OUT/app-out.log" --stderr "$OUT/app-err.log" "$APPBUNDLE"
+record_ourpid; echo "ours: pid ${OURPID:-none}"
 for _ in $(seq 1 60); do [ -n "$(curl -s --max-time 2 "$A/api/health" 2>/dev/null)" ] && break; sleep 1; done
 [ -n "$(curl -s --max-time 2 "$A/api/health" 2>/dev/null)" ] || { echo "FAIL: health never came up on $A (first launch after a rebuild may need the microphone permission allowed once -- do NOT full-screen capture to check)"; exit 1; }
 PID="$(adna_pids | head -1)"
@@ -1039,13 +1040,7 @@ fi
 P /api/routine/stop '{"all":true}' >/dev/null
 
 # --- 12. teardown (SCREEN-SAFETY LAW) ---------------------------------------------------
-osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
-for _ in $(seq 1 30); do adna_running || break; sleep 1; done
-if adna_running; then
-    echo "graceful quit did not clear the process within 30 s -- pkill (last resort)"
-    adna_kill
-    for _ in $(seq 1 20); do adna_running || break; sleep 1; done
-fi
+quit_ours
 adna_running && no "APP STILL RUNNING after quit + pkill" || ok "app terminated, no process remains"
 W="$("$PXPY" -c "
 import Quartz

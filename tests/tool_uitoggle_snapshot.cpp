@@ -119,49 +119,17 @@ int main(int argc, char* argv[])
         }
     }
 
-    // LayerInspector: Opaque layer, flag off -- Persistent enabled (unchanged look).
+    // LayerInspector: Opaque layer -- the Layer section after bf9 Stage P (Persistent removed): Master, then ONE
+    // full-width Ignore Column Trigger row.
     {
         LayerInspector inspector;
         inspector.setSize(300, 900);
         Layer layer;
         layer.type = Layer::Type::Opaque;
-        layer.persistent = false;
         inspector.setLayer(&layer);
-        if (!writeSnapshot(inspector, outDir.getChildFile("layerinspector-opaque-headless.png")))
+        if (!writeSnapshot(inspector, outDir.getChildFile("layerinspector-layer-row-headless.png")))
         {
-            std::cerr << "failed to write layerinspector-opaque-headless.png\n";
-            ok = false;
-        }
-    }
-
-    // LayerInspector: Mask layer, flag cleared -- Persistent disabled + dimmed.
-    {
-        LayerInspector inspector;
-        inspector.setSize(300, 900);
-        Layer layer;
-        layer.type = Layer::Type::Mask;
-        layer.persistent = false;
-        inspector.setLayer(&layer);
-        if (!writeSnapshot(inspector, outDir.getChildFile("layerinspector-mask-cleared-headless.png")))
-        {
-            std::cerr << "failed to write layerinspector-mask-cleared-headless.png\n";
-            ok = false;
-        }
-    }
-
-    // LayerInspector: Mask layer, stale flag still set -- Persistent enabled so it CAN be
-    // cleared (the actual bug fixed this lane; not one of the two shots the packet named,
-    // but the clearest single frame of the fix).
-    {
-        LayerInspector inspector;
-        inspector.setSize(300, 900);
-        Layer layer;
-        layer.type = Layer::Type::Mask;
-        layer.persistent = true;
-        inspector.setLayer(&layer);
-        if (!writeSnapshot(inspector, outDir.getChildFile("layerinspector-mask-stale-headless.png")))
-        {
-            std::cerr << "failed to write layerinspector-mask-stale-headless.png\n";
+            std::cerr << "failed to write layerinspector-layer-row-headless.png\n";
             ok = false;
         }
     }

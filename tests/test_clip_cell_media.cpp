@@ -213,9 +213,9 @@ TEST_CASE("DeckView fan-out (U2.3): every cell reads DeckView's video source; a 
     comp.initDefault();
     auto* deck = comp.getActiveDeck();
     REQUIRE(deck != nullptr);
-    REQUIRE(deck->getLayer(0) != nullptr);
-    deck->getLayer(0)->clips[3] = videoClip();
-    deck->getLayer(0)->clips[4] = sourceClip();
+    REQUIRE(deck->getRow(0) != nullptr);
+    deck->getRow(0)->clips[3] = videoClip();
+    deck->getRow(0)->clips[4] = sourceClip();
 
     DeckView dv;
     dv.setSize(1400, 600);
@@ -227,7 +227,7 @@ TEST_CASE("DeckView fan-out (U2.3): every cell reads DeckView's video source; a 
 
     auto* cell = dv.cellForTests(0, 3);
     REQUIRE(cell != nullptr);
-    CHECK(cell->getClip() == deck->getLayer(0)->getClipAt(3));
+    CHECK(cell->getClip() == deck->getRow(0)->getClipAt(3));
     CHECK(cell->getTooltip()
           == "video_h264_64x64.mp4\nH.264 High, 64 x 64, 30 frames per second\nRight-click: Show in Finder");
 

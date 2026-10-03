@@ -1,0 +1,36 @@
+probe-asan-unit: build test_show_model 2026-10-03 15:07:16
+[ 66%] Built target Catch2
+[ 66%] Built target Catch2WithMain
+[ 66%] Building CXX object tests/CMakeFiles/test_show_model.dir/test_show_model.cpp.o
+[ 66%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/core/UndoService.cpp.o
+[ 66%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/ui/LayerInspector.cpp.o
+[ 66%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/ui/ClipInspector.cpp.o
+[ 66%] Linking CXX executable test_show_model
+[100%] Built target test_show_model
+probe-asan-unit: ctest -L asan finds 7 asan cases (expected 7)
+probe-asan-unit: ctest -L asan 2026-10-03 15:07:29
+Test project /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b/build-asan
+    Start 156: asan:bf9b fix: a fenced edit that moves or resizes the shared layer stack calls onLayerStackMoved, so a Layer inspector re-pointed there never holds a moved or removed Layer (Load Deck of a 5-row deck into a 3-layer show; Add / Remove Layer; their undos)
+1/7 Test #156: asan:bf9b fix: a fenced edit that moves or resizes the shared layer stack calls onLayerStackMoved, so a Layer inspector re-pointed there never holds a moved or removed Layer (Load Deck of a 5-row deck into a 3-layer show; Add / Remove Layer; their undos) ...   Passed    0.11 sec
+    Start 157: asan:AS5 a model swap inside the fence with both inspectors bound, then the app's setClip(nullptr) / setLayer(nullptr) and its timer calls, reads no Layer or Clip the swap destroyed (bf9b fix, AM-4)
+2/7 Test #157: asan:AS5 a model swap inside the fence with both inspectors bound, then the app's setClip(nullptr) / setLayer(nullptr) and its timer calls, reads no Layer or Clip the swap destroyed (bf9b fix, AM-4) ...........................................................   Passed    0.10 sec
+    Start 158: asan:AS6 Undo of a wide Load Deck while the Clip inspector shows a clip of that deck, then the app's setClip(fresh), reads no Clip the undo destroyed (bf9b fix, AM-4)
+3/7 Test #158: asan:AS6 Undo of a wide Load Deck while the Clip inspector shows a clip of that deck, then the app's setClip(fresh), reads no Clip the undo destroyed (bf9b fix, AM-4) ...........................................................................................   Passed    0.09 sec
+    Start 159: asan:AS7 Layer > Clear Clips while the Clip inspector shows a clip of that row that has one effect: the inspector's next timer calls read no dead clip, and it shows no clip (bf9b fix, adoption item 2)
+4/7 Test #159: asan:AS7 Layer > Clear Clips while the Clip inspector shows a clip of that row that has one effect: the inspector's next timer calls read no dead clip, and it shows no clip (bf9b fix, adoption item 2) .........................................................   Passed    0.10 sec
+    Start 160: asan:AS1 Load Deck of a 5-row deck with the Layer inspector on layer 1: the production hook function re-points it to the moved layer; the timer calls read no freed Layer (bf9b fix, AM-2 / AM-4)
+5/7 Test #160: asan:AS1 Load Deck of a 5-row deck with the Layer inspector on layer 1: the production hook function re-points it to the moved layer; the timer calls read no freed Layer (bf9b fix, AM-2 / AM-4) ................................................................   Passed    0.10 sec
+    Start 161: asan:AS2 AS1 with a routine's grip (Hand::Lane) on layer 1's Opacity: after the move the grip is still held on c.layers[1]'s connection and the control is bound to it (bf9b fix, AM-4)
+6/7 Test #161: asan:AS2 AS1 with a routine's grip (Hand::Lane) on layer 1's Opacity: after the move the grip is still held on c.layers[1]'s connection and the control is bound to it (bf9b fix, AM-4) ..........................................................................   Passed    0.09 sec
+    Start 162: asan:AS3b Remove Layer while the Clip inspector shows a clip of the LAST layer: the production hook function clears it; its timer calls read no freed Clip (bf9b fix, AM-2 step 1)
+7/7 Test #162: asan:AS3b Remove Layer while the Clip inspector shows a clip of the LAST layer: the production hook function clears it; its timer calls read no freed Clip (bf9b fix, AM-2 step 1) ...............................................................................   Passed    0.10 sec
+
+100% tests passed, 0 tests failed out of 7
+
+Label Time Summary:
+asan    =   0.69 sec*proc (7 tests)
+
+Total Test time (real) =   0.69 sec
+probe-asan-unit: ctest rc=0 2026-10-03 15:07:29
+PROBE-ASAN-UNIT GREEN (7 cases, 0 reports)
+exit=0

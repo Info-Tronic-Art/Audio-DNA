@@ -1,0 +1,51 @@
+Filters: "bf9b B4h*"
+Randomness seeded to: 2701330427
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+test_render_thread_lint is a Catch2 v3.7.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+bf9b B4h: the stack-move hook is wired to repointInspectorsAfterStackMove,
+          setLayer / setClip forget their scalar bindings first, and the fence
+          hands over on both exits
+  (ii) setLayer / setClip forget first
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b/tests/test_render_thread_lint.cpp:407
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b/tests/test_render_thread_lint.cpp:412: FAILED:
+  CHECK( setLayer.rfind("{forgetScalarBindings();", 0) == 0 )
+with expansion:
+  18446744073709551615 (0xffffffffffffffff)
+  ==
+  0
+with message:
+  LayerInspector::setLayer body: {layer_=layer;if(layer){effectStackView_.
+  setEffects(&layer->layerEffects,scope);syncFromLayer();}elseeffectStackView_.
+  setEffects(nullptr,EffectScope::none());bindScalarControls();resized();
+  repaint();}
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b/tests/test_render_thread_lint.cpp:417: FAILED:
+  CHECK( setClip.rfind("{forgetScalarBindings();", 0) == 0 )
+with expansion:
+  18446744073709551615 (0xffffffffffffffff)
+  ==
+  0
+with messages:
+  LayerInspector::setLayer body: {layer_=layer;if(layer){effectStackView_.
+  setEffects(&layer->layerEffects,scope);syncFromLayer();}elseeffectStackView_.
+  setEffects(nullptr,EffectScope::none());bindScalarControls();resized();
+  repaint();}
+  ClipInspector::setClip body: {clip_=clip;paintKeyValid_=false;if(clip)
+  {effectStackView_.setEffects(&clip->effects,scope);buildSourceParamControls()
+  ;syncFromClip();}else{effectStackView_.setEffects(nullptr,EffectScope::none()
+  );for(auto&pc:sourceParamControls_)pc->forgetConnection();
+  sourceParamControls_.clear();}updateMediaInfo(true);bindScalarControls();
+  resized();repaint();}
+
+===============================================================================
+test cases:  1 |  0 passed | 1 failed
+assertions: 19 | 17 passed | 2 failed
+
+exit=42

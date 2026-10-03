@@ -1,25 +1,8 @@
 {
-  "_doc": "Fixtures for .harmony/probe-render-state.sh (s-rta-0926b render lanes: R2/R4/R5 wave 1; R1, R4-opaque, R4-types, R4 empty active deck: render2). @MEDIA@ is replaced at run time with the checkout's media/ dir. Effects are [name, param...]. Thresholds and calibration: docstring of .harmony/probe-render-state.py.",
+  "_doc": "Fixtures for .harmony/probe-render-state.sh (s-rta-0926b render lanes: R5 wave 1; R1 render2; A4 / P bf9 Stage P, which retired the R2 / R4 persistent-layer fixtures). @MEDIA@ is replaced at run time with the checkout's media/ dir. Effects are [name, param...]. Thresholds and calibration: docstring of .harmony/probe-render-state.py.",
   "imageA": "@MEDIA@/P16_01_baseline.png",
   "imageB": "@MEDIA@/P16_02_Screen_Split_2x2.png",
   "tol": 1.5,
-  "r2": {
-    "_why": "deck 0 (active) layer id 0 = A + fx; deck 1 layer id 0 (persistent, Opaque/Normal, covers the frame) = B + fx. The persistent layer must not share temporal/ring state with the active deck's layer of the same id: subject == reference (same composition, active layer without the effect)",
-    "temporal": { "fx": [ ["Freeze", 0.5] ] },
-    "ring":     { "fx": [ ["Frame Stutter", 0.0, 0.0] ] }
-  },
-  "r4": {
-    "_why": "base = deck 0 layer id 0 Opaque = A; subject layer id 5 Transparent (Normal, Alpha key) = B + one stage. The subject PERSISTENT on deck 1 must render like the same layer as a NORMAL layer on deck 0",
-    "clip_transform":  { "clip": { "scale": 0.5 } },
-    "clip_opacity":    { "clip": { "clipOpacity": 0.5 } },
-    "layer_effects":   { "layer": { "layerEffects": [ ["Invert", 1.0] ] } },
-    "layer_transform": { "layer": { "layerScale": 0.5 } },
-    "feedback":        { "layer": { "feedbackEnabled": true, "feedbackAmount": 0.6, "feedbackScaleX": 0.97, "feedbackScaleY": 0.97 } }
-  },
-  "r4_transition": {
-    "_why": "deck 1 persistent layer id 5 (Transparent), OUT = A, IN = B, Dissolve over T s. Trigger IN on deck 1, leave the deck 0.3 s later: the crossfade must keep running on the persistent layer",
-    "T": 8.0
-  },
   "r5_hold": {
     "_why": "layer id 91 (fresh this run), col 0 = A, col 1 = A + [Screen Split, Freeze 1.0]. Freeze 1.0 outputs its history; a fresh history is cleared to transparent black. Creating it INSIDE the Freeze pass left the pass target holding only its glClear (Screen Split's grey) and that became the held history",
     "layerId": 91,
@@ -48,16 +31,13 @@
       "layerId": 72, "fx": [ ["Screen Split", 0.15, 0.15, 0.25, 0.0] ]
     }
   },
-  "r4_opaque": {
-    "_why": "persistent Opaque layer (deck 1, id 5, Normal) over deck 0's A: honours layer opacity through the alpha keying pass and never hides the active deck",
-    "opacity": 0.5, "overlayScale": 0.5
-  },
-  "r4_fxonly": {
-    "_why": "a persistent FX Only layer / a Transparent layer with a media-less effect clip applies its effects over the active deck; a persistent Mask layer stays skipped",
+  "a4": {
+    "_why": "bf9 Stage P (ruling-bf9 amendment 12(b)): active-deck stages no other probe covers once the r4_* persistent rows were retired. Deck 0 only: layer 0 Opaque A, plus layer id 5 = a Transparent B with the feedback values (a4_feedback) | type 2 FX Only with the media-less fx clip (a4_fxonly) | type 1 Transparent with the media-less fx clip (a4_fxonly_medialess)",
+    "feedback": { "feedbackEnabled": true, "feedbackAmount": 0.6, "feedbackScaleX": 0.97, "feedbackScaleY": 0.97 },
     "fx": [ ["Invert", 1.0] ]
   },
-  "r4_empty_active_deck": {
-    "_why": "persistent layers must render over an EMPTY active deck exactly as over a black one (wave-1 found_not_fixed #1)",
+  "p_flag": {
+    "_why": "bf9 Stage P (ruling-bf9 amendment 12(c)): a file's \"persistent\": true is ignored -- deck 1's layer id 5 (Transparent, clip B covering the frame) never draws while deck 0 is shown. lock = render_frame width/height for p_flag_ignored_empty (moved from the retired r4_empty_active_deck)",
     "lock": [ 756, 878 ]
   }
 }

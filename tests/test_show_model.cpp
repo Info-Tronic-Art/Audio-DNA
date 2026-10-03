@@ -1,0 +1,2159 @@
+// Lane bf9b (s-rta-1002b), plan-bf9b S2.12 / ruling-bf9b amendments 2(c), 12: the show model -- ONE shared layer stack
+// (Composition::layers) over deck boxes of clip rows (Deck::rows); a layer names its clip by ClipRef (deck id, column).
+// S2a lands the first cases (T2, T3, T9, T10, T15 -- the model API S2a introduces); S2b adds the rest of plan S2.12
+// (T1, T4-T8, T11-T14, T16, M1-M7; ruling-bf9b amendments 4, 6, 7, 8, 9, 12, 20, 21, 22).
+// RED on STAGE_P_HEAD / S1 head: does not compile (no Composition::layers, no ClipRef trigger API).
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_approx.hpp>
+#include <juce_gui_basics/juce_gui_basics.h>
+#include "model/Composition.h"
+#include "model/Autopilot.h"
+#include "model/Routine.h"
+#include "model/ShowMigration.h"
+#include "core/UndoManager.h"
+#include "core/UndoService.h"
+#include "core/ClipCommands.h"
+#include "core/DeckCommands.h"
+#include "core/TriggerCommands.h"
+#include "core/CompositionLoad.h"
+#include "render/LayerClock.h"
+#include "recording/Program.h"
+#include "recording/RoutineEngine.h"
+#include "recording/PerfState.h"
+#include "recording/Take.h"
+#include "midi/MidiOutputHandler.h"
+#include "binding/BindingTarget.h"
+#include "connect/ManualWrite.h"
+#include "routing/MacroBank.h"
+#include "ui/DeckView.h"
+#include "ui/LayerStrip.h"
+#include "ui/LayerInspector.h"
+#include "ui/ClipInspector.h"
+#include "ui/InspectorRepoint.h"
+#include "ui/MenuBarModel.h"
+#include "analysis/FeatureSnapshot.h"
+#include "ShowFixture.h"
+#include <cmath>
+#include <functional>
+#include <sstream>
+#include <string>
+#include <vector>
+
+using ShowFixture::makeShow;
+using Catch::Approx;
+using Snap = Clip::BeatSnapMode;
+
+namespace
+{
+DeckFenceHook passFence() { return [](const std::function<void()>& m) { if (m) m(); }; }
+CompositionResolver resolverFor(Composition& c) { return [&c]() -> Composition* { return &c; }; }
+ClipMediaHook noMedia() { return [](const Clip&) {}; }
+ClipMediaDisposeHook noDispose() { return [](const Clip&) {}; }
+
+// The UndoService fence of the app, headless (no renderer): withDeckDetached runs the mutation and REAPS (amendment
+// 4(a)) -- every reaped deck id is recorded.
+struct Fenced
+{
+    UndoService svc;
+    std::vector<uint32_t> reaped;
+    explicit Fenced(Composition& c)
+    {
+        svc.setCollaborators(&c, nullptr, nullptr);
+        svc.onDecksReaped = [this](std::vector<Deck>&& ds) {
+            for (const auto& d : ds)
+                reaped.push_back(d.id);
+        };
+    }
+    DeckFenceHook hook() { return [this](const std::function<void()>& m) { svc.withDeckDetached(m); }; }
+};
+
+// T1 (ruling-bf9b amendment 12): what plays -- every shared layer's raw tuple (each slot's ClipRef, the fade, the
+// queue and its snap override), every clip of every live and retired deck (playing / playheadPosition / beatsPlayed /
+// hasBeenTriggered), the undo history size and the routine engine's running set. Floats in hex: byte-identical.
+std::string fingerprint(const Composition& c, const UndoManager& mgr, const RoutineEngine& eng)
+{
+    std::ostringstream o;
+    o << std::hexfloat;
+    for (int i = 0; i < c.getNumLayers(); ++i)
+    {
+        const auto r = c.layers[static_cast<size_t>(i)].runtime();
+        o << "L" << i << " id" << c.layers[static_cast<size_t>(i)].id << " a" << r.activeDeckId << ":"
+          << r.activeClipColumn << " p" << r.previousDeckId << ":" << r.previousClipColumn << " f"
+          << r.crossfadeProgress << " q" << r.pendingDeckId << ":" << r.pendingTriggerColumn << " s"
+          << static_cast<int>(r.pendingTriggerSnapOverride) << "\n";
+    }
+    c.forEachClip([&o](const Clip& clip, const ClipSite& s) {
+        const bool playing = clip.playing;
+        const double head = clip.playheadPosition;
+        const int beats = clip.beatsPlayed;
+        const bool triggered = clip.hasBeenTriggered;
+        o << "C" << s.deckId << "/" << s.row << "/" << s.column << (s.retired ? "r" : "") << " id" << clip.id
+          << " pl" << playing << " ph" << head << " b" << beats << " t" << triggered << "\n";
+    });
+    o << "H" << mgr.historySize() << "\n";
+    const auto st = eng.status();
+    for (int k = 0; k < RoutineEngine::kBankSize; ++k)
+        o << "R" << k << " " << st.slots[k].state << " " << st.slots[k].fireSeq << " " << st.slots[k].cycle << "\n";
+    return o.str();
+}
+
+// A stub dispatch: the engine runs, the model is untouched (only the engine's own state matters to T1).
+void wireStub(RoutineEngine& eng)
+{
+    eng.dispatch.fire = [](const Fired&) { return true; };
+    eng.dispatch.touch = [](const ControlPath&, const std::string&) { return true; };
+    eng.dispatch.set = [](const ControlPath&, float) { return true; };
+    eng.dispatch.release = [](const ControlPath&) {};
+    eng.dispatch.notify = [](const std::string&) {};
+    eng.dispatch.read = [](const ControlPath&) -> std::optional<float> { return std::nullopt; };
+}
+
+FeatureSnapshot beatSnap(double beat)
+{
+    FeatureSnapshot s;
+    s.clear();
+    s.bpm = 120.0f;
+    s.trackerState = 2;
+    s.beatPhase = static_cast<float>(beat - std::floor(beat));
+    s.totalBeatCount = static_cast<uint32_t>(std::floor(beat));
+    s.beatInBar = static_cast<uint8_t>(static_cast<int>(std::floor(beat)) % 4);
+    s.totalBarCount = static_cast<uint32_t>(std::floor(beat / 4.0));
+    s.barCount = static_cast<uint16_t>(std::floor(beat / 4.0));
+    return s;
+}
+
+ControlPath layerKey(int layer, const std::string& control, const std::string& scalar = "")
+{
+    ControlPath k;
+    k.scope = ControlPath::Scope::Layer;
+    k.deckRelative = true;
+    k.deck = 0;
+    k.deckName = "Deck 1";
+    k.layer = layer;
+    k.layerName = "Layer " + std::to_string(layer + 1);
+    k.control = control;
+    k.scalar = scalar;
+    return k;
+}
+
+// A 64-beat looping routine with one continuous lane (layer 0 opacity): it RUNS (T1 needs a running set).
+Routine runningRoutine()
+{
+    Routine r;
+    r.uuid = "t1";
+    r.name = "T1";
+    r.lengthBeats = 64.0;
+    r.quantize = Snap::Off;
+    r.loop = true;
+    const ControlPath key = layerKey(0, "scalar", "opacity");
+    Lane lane;
+    lane.key = key;
+    lane.kind = Lane::Kind::Continuous;
+    Gesture g;
+    g.grip = "held";
+    g.curve.pts = { { 0.0, 0.2f }, { 32.0, 0.8f } };
+    lane.gestures = { g };
+    r.lanes[key] = lane;
+    return r;
+}
+
+template <typename T>
+void collect(juce::Component& root, std::vector<T*>& out)
+{
+    for (int i = 0; i < root.getNumChildComponents(); ++i)
+    {
+        auto* child = root.getChildComponent(i);
+        if (auto* t = dynamic_cast<T*>(child))
+            out.push_back(t);
+        collect(*child, out);
+    }
+}
+
+// Every live and retired deck holds exactly one row per shared layer.
+bool rowsEqualLayers(const Composition& c)
+{
+    for (const auto& d : c.decks)
+        if (d.getNumRows() != c.getNumLayers())
+            return false;
+    for (const auto& d : c.retiredDecks())
+        if (d.getNumRows() != c.getNumLayers())
+            return false;
+    return true;
+}
+
+// The clip ids of a row (0 = an empty cell) -- a deep-enough row compare for the structure tests.
+std::vector<uint32_t> rowIds(const ClipRow& r)
+{
+    std::vector<uint32_t> ids;
+    for (const auto& cell : r.clips)
+        ids.push_back(cell.has_value() ? cell->id : 0u);
+    return ids;
+}
+} // namespace
+
+TEST_CASE("T2 firing a cell of a deck that is not shown puts its ClipRef in that row's shared layer (bf9b)", "[show]")
+{
+    Composition c = makeShow(2, 3, 4);
+    c.activeDeckIndex = 0;
+    const uint32_t deck1 = c.decks[1].id;
+    const auto t = c.fire(1, 1, 2);
+    CHECK(t.changed());
+    CHECK(c.layers[1].runtime().activeRef() == ClipRef{ deck1, 2 });
+    REQUIRE(c.playingClip(1) != nullptr);
+    CHECK(c.playingClip(1) == c.decks[1].getClip(1, 2));
+    CHECK(c.playingClip(1)->id == 100u * 1 + 10u * 1 + 2 + 1);
+    CHECK(c.playingClip(0) == nullptr);   // other layers untouched
+    CHECK(c.activeDeckIndex == 0);        // a fire never moves the grid
+}
+
+TEST_CASE("T3 the same column from another deck is a new clip: a crossfade, not a retrigger (bf9b)", "[show]")
+{
+    Composition c = makeShow(2, 2, 4);
+    c.layers[0].transitionSpeed = 1.0f;   // a real fade
+    c.fire(0, 0, 2);
+    const auto t = c.fire(0, 1, 2);
+    const auto rt = c.layers[0].runtime();
+    CHECK(t.changed());
+    CHECK(rt.activeRef() == ClipRef{ c.decks[1].id, 2 });
+    CHECK(rt.previousRef() == ClipRef{ c.decks[0].id, 2 });
+    CHECK(rt.crossfadeProgress == 0.0f);
+    // and the same ref again IS a retrigger: the tuple keeps its fade
+    const auto again = c.fire(0, 1, 2);
+    CHECK_FALSE(again.changed());
+}
+
+TEST_CASE("T9 C1 playing(i): one load, the incoming clip, nullptr when clear or empty, any deck incl. a retired one (bf9b)",
+          "[show]")
+{
+    Composition c = makeShow(3, 2, 3);
+    CHECK(c.playingClip(0) == nullptr);                   // clear
+    c.fire(0, 2, 1);                                      // deck 2 (not shown)
+    auto p = c.playing(0);
+    REQUIRE(p.clip != nullptr);
+    CHECK(p.ref == ClipRef{ c.decks[2].id, 1 });
+    CHECK(p.deckIndex == 2);
+    CHECK_FALSE(p.retired);
+    CHECK(p.clip == c.decks[2].getClip(0, 1));
+
+    // An empty target cell clears the layer (F12 / Layer::triggerClip's empty-cell branch) -> nullptr.
+    c.decks[0].clearCell(1, 0);
+    c.fire(1, 0, 0);
+    CHECK(c.playingClip(1) == nullptr);
+
+    // Retire deck 2 while layer 0 plays from it: the clip still resolves, at the same address.
+    const Clip* before = p.clip;
+    const uint32_t id2 = c.decks[2].id;
+    CHECK(c.retireOrEraseDeck(2));
+    REQUIRE(c.decks.size() == 2);
+    CHECK(c.getNumRetiredDecks() == 1);
+    p = c.playing(0);
+    CHECK(p.clip == before);
+    CHECK(p.retired);
+    CHECK(p.deckIndex == -1);
+    CHECK(p.ref.deckId == id2);
+}
+
+TEST_CASE("T10 C2 forEachLayer visits each shared layer once; forEachClip live decks by index, then retired, rows and "
+          "columns ascending (bf9b)", "[show]")
+{
+    Composition c = makeShow(3, 2, 2);
+    std::vector<int> seenLayers;
+    c.forEachLayer([&](Layer&, int i) { seenLayers.push_back(i); });
+    CHECK(seenLayers == std::vector<int>{ 0, 1 });
+
+    c.fire(0, 1, 0);                   // deck 1 plays -> it is retired, not erased
+    const uint32_t id1 = c.decks[1].id;
+    REQUIRE(c.retireOrEraseDeck(1));
+
+    std::vector<uint32_t> order;
+    std::vector<int> deckIdx;
+    std::vector<bool> retired;
+    c.forEachClip([&](Clip& clip, const ClipSite& site) {
+        order.push_back(clip.id);
+        deckIdx.push_back(site.deckIndex);
+        retired.push_back(site.retired);
+        if (site.retired) CHECK(site.deckId == id1);
+    });
+    // live deck 0, live deck 2 (now index 1), then the retired deck 1; rows then columns ascending
+    const std::vector<uint32_t> expected{ 1, 2, 11, 12, 201, 202, 211, 212, 101, 102, 111, 112 };
+    CHECK(order == expected);
+    CHECK(deckIdx == std::vector<int>{ 0, 0, 0, 0, 1, 1, 1, 1, -1, -1, -1, -1 });
+    CHECK(retired.back());
+}
+
+TEST_CASE("T15 a ref the tuple cannot hold is refused at every tuple-writing entry: the tuple is byte-identical (bf9b, "
+          "ruling-bf9b amendment 2(c))", "[show]")
+{
+    Composition c = makeShow(2, 2, 3);
+    c.fire(0, 0, 1);
+    const auto before0 = c.layers[0].runtime();
+    const auto before1 = c.layers[1].runtime();
+    auto unchanged = [&] {
+        CHECK(c.layers[0].runtime() == before0);
+        CHECK(c.layers[1].runtime() == before1);
+    };
+    const RowClips rows0 = c.rowClips(0);
+
+    // column > kMaxColumn
+    CHECK_FALSE(c.fire(0, 0, ClipRef::kMaxColumn + 1).changed());
+    unchanged();
+    CHECK_FALSE(c.layers[0].triggerClip(ClipRef{ c.decks[0].id, ClipRef::kMaxColumn + 1 }, rows0).changed());
+    CHECK_FALSE(c.layers[0].triggerClipImmediate(ClipRef{ c.decks[0].id, ClipRef::kMaxColumn + 1 }, rows0).changed());
+    unchanged();
+    // deck > kMaxDeckId
+    CHECK_FALSE(c.layers[0].triggerClip(ClipRef{ ClipRef::kMaxDeckId + 1, 0 }, rows0).changed());
+    CHECK_FALSE(c.layers[0].releaseMomentary(ClipRef{ ClipRef::kMaxDeckId + 1, 1 }, rows0).changed());
+    unchanged();
+    // deck == kNoDeck with a column (the deck-less S1 form)
+    CHECK_FALSE(c.layers[0].triggerClip(ClipRef{ ClipRef::kNoDeck, 1 }, rows0).changed());
+    CHECK_FALSE(c.layers[0].triggerClipImmediate(ClipRef{ ClipRef::kNoDeck, 1 }, rows0).changed());
+    CHECK_FALSE(c.layers[0].releaseMomentary(ClipRef{ ClipRef::kNoDeck, 1 }, rows0).changed());
+    CHECK_FALSE(c.layers[0].clearActiveClip(rows0, ClipRef{ ClipRef::kNoDeck, 1 }).changed());
+    unchanged();
+    // an unknown deck index (Composition::fire / triggerColumn resolve a deck-less ref)
+    CHECK_FALSE(c.fire(0, 7, 1).changed());
+    std::vector<std::optional<LayerRuntimeTransition>> out;
+    c.triggerColumn(7, 1, Clip::BeatSnapMode::Off, &out);
+    unchanged();
+    c.triggerColumn(0, ClipRef::kMaxColumn + 1, Clip::BeatSnapMode::Off, &out);
+    unchanged();
+}
+
+TEST_CASE("T1 every deck-switch path and deck command leaves what plays byte-identical: tuples, every clip's runtime, "
+          "the undo history, the running routines (bf9b, ruling-bf9b amendment 12)", "[show]")
+{
+    // 6 filled decks + one EMPTY deck (6) no ref names (the Remove Deck subject). Layer 0 mid-fade from deck 0 into
+    // deck 1; layer 1 plays deck 2 and queues deck 0 (Bar); layer 2 queues deck 1 (Beat); a routine running.
+    Composition c = makeShow(6, 3, 4);
+    {
+        Deck empty;
+        empty.name = "Empty";
+        empty.numColumns = 4;
+        empty.initDefault(3);
+        REQUIRE(c.appendDeck(std::move(empty)) == 6);
+    }
+    c.layers[0].transitionSpeed = 4.0f;
+    c.fire(0, 0, 1, Snap::Off, true);
+    c.fire(0, 1, 2, Snap::Off, true);
+    LayerClock::advanceCrossfade(c.layers[0], 1.0f);   // progress 0.25, previous = deck 0 col 1
+    c.fire(1, 2, 3, Snap::Off, true);
+    c.fire(1, 0, 0, Snap::Bar);
+    c.fire(2, 1, 1, Snap::Beat);
+    c.decks[1].getClip(0, 2)->playheadPosition = 0.4;
+    REQUIRE(c.layers[0].runtime().previousRef() == (ClipRef{ c.decks[0].id, 1 }));
+    REQUIRE(c.layers[1].runtime().pendingRef() == (ClipRef{ c.decks[0].id, 0 }));
+    REQUIRE(c.layers[2].runtime().pendingRef() == (ClipRef{ c.decks[1].id, 1 }));
+    c.activeDeckIndex = 0;
+
+    UndoManager mgr;
+    mgr.perform(std::make_unique<RenameDeckCmd>(resolverFor(c), 0, "Deck 1", "Deck 1", "Rename Deck"));   // a history
+    RoutineEngine eng;
+    wireStub(eng);
+    c.routines.push_back(runningRoutine());
+    REQUIRE(c.assignRoutineSlot(0, "t1"));
+    eng.tick(beatSnap(0.0), 0.0, c, RoutineSnap::Off, true);
+    REQUIRE(eng.fire(c, 0, RoutineSnap::Off, true).empty());
+    eng.tick(beatSnap(1.0), 0.5, c, RoutineSnap::Off, true);
+    REQUIRE(eng.status().slots[0].state == "running");
+
+    const std::string f0 = fingerprint(c, mgr, eng);
+
+    // bf9b S2c (ruling-bf9b amendment 10): a deck switch is no Undo step any more (no SwitchDeckCmd); the switch the
+    // app makes is the index + DeckView::showDeck (handleDeckSwitch; its renderer fence token is not headless).
+    SECTION("the model-level shown-deck walk 0 -> 1 -> 0")
+    {
+        for (int d : { 1, 0 })
+        {
+            c.activeDeckIndex = d;
+            CHECK(fingerprint(c, mgr, eng) == f0);
+        }
+    }
+
+    SECTION("a headless DeckView::showDeck walk 0 -> 5 -> 0: what plays is untouched, every LayerStrip the same object")
+    {
+        juce::ScopedJuceInitialiser_GUI gui;
+        DeckView dv;
+        dv.setSize(1400, 600);
+        dv.setComposition(&c);
+        std::vector<LayerStrip*> before;
+        collect(dv, before);
+        REQUIRE(before.size() == 3);
+        for (int d : { 5, 0 })
+        {
+            c.activeDeckIndex = d;
+            dv.showDeck();
+            CHECK(fingerprint(c, mgr, eng) == f0);
+            std::vector<LayerStrip*> now;
+            collect(dv, now);
+            CHECK(now == before);
+        }
+    }
+
+    SECTION("AddDeckCmd, InsertDeckCmd (an empty box) and RemoveDeckCmd (of a deck no ref names) execute / undo / redo")
+    {
+        AddDeckCmd add(resolverFor(c), passFence(), "Add Deck");
+        add.execute();
+        CHECK(fingerprint(c, mgr, eng) == f0);
+        add.undo();
+        CHECK(fingerprint(c, mgr, eng) == f0);
+        add.execute();
+        CHECK(fingerprint(c, mgr, eng) == f0);
+        add.undo();
+
+        Deck box;
+        box.name = "Loaded";
+        box.numColumns = 4;
+        box.initDefault(3);
+        InsertDeckCmd ins(resolverFor(c), passFence(), noMedia(), noDispose(), box, "Load Deck");
+        ins.execute();
+        CHECK(fingerprint(c, mgr, eng) == f0);
+        ins.undo();
+        CHECK(fingerprint(c, mgr, eng) == f0);
+        ins.execute();
+        CHECK(fingerprint(c, mgr, eng) == f0);
+        ins.undo();
+
+        REQUIRE(c.decks[6].name == "Empty");
+        RemoveDeckCmd rem(resolverFor(c), passFence(), noMedia(), noDispose(), 6, c.decks[6], c.activeDeckIndex,
+                          "Remove Deck");
+        rem.execute();
+        CHECK_FALSE(rem.retired());
+        CHECK(fingerprint(c, mgr, eng) == f0);
+        rem.undo();
+        CHECK(fingerprint(c, mgr, eng) == f0);
+        rem.execute();
+        CHECK(fingerprint(c, mgr, eng) == f0);
+    }
+}
+
+TEST_CASE("T1 a 20-deck walk leaves what plays byte-identical (bf9b, ruling-bf9b amendment 12)", "[show]")
+{
+    Composition c = makeShow(20, 3, 2);
+    c.fire(0, 3, 1, Snap::Off, true);
+    c.fire(1, 7, 0, Snap::Off, true);
+    c.fire(2, 13, 1, Snap::Off, true);
+    c.fire(0, 19, 0, Snap::Bar);
+    UndoManager mgr;
+    RoutineEngine eng;
+    wireStub(eng);
+    const std::string f0 = fingerprint(c, mgr, eng);
+    for (int d = 0; d < 20; ++d)
+    {
+        c.activeDeckIndex = d;
+        CHECK(fingerprint(c, mgr, eng) == f0);
+    }
+    for (int d = 19; d >= 0; --d)
+    {
+        c.activeDeckIndex = d;
+        CHECK(fingerprint(c, mgr, eng) == f0);
+    }
+}
+
+TEST_CASE("T4 a column fire fires the shown deck's column into every non-ignoring layer; an Ignore Column layer keeps "
+          "its other-deck clip; an empty cell clears its layer (bf9b)", "[show]")
+{
+    Composition c = makeShow(2, 3, 4);
+    c.fire(2, 1, 3, Snap::Off, true);          // layer 2 plays deck 1's (2, 3) ...
+    c.layers[2].ignoreColumnTrigger = true;    // ... and ignores column triggers
+    c.fire(1, 1, 0, Snap::Off, true);          // layer 1 plays deck 1's (1, 0)
+    c.decks[0].clearCell(1, 2);                // deck 0's (1, 2) is empty
+    c.activeDeckIndex = 0;
+
+    std::vector<std::optional<LayerRuntimeTransition>> out;
+    c.triggerColumn(c.activeDeckIndex, 2, Snap::Off, &out);
+    REQUIRE(out.size() == 3);
+    CHECK(c.layers[0].runtime().activeRef() == (ClipRef{ c.decks[0].id, 2 }));
+    CHECK(c.playingClip(0) == c.decks[0].getClip(0, 2));
+    CHECK(c.layers[1].runtime().activeClipColumn == -1);   // F12 / Q5 default: the empty cell cleared layer 1
+    CHECK(c.playingClip(1) == nullptr);
+    CHECK_FALSE(out[2].has_value());                       // the ignoring layer was not touched
+    CHECK(c.layers[2].runtime().activeRef() == (ClipRef{ c.decks[1].id, 3 }));
+    CHECK(c.playingClip(2) == c.decks[1].getClip(2, 3));
+}
+
+TEST_CASE("T5 a bar-snapped trigger queued on deck 0 survives a switch to deck 1 and fires on its bar (bf9b, K5)",
+          "[show]")
+{
+    Composition c = makeShow(2, 2, 4);
+    c.fire(0, 0, 0, Snap::Off, true);
+    c.decks[0].getClip(0, 2)->beatSnapMode = Snap::Bar;
+    c.fire(0, 0, 2);                           // queued for the bar (the clip's own snap)
+    const LayerRuntimeSnapshot queued = c.layers[0].runtime();
+    REQUIRE(queued.pendingRef() == (ClipRef{ c.decks[0].id, 2 }));
+
+    // The switch as handleDeckSwitch makes it (bf9b S2c: no SwitchDeckCmd): the index, then the grid's cells
+    // (DeckView::showDeck, headless; the renderer's fence token is not).
+    juce::ScopedJuceInitialiser_GUI gui;
+    DeckView dv;
+    dv.setSize(1400, 600);
+    dv.setComposition(&c);
+    c.activeDeckIndex = 1;
+    dv.showDeck();
+    REQUIRE(c.activeDeckIndex == 1);
+    CHECK(c.layers[0].runtime() == queued);    // the queue survives the switch (F11)
+
+    const auto notYet = c.layers[0].processPendingTrigger(2, 0, c.rowClips(0));   // beat 3 of the bar: waits
+    CHECK_FALSE(notYet.changed());
+    const auto fired = c.layers[0].processPendingTrigger(0, 1, c.rowClips(0));    // the bar
+    CHECK(fired.changed());
+    CHECK(c.layers[0].runtime().activeRef() == (ClipRef{ c.decks[0].id, 2 }));
+    CHECK(c.playingClip(0) == c.decks[0].getClip(0, 2));
+}
+
+TEST_CASE("T6 Remove Deck while its clip plays: retired, still resolves, a queue into it cancelled; undo moves it back "
+          "with the live playhead; replaced and a fenced edit later it is reaped (bf9b, plan F3)", "[show]")
+{
+    Composition c = makeShow(3, 2, 4);
+    const uint32_t id1 = c.decks[1].id;
+    c.fire(0, 1, 2, Snap::Off, true);                     // layer 0 plays deck 1 (a default layer: Cut transitions)
+    Clip* const playing = c.playingClip(0);
+    REQUIRE(playing == c.decks[1].getClip(0, 2));
+    c.decks[1].getClip(1, 3)->beatSnapMode = Snap::Bar;
+    c.fire(1, 1, 3);                                      // a queue INTO deck 1 on layer 1
+    REQUIRE(c.layers[1].runtime().pendingRef() == (ClipRef{ id1, 3 }));
+
+    Fenced fenced(c);
+    RemoveDeckCmd remove(resolverFor(c), fenced.hook(), noMedia(), noDispose(), 1, c.decks[1], c.activeDeckIndex,
+                         "Remove Deck");
+    remove.execute();
+    CHECK(remove.retired());
+    CHECK(c.decks.size() == 2);
+    CHECK(c.getNumRetiredDecks() == 1);
+    CHECK(c.playingClip(0) == playing);                   // the same Clip, at its address
+    CHECK(c.playing(0).retired);
+    CHECK(c.playing(0).deckIndex == -1);
+    CHECK(c.layers[1].runtime().pendingTriggerColumn == -1);   // the queue into the removed deck is cancelled
+    CHECK(fenced.reaped.empty());                         // still playing: not reaped by its own fence
+
+    playing->playheadPosition = 0.8;                      // it keeps playing while retired
+    remove.undo();
+    CHECK(c.decks.size() == 3);
+    CHECK(c.decks[1].id == id1);
+    CHECK(c.getNumRetiredDecks() == 0);
+    CHECK(c.playingClip(0) == playing);                   // moved back: the live clip, not the snapshot copy
+    CHECK(static_cast<double>(playing->playheadPosition) == Approx(0.8));
+    CHECK_FALSE(c.playing(0).retired);
+
+    remove.execute();                                     // retire again ...
+    REQUIRE(c.getNumRetiredDecks() == 1);
+    c.fire(0, 0, 0, Snap::Off, true);                     // ... the layer is replaced (a Cut: previous names deck 1)
+    CHECK(c.getNumRetiredDecks() == 1);                   // nothing reaps outside a fence
+    fenced.svc.withDeckDetached([] {});                   // any fenced edit
+    CHECK(c.getNumRetiredDecks() == 0);
+    CHECK(fenced.reaped == std::vector<uint32_t>{ id1 });
+    CHECK(c.findDeckById(id1) == nullptr);
+}
+
+TEST_CASE("T6c Remove Deck mid-crossfade with the PREVIOUS ref in it: retired until the fade completes, then the first "
+          "fenced edit reaps it (bf9b, ruling-bf9b amendment 4(b)(f))", "[show]")
+{
+    Composition c = makeShow(2, 1, 4);
+    const uint32_t id1 = c.decks[1].id;
+    Layer& L = c.layers[0];
+    L.transitionSpeed = 1.0f;
+    c.fire(0, 1, 0, Snap::Off, true);                     // deck 1's clip ...
+    c.fire(0, 0, 0, Snap::Off, true);                     // ... fades OUT into deck 0's
+    REQUIRE(L.runtime().previousRef() == (ClipRef{ id1, 0 }));
+    REQUIRE(L.runtime().crossfadeProgress == 0.0f);
+    const Clip* const out = c.decks[1].getClip(0, 0);
+    const Clip* const in = c.decks[0].getClip(0, 0);
+
+    Fenced fenced(c);
+    RemoveDeckCmd remove(resolverFor(c), fenced.hook(), noMedia(), noDispose(), 1, c.decks[1], c.activeDeckIndex,
+                         "Remove Deck");
+    remove.execute();
+    REQUIRE(remove.retired());                            // only the fading-out (previous) ref names it
+
+    CHECK(LayerClock::advanceCrossfade(L, 0.5f));         // the fade runs on the same OUT -> IN clips
+    CHECK(L.runtime().crossfadeProgress == Approx(0.5f));
+    CHECK(c.clipAt(L.runtime().previousRef(), 0) == out);
+    CHECK(c.clipAt(L.runtime().activeRef(), 0) == in);
+    fenced.svc.withDeckDetached([] {});                   // a fenced edit while progress < 1: kept
+    CHECK(c.getNumRetiredDecks() == 1);
+    CHECK(fenced.reaped.empty());
+
+    CHECK(LayerClock::advanceCrossfade(L, 0.6f));         // complete: previous cleared
+    CHECK(L.runtime().previousClipColumn == -1);
+    fenced.svc.withDeckDetached([] {});                   // the first fenced edit after completion reaps it
+    CHECK(c.getNumRetiredDecks() == 0);
+    CHECK(fenced.reaped == std::vector<uint32_t>{ id1 });
+}
+
+TEST_CASE("T6d Remove Deck cancels a pending ref INTO the removed deck and leaves one into another deck (bf9b, "
+          "ruling-bf9b amendment 4(c)(f))", "[show]")
+{
+    Composition c = makeShow(3, 2, 4);
+    const uint32_t id1 = c.decks[1].id, id2 = c.decks[2].id;
+    c.fire(0, 1, 1, Snap::Bar);                           // layer 0 queues deck 1
+    c.fire(1, 2, 2, Snap::Bar);                           // layer 1 queues deck 2
+    REQUIRE(c.layers[0].runtime().pendingRef() == (ClipRef{ id1, 1 }));
+    const LayerRuntimeSnapshot other = c.layers[1].runtime();
+    REQUIRE(other.pendingRef() == (ClipRef{ id2, 2 }));
+
+    RemoveDeckCmd remove(resolverFor(c), passFence(), noMedia(), noDispose(), 1, c.decks[1], c.activeDeckIndex,
+                         "Remove Deck");
+    remove.execute();
+    CHECK_FALSE(remove.retired());                        // nothing PLAYS from deck 1: erased
+    CHECK(c.layers[0].runtime().pendingTriggerColumn == -1);
+    CHECK(c.layers[0].runtime().pendingDeckId == ClipRef::kNoDeck);
+    CHECK(c.layers[1].runtime() == other);                // the queue into deck 2 is untouched
+}
+
+TEST_CASE("T6e any fenced mutation reaps an unnamed retired deck and hands it to the hook exactly once (bf9b, "
+          "ruling-bf9b amendment 4(a)(f))", "[show]")
+{
+    Composition c = makeShow(3, 2, 3);
+    const uint32_t id2 = c.decks[2].id;
+    c.fire(0, 2, 1, Snap::Off, true);
+    REQUIRE(c.retireOrEraseDeck(2));                      // retired: layer 0 plays it
+    Fenced fenced(c);
+    fenced.svc.withDeckDetached([&c] { c.decks[0].setClip(1, 0, Clip{}); });   // a fenced cell edit
+    CHECK(fenced.reaped.empty());                         // still playing: kept
+    c.fire(0, 0, 1, Snap::Off, true);                     // replaced
+    fenced.svc.withDeckDetached([&c] { c.decks[0].addColumn(); });             // any fenced mutation
+    CHECK(fenced.reaped == std::vector<uint32_t>{ id2 });
+    fenced.svc.withDeckDetached([] {});
+    CHECK(fenced.reaped == std::vector<uint32_t>{ id2 });  // exactly once
+    CHECK(c.getNumRetiredDecks() == 0);
+}
+
+// T6f-T6j (fix stage, ruling-bf9b-merge AM-7): Undo of Add / Duplicate / Load Deck RETIRES a deck that still plays
+// (as Remove Deck does) when the command added no layers. The clip is fired straight into the model -- no Undo step,
+// as a routine or a take replay fires (a hand / REST / OSC fire is an Undo step of its own and is undone first).
+namespace
+{
+Clip boxClip(uint32_t id, const std::string& name)
+{
+    Clip clip;
+    clip.id = id;
+    clip.name = name;
+    clip.mediaType = Clip::MediaType::Image;
+    return clip;
+}
+
+// `cmd` has just added the deck at index `at` (the shown one; its cells (0, 0) and (1, 1) hold clips). Layer 0 plays
+// (0, 0), layer 1 queues (1, 1); then cmd.undo() and cmd.execute() (the redo).
+void undoRetiresPlayingDeckAndRedoRestoresIt(Composition& c, Fenced& fenced, Command& cmd, int at)
+{
+    const size_t decksWith = c.decks.size();
+    REQUIRE(c.activeDeckIndex == at);
+    const uint32_t id = c.decks[static_cast<size_t>(at)].id;
+    c.fire(0, at, 0, Snap::Off, true);                    // no Undo step
+    Clip* const playing = c.playingClip(0);
+    REQUIRE(playing != nullptr);
+    REQUIRE(playing == c.decks[static_cast<size_t>(at)].getClip(0, 0));
+    c.decks[static_cast<size_t>(at)].getClip(1, 1)->beatSnapMode = Snap::Bar;
+    c.fire(1, at, 1);                                     // a queue INTO the added deck on layer 1
+    REQUIRE(c.layers[1].runtime().pendingRef() == (ClipRef{ id, 1 }));
+
+    cmd.undo();
+    CHECK(c.decks.size() == decksWith - 1);               // the tab is gone ...
+    CHECK(c.findDeckIndexById(id) == -1);
+    CHECK(c.getNumRetiredDecks() == 1);                   // ... the box is kept while its clip plays
+    REQUIRE(c.playingClip(0) == playing);                 // the SAME Clip, at its address
+    CHECK(c.playing(0).retired);
+    CHECK(c.layers[1].runtime().pendingTriggerColumn == -1);   // the queue into it is cancelled
+    CHECK(c.layers[1].runtime().pendingDeckId == ClipRef::kNoDeck);
+    CHECK(fenced.reaped.empty());                         // still playing: not reaped by its own fence
+
+    playing->playheadPosition = 0.8;                      // it keeps playing while retired
+    cmd.execute();                                        // redo
+    REQUIRE(c.decks.size() == decksWith);
+    CHECK(c.decks[static_cast<size_t>(at)].id == id);     // back at its index, under its id
+    CHECK(c.activeDeckIndex == at);
+    CHECK(c.getNumRetiredDecks() == 0);
+    REQUIRE(c.playingClip(0) == playing);                 // moved back: the live clip, not the snapshot copy
+    CHECK(static_cast<double>(playing->playheadPosition) == Approx(0.8));
+    CHECK_FALSE(c.playing(0).retired);
+}
+} // namespace
+
+TEST_CASE("T6f Undo of Add Deck while a clip of the new deck plays: the deck is retired, the SAME Clip keeps playing, a "
+          "queue into it is cancelled; redo moves it back under its id (bf9b fix, AM-7)", "[show][asan]")
+{
+    Composition c = makeShow(2, 2, 3);
+    Fenced fenced(c);
+    AddDeckCmd add(resolverFor(c), fenced.hook(), "Add Deck");
+    add.execute();
+    REQUIRE(c.decks.size() == 3);
+    c.decks[2].setClip(0, 0, boxClip(700, "new r0 c0"));  // clips arrive in the new deck with no Undo step
+    c.decks[2].setClip(1, 1, boxClip(711, "new r1 c1"));
+    undoRetiresPlayingDeckAndRedoRestoresIt(c, fenced, add, 2);
+}
+
+TEST_CASE("T6g Undo of a Load Deck with the show's row count while its clip plays: retired, the SAME Clip keeps playing, "
+          "no cell disposed while retired; redo moves it back and reconnects nothing (bf9b fix, AM-7)", "[show][asan]")
+{
+    Composition c = makeShow(2, 2, 3);
+    Fenced fenced(c);
+    int disposed = 0, reconnected = 0;
+    Deck loaded;
+    loaded.name = "Loaded";
+    loaded.numColumns = 3;
+    loaded.initDefault(2);                                // the show's row count: no layer is added
+    loaded.setClip(0, 0, boxClip(800, "loaded r0 c0"));
+    loaded.setClip(1, 1, boxClip(811, "loaded r1 c1"));
+    InsertDeckCmd ins(resolverFor(c), fenced.hook(), [&reconnected](const Clip&) { ++reconnected; },
+                      [&disposed](const Clip&) { ++disposed; }, std::move(loaded), "Load Deck");
+    ins.execute();
+    REQUIRE(ins.addedLayerCount() == 0);
+    REQUIRE(c.decks.size() == 3);
+    undoRetiresPlayingDeckAndRedoRestoresIt(c, fenced, ins, 2);
+    CHECK(disposed == 0);                                 // never disposed: one of its clips was playing throughout
+    CHECK(reconnected == 0);                              // nothing was disposed, so the redo reconnects nothing
+}
+
+TEST_CASE("T6h THE EXCEPTION, pinned: Undo of a Load Deck that ADDED layers takes the deck and those layers back even "
+          "while its clip plays -- every cell disposed once; redo brings the layers and the deck back under its id "
+          "(bf9b fix, AM-7)", "[show]")
+{
+    Composition c = makeShow(1, 3, 2);
+    Fenced fenced(c);
+    std::vector<uint32_t> disposed, reconnected;
+    Deck wide;
+    wide.name = "Wide";
+    wide.numColumns = 2;
+    wide.initDefault(5);
+    wide.setClip(0, 0, boxClip(900, "wide r0 c0"));
+    wide.setClip(1, 1, boxClip(911, "wide r1 c1"));
+    wide.setClip(4, 0, boxClip(940, "wide r4 c0"));
+    InsertDeckCmd ins(resolverFor(c), fenced.hook(), [&reconnected](const Clip& k) { reconnected.push_back(k.id); },
+                      [&disposed](const Clip& k) { disposed.push_back(k.id); }, std::move(wide), "Load Deck");
+    ins.execute();
+    REQUIRE(ins.addedLayerCount() == 2);
+    REQUIRE(c.getNumLayers() == 5);
+    const uint32_t id = c.decks[1].id;
+    c.fire(0, 1, 0, Snap::Off, true);                     // layer 0 plays its row-0 clip (no Undo step)
+    REQUIRE(c.playingClip(0) == c.decks[1].getClip(0, 0));
+
+    ins.undo();
+    CHECK(c.getNumLayers() == 3);                         // the two layers it added are gone ...
+    CHECK(c.decks.size() == 1);
+    CHECK(c.getNumRetiredDecks() == 0);                   // ... and the deck is ERASED, not retired
+    CHECK(c.findDeckById(id) == nullptr);
+    CHECK(c.playingClip(0) == nullptr);                   // the documented exception: that clip stops
+    CHECK(disposed == std::vector<uint32_t>{ 900, 911, 940 });   // once per occupied cell
+    CHECK(reconnected.empty());
+    CHECK(rowsEqualLayers(c));
+
+    ins.execute();                                        // redo
+    CHECK(c.getNumLayers() == 5);
+    REQUIRE(c.decks.size() == 2);
+    CHECK(c.decks[1].id == id);
+    CHECK(c.activeDeckIndex == 1);
+    CHECK(reconnected == std::vector<uint32_t>{ 900, 911, 940 });
+    CHECK(disposed.size() == 3);
+    CHECK(rowsEqualLayers(c));
+}
+
+TEST_CASE("T6i Undo of a Load Deck retires the playing deck; once its clip is replaced a later fenced edit reaps it; "
+          "redo then comes back from the snapshot with every cell reconnected (bf9b fix, AM-7)", "[show]")
+{
+    Composition c = makeShow(2, 2, 3);
+    Fenced fenced(c);
+    std::vector<uint32_t> disposed, reconnected;
+    Deck loaded;
+    loaded.name = "Loaded";
+    loaded.numColumns = 3;
+    loaded.initDefault(2);
+    loaded.setClip(0, 0, boxClip(800, "loaded r0 c0"));
+    loaded.setClip(1, 1, boxClip(811, "loaded r1 c1"));
+    InsertDeckCmd ins(resolverFor(c), fenced.hook(), [&reconnected](const Clip& k) { reconnected.push_back(k.id); },
+                      [&disposed](const Clip& k) { disposed.push_back(k.id); }, std::move(loaded), "Load Deck");
+    ins.execute();
+    REQUIRE(c.decks.size() == 3);
+    const uint32_t id = c.decks[2].id;
+    c.fire(0, 2, 0, Snap::Off, true);                     // no Undo step
+
+    ins.undo();
+    REQUIRE(c.getNumRetiredDecks() == 1);
+    CHECK(disposed.empty());
+    c.fire(0, 0, 0, Snap::Off, true);                     // the layer is replaced (a Cut)
+    CHECK(c.getNumRetiredDecks() == 1);                   // nothing reaps outside a fence
+    fenced.svc.withDeckDetached([] {});                   // any fenced edit
+    CHECK(c.getNumRetiredDecks() == 0);
+    CHECK(fenced.reaped == std::vector<uint32_t>{ id });  // the reap hands it over (the app disposes its media there)
+    CHECK(c.findDeckById(id) == nullptr);
+    CHECK(disposed.empty());                              // the command itself disposed nothing
+
+    ins.execute();                                        // redo: the retired deck is gone -> the snapshot
+    REQUIRE(c.decks.size() == 3);
+    CHECK(c.decks[2].id == id);
+    CHECK(c.activeDeckIndex == 2);
+    CHECK(c.getNumRetiredDecks() == 0);
+    CHECK(rowIds(c.decks[2].rows[0]) == std::vector<uint32_t>{ 800, 0, 0 });
+    CHECK(rowIds(c.decks[2].rows[1]) == std::vector<uint32_t>{ 0, 811, 0 });
+    CHECK(reconnected == std::vector<uint32_t>{ 800, 811 });   // every occupied cell reconnected
+    CHECK(c.playingClip(0) == c.decks[0].getClip(0, 0));  // what plays did not change
+}
+
+TEST_CASE("T6j Undo of Duplicate Deck while a clip of the copy plays: the copy is retired, the SAME Clip keeps playing, a "
+          "queue into it is cancelled; redo moves it back under its id (bf9b fix, AM-7)", "[show][asan]")
+{
+    Composition c = makeShow(2, 2, 3);
+    Fenced fenced(c);
+    uint32_t nextClipId = 5000;
+    Deck copy = compload::duplicateDeck(c.decks[1], nextClipId);
+    InsertDeckCmd ins(resolverFor(c), fenced.hook(), noMedia(), noDispose(), std::move(copy), "Duplicate Deck");
+    ins.execute();
+    REQUIRE(ins.addedLayerCount() == 0);
+    REQUIRE(c.decks.size() == 3);
+    undoRetiresPlayingDeckAndRedoRestoresIt(c, fenced, ins, 2);
+}
+
+TEST_CASE("T7 Add / Remove / Move layer keep rows == layers in every live and retired deck; RemoveLayerCmd's undo "
+          "restores the layer and every deck's row (bf9b, ruling-bf9b amendment 22)", "[show]")
+{
+    Composition c = makeShow(3, 3, 4);
+    c.fire(0, 2, 0, Snap::Off, true);
+    REQUIRE(c.retireOrEraseDeck(2));                      // deck 2 retired (layer 0 plays it)
+    REQUIRE(c.getNumRetiredDecks() == 1);
+    REQUIRE(rowsEqualLayers(c));
+
+    SECTION("AddLayerCmd execute / undo / redo")
+    {
+        AddLayerCmd add(resolverFor(c), passFence(), "Add Layer");
+        add.execute();
+        CHECK(c.getNumLayers() == 4);
+        CHECK(rowsEqualLayers(c));
+        add.undo();
+        CHECK(c.getNumLayers() == 3);
+        CHECK(rowsEqualLayers(c));
+        add.execute();
+        CHECK(rowsEqualLayers(c));
+    }
+
+    SECTION("RemoveLayerCmd: undo restores the layer and every live and retired deck's row")
+    {
+        const Layer before = c.layers[1];
+        const auto d0 = rowIds(*c.decks[0].getRow(1)), d1 = rowIds(*c.decks[1].getRow(1)),
+                   r2 = rowIds(*c.retiredDecks()[0].getRow(1));
+        RemoveLayerCmd remove(resolverFor(c), passFence(), noMedia(), noDispose(), 1, c.layers[1], "Remove Layer");
+        remove.execute();
+        CHECK(c.getNumLayers() == 2);
+        CHECK(rowsEqualLayers(c));
+        remove.undo();
+        CHECK(c.getNumLayers() == 3);
+        CHECK(rowsEqualLayers(c));
+        CHECK(c.layers[1].id == before.id);
+        CHECK(c.layers[1].name == before.name);
+        CHECK(c.layers[1].runtime() == before.runtime());
+        CHECK(rowIds(*c.decks[0].getRow(1)) == d0);
+        CHECK(rowIds(*c.decks[1].getRow(1)) == d1);
+        CHECK(rowIds(*c.retiredDecks()[0].getRow(1)) == r2);
+    }
+
+    SECTION("RemoveLayerCmd undo after a deck was added and the retired deck reaped: an empty row for the new deck, "
+            "the reaped deck's snapshot row dropped")
+    {
+        const auto d0 = rowIds(*c.decks[0].getRow(1));
+        RemoveLayerCmd remove(resolverFor(c), passFence(), noMedia(), noDispose(), 1, c.layers[1], "Remove Layer");
+        remove.execute();
+        REQUIRE(c.addDeck("Deck 4"));                     // a deck the snapshot lacks
+        c.fire(0, 0, 0, Snap::Off, true);                 // layer 0 leaves the retired deck ...
+        REQUIRE(c.reapRetiredDecks().size() == 1);        // ... which is reaped
+        remove.undo();
+        CHECK(c.getNumLayers() == 3);
+        CHECK(rowsEqualLayers(c));
+        CHECK(c.getNumRetiredDecks() == 0);
+        CHECK(rowIds(*c.decks[0].getRow(1)) == d0);
+        const ClipRow* added = c.decks.back().getRow(1);
+        REQUIRE(added != nullptr);
+        CHECK(std::all_of(added->clips.begin(), added->clips.end(), [](const auto& cell) { return !cell.has_value(); }));
+    }
+
+    SECTION("MoveLayerCmd with a queued trigger and a crossfade in flight: the moved layer's refs resolve to the "
+            "same Clip objects afterwards")
+    {
+        Layer& L1 = c.layers[1];
+        L1.transitionSpeed = 2.0f;
+        c.fire(1, 0, 0, Snap::Off, true);
+        c.fire(1, 1, 1, Snap::Off, true);                 // a fade (deck 0 -> deck 1) in flight on layer 1
+        c.fire(1, 0, 3, Snap::Bar);                       // and a queue
+        const auto rt = c.layers[1].runtime();
+        REQUIRE(rt.crossfadeProgress < 1.0f);
+        REQUIRE(rt.pendingTriggerColumn == 3);
+        const uint32_t movedId = c.layers[1].id;
+        const Clip* active = c.clipAt(rt.activeRef(), 1);
+        const Clip* previous = c.clipAt(rt.previousRef(), 1);
+        const Clip* pending = c.clipAt(rt.pendingRef(), 1);
+        REQUIRE((active != nullptr && previous != nullptr && pending != nullptr));
+
+        MoveLayerCmd move(resolverFor(c), passFence(), 1, 0, "Move Layer Down");
+        move.execute();
+        CHECK(c.layers[0].id == movedId);
+        CHECK(rowsEqualLayers(c));
+        const auto rt2 = c.layers[0].runtime();
+        CHECK(rt2 == rt);
+        CHECK(c.clipAt(rt2.activeRef(), 0) == active);
+        CHECK(c.clipAt(rt2.previousRef(), 0) == previous);
+        CHECK(c.clipAt(rt2.pendingRef(), 0) == pending);
+        move.undo();
+        CHECK(c.layers[1].id == movedId);
+        CHECK(c.clipAt(c.layers[1].runtime().activeRef(), 1) == active);
+        CHECK(rowsEqualLayers(c));
+    }
+}
+
+TEST_CASE("T7b cell edits keep today's semantics: removing the last column empties only a layer playing from it; a "
+          "swap on the shown deck -- the ref follows the CELL (bf9b, ruling-bf9b amendment 21)", "[show]")
+{
+    Composition c = makeShow(2, 3, 4);
+    const uint32_t d0 = c.decks[0].id, d1 = c.decks[1].id;
+    c.fire(0, 0, 3, Snap::Off, true);                     // layer 0 plays deck 0's LAST column
+    c.fire(1, 0, 1, Snap::Off, true);                     // layer 1 plays deck 0's column 1
+    c.fire(2, 1, 3, Snap::Off, true);                     // layer 2 plays deck 1's column 3 (another deck)
+    const Clip* l1 = c.playingClip(1);
+    const Clip* l2 = c.playingClip(2);
+
+    SECTION("removing the last column")
+    {
+        std::vector<std::optional<Clip>> removed;
+        for (const auto& row : c.decks[0].rows)
+            removed.push_back(*row.getClipAt(3));
+        REQUIRE(c.decks[0].removeColumn(3));              // live (mutate-then-push), as kColumnRemove
+        RemoveColumnCmd cmd(
+            [&c](int d) -> Deck* { return d >= 0 && d < static_cast<int>(c.decks.size()) ? &c.decks[static_cast<size_t>(d)] : nullptr; },
+            passFence(), noMedia(), noDispose(), 0, 3, 4, std::move(removed), "Remove Column");
+        cmd.execute();
+        CHECK(c.layers[1].runtime().activeRef() == (ClipRef{ d0, 1 }));   // another column: unchanged
+        CHECK(c.playingClip(1) == l1);
+        CHECK(c.layers[2].runtime().activeRef() == (ClipRef{ d1, 3 }));   // another deck: unchanged
+        CHECK(c.playingClip(2) == l2);
+        CHECK(c.layers[0].runtime().activeRef() == (ClipRef{ d0, 3 }));   // the ref is kept (no fix-up) ...
+        CHECK(c.playingClip(0) == nullptr);                                // ... and resolves to nothing: empty
+    }
+
+    SECTION("a swap on the shown deck: the ref follows the cell")
+    {
+        const uint32_t wasAt0 = c.decks[0].getClip(1, 0)->id;
+        auto at = [&c](int r, int col) { return std::optional<Clip>(*c.decks[0].getClip(r, col)); };
+        SwapClipsCmd swap(
+            [&c](int d) -> Deck* { return d >= 0 && d < static_cast<int>(c.decks.size()) ? &c.decks[static_cast<size_t>(d)] : nullptr; },
+            passFence(), noMedia(), noDispose(), 0, 1, 1, 1, 0, at(1, 1), at(1, 0), at(1, 0), at(1, 1), 4, 4,
+            "Swap Clips");
+        swap.execute();
+        CHECK(c.layers[1].runtime().activeRef() == (ClipRef{ d0, 1 }));
+        REQUIRE(c.playingClip(1) != nullptr);
+        CHECK(c.playingClip(1)->id == wasAt0);            // the clip now IN the playing cell
+    }
+}
+
+TEST_CASE("T8 Duplicate Deck: a new deck id, re-minted clip ids, no ref names the copy, the source keeps playing (bf9b, "
+          "Pitfall 36)", "[show]")
+{
+    Composition c = makeShow(2, 2, 3);
+    c.fire(0, 1, 2, Snap::Off, true);                     // layer 0 plays the SOURCE deck (1)
+    const LayerRuntimeSnapshot rt = c.layers[0].runtime();
+    const Clip* const playing = c.playingClip(0);
+    uint32_t nextClipId = 5000;
+    Deck copy = compload::duplicateDeck(c.decks[1], nextClipId);
+    InsertDeckCmd ins(resolverFor(c), passFence(), noMedia(), noDispose(), std::move(copy), "Duplicate Deck");
+    ins.execute();
+    REQUIRE(c.decks.size() == 3);
+    const Deck& dup = c.decks[2];
+    CHECK(dup.id != c.decks[0].id);
+    CHECK(dup.id != c.decks[1].id);
+    std::vector<uint32_t> src, cp;
+    for (const auto& r : c.decks[1].rows) for (const auto& cell : r.clips) if (cell) src.push_back(cell->id);
+    for (const auto& r : dup.rows) for (const auto& cell : r.clips) if (cell) cp.push_back(cell->id);
+    REQUIRE(cp.size() == src.size());
+    for (uint32_t id : cp)
+        CHECK(std::find(src.begin(), src.end(), id) == src.end());
+    CHECK_FALSE(c.deckIsPlaying(dup.id));                 // no ref names the copy
+    for (const auto& l : c.layers)
+    {
+        CHECK(l.runtime().activeDeckId != dup.id);
+        CHECK(l.runtime().pendingDeckId != dup.id);
+    }
+    CHECK(c.layers[0].runtime() == rt);                   // the source keeps playing
+    CHECK(c.playingClip(0) == playing);
+}
+
+namespace
+{
+// A bf9b-format composition var whose decks carry the given ids (one shared layer, one row each).
+juce::var showWithDeckIds(const std::vector<uint32_t>& ids)
+{
+    Composition c = makeShow(1, 1, 2, false);
+    juce::var v = c.toVar();
+    juce::Array<juce::var> decks;
+    for (uint32_t id : ids)
+    {
+        Deck d;
+        d.name = "D" + std::to_string(id);
+        d.id = id;
+        d.numColumns = 2;
+        d.initDefault(1);
+        decks.add(d.toVar());
+    }
+    v.getDynamicObject()->setProperty("decks", decks);
+    return v;
+}
+} // namespace
+
+TEST_CASE("T11 deck ids are never reused in a session: oversized ids renumber at load, the mint refuses past "
+          "kMaxDeckId, a reaped deck's id never comes back on another deck (bf9b, ruling-bf9b amendment 7)", "[show]")
+{
+    SECTION("a file's ids {50000, 7} load as {100, 101}")
+    {
+        Composition c;
+        c.fromVar(showWithDeckIds({ 50000u, 7u }));
+        REQUIRE(c.decks.size() == 2);
+        CHECK(c.decks[0].id == 100u);
+        CHECK(c.decks[1].id == 101u);
+    }
+    SECTION("ids {100, 250} are kept and the next mint is 251")
+    {
+        Composition c;
+        c.fromVar(showWithDeckIds({ 100u, 250u }));
+        CHECK(c.decks[0].id == 100u);
+        CHECK(c.decks[1].id == 250u);
+        REQUIRE(c.addDeck("Next"));
+        CHECK(c.decks.back().id == 251u);
+    }
+    SECTION("appendDeck with the mint past kMaxDeckId refuses and leaves the decks unchanged")
+    {
+        Composition c = makeShow(1, 1, 1, false);
+        uint32_t last = 0;
+        int guard = 0;
+        while (c.canMintDeckId() && guard++ < 20000)
+        {
+            Deck d;
+            d.numColumns = 1;
+            d.initDefault(1);
+            const int idx = c.appendDeck(std::move(d));
+            REQUIRE(idx == 1);
+            last = c.decks[1].id;
+            c.decks.erase(c.decks.begin() + 1);           // never reused: the mint marches on
+        }
+        CHECK(last == ClipRef::kMaxDeckId);
+        const auto sizeBefore = c.decks.size();
+        Deck more;
+        more.initDefault(1);
+        CHECK(c.appendDeck(std::move(more)) == -1);
+        CHECK(c.decks.size() == sizeBefore);
+        CHECK_FALSE(c.addDeck("Refused"));
+        AddDeckCmd add(resolverFor(c), passFence(), "Add Deck");
+        add.execute();
+        CHECK(add.refused());
+        CHECK(c.decks.size() == sizeBefore);
+    }
+    SECTION("remove -> reap -> append -> undo never resolves a ref into the wrong deck")
+    {
+        Composition c = makeShow(2, 1, 2);
+        const uint32_t idA = c.decks[1].id;
+        c.fire(0, 1, 1, Snap::Off, true);
+        const ClipRef refA = c.layers[0].runtime().activeRef();
+        const uint32_t clipA = c.playingClip(0)->id;
+        Fenced fenced(c);
+        RemoveDeckCmd remove(resolverFor(c), fenced.hook(), noMedia(), noDispose(), 1, c.decks[1], 0, "Remove Deck");
+        remove.execute();
+        REQUIRE(remove.retired());
+        c.fire(0, 0, 0, Snap::Off, true);                 // replaced
+        fenced.svc.withDeckDetached([] {});               // reaped
+        REQUIRE(fenced.reaped == std::vector<uint32_t>{ idA });
+        CHECK(c.clipAt(refA, 0) == nullptr);
+        Deck b;
+        b.name = "B";
+        b.numColumns = 2;
+        b.initDefault(1);
+        Clip bc;
+        bc.id = 7777;
+        b.setClip(0, 1, bc);
+        REQUIRE(c.appendDeck(std::move(b)) >= 0);
+        CHECK(c.decks.back().id != idA);
+        CHECK(c.clipAt(refA, 0) == nullptr);              // never B's clip
+        remove.undo();                                    // the snapshot comes back under its own id
+        REQUIRE(c.clipAt(refA, 0) != nullptr);
+        CHECK(c.clipAt(refA, 0)->id == clipA);
+    }
+}
+
+TEST_CASE("T12 one show autopilot: a layer advances within the deck its playing clip came from, whatever deck is "
+          "shown; never from a retired deck; each layer once per beat crossing (bf9b, plan F10, Pitfall 38)", "[show]")
+{
+    auto beat = [](Autopilot& ap, Composition& c, FeatureSnapshot& s) {
+        s.beatPhase = 0.99f;
+        ap.processFrame(c, s);
+        s.beatPhase = 0.01f;
+        s.totalBeatCount++;
+        ap.processFrame(c, s);
+    };
+    auto autopilotShow = [](int decks, int layers, int cols, Clip::AutopilotDuration dur) {
+        Composition c = makeShow(decks, layers, cols);
+        for (auto& d : c.decks)
+            for (auto& r : d.rows)
+                for (auto& cell : r.clips)
+                    if (cell)
+                    {
+                        cell->autopilotAction = Clip::AutopilotAction::PlayNext;
+                        cell->autopilotDuration = dur;
+                    }
+        for (auto& l : c.layers)
+            l.autopilotEnabled = true;
+        return c;
+    };
+
+    SECTION("the source deck, not the shown one; a retired source never advances")
+    {
+        Composition c = autopilotShow(2, 1, 4, Clip::AutopilotDuration::Beat1);
+        c.fire(0, 1, 0, Snap::Off, true);                 // from deck 1 ...
+        c.activeDeckIndex = 0;                            // ... while deck 0 is shown
+        Autopilot ap;
+        FeatureSnapshot s;
+        beat(ap, c, s);
+        CHECK(c.layers[0].runtime().activeRef() == (ClipRef{ c.decks[1].id, 1 }));
+        beat(ap, c, s);
+        CHECK(c.layers[0].runtime().activeRef() == (ClipRef{ c.decks[1].id, 2 }));
+
+        REQUIRE(c.retireOrEraseDeck(1));                  // the source deck is removed while it plays
+        const auto rt = c.layers[0].runtime();
+        for (int i = 0; i < 3; ++i)
+            beat(ap, c, s);
+        CHECK(c.layers[0].runtime() == rt);               // no advance from a retired source (R7)
+    }
+
+    SECTION("processFrame once per frame advances each layer exactly once over 4 beats (Beat4)")
+    {
+        Composition c = autopilotShow(1, 3, 8, Clip::AutopilotDuration::Beat4);
+        for (int l = 0; l < 3; ++l)
+            c.fire(l, 0, 0, Snap::Off, true);
+        Autopilot ap;
+        FeatureSnapshot s;
+        for (int i = 0; i < 4; ++i)
+            beat(ap, c, s);
+        for (int l = 0; l < 3; ++l)
+            CHECK(c.layers[static_cast<size_t>(l)].runtime().activeClipColumn == 1);
+    }
+}
+
+TEST_CASE("T13 a routine's clip fires are pinned to their deck by id: a switch, an Insert Deck before it, a Remove of "
+          "it (bf9b, ruling-bf9b amendment 6)", "[show]")
+{
+    Composition c = makeShow(3, 2, 4);
+    const uint32_t idA = c.decks[1].id;
+    c.activeDeckIndex = 1;                                // deck A shown at the press
+    Routine r;
+    r.uuid = "pin";
+    r.name = "Pin";
+    r.lengthBeats = 8.0;
+    r.quantize = Snap::Off;
+    const ControlPath key = layerKey(0, "activeClip");    // deck-relative: the shown deck at the press (D2)
+    Lane lane;
+    lane.key = key;
+    lane.kind = Lane::Kind::Discrete;
+    DiscretePoint pt;
+    pt.s = { 1, 0.0, 0 };
+    pt.beat = 1.0;
+    pt.bpm = 120.0f;
+    pt.v = 2;
+    lane.points = { pt };
+    r.lanes[key] = lane;
+    const auto prog = compileRoutine(r, c);
+    REQUIRE(prog != nullptr);
+    REQUIRE(prog->discrete.size() == 1);
+    const Fired& f = prog->discrete[0];
+    CHECK(f.target.deckId == idA);
+
+    // The app's replay (dispatch.fire): the deck by pinnedDeckIndex, the fire through the model.
+    auto replay = [&c, &f]() -> int {
+        const int deck = pinnedDeckIndex(c, f.target);
+        if (deck >= 0)
+            c.fire(f.target.layer, deck, f.p.v, Snap::Off, true);
+        return deck;
+    };
+
+    c.activeDeckIndex = 0;                                // switched to deck B
+    CHECK(replay() == 1);
+    CHECK(c.layers[0].runtime().activeRef() == (ClipRef{ idA, 2 }));
+    CHECK(c.playingClip(0) == c.decks[1].getClip(0, 2));
+
+    c.fire(0, 0, 0, Snap::Off, true);
+    Deck before;
+    before.name = "Inserted";
+    before.id = 4000;
+    before.numColumns = 4;
+    before.initDefault(2);
+    c.insertDeckKeepingId(0, std::move(before));          // a deck inserted BEFORE A: A is now index 2
+    REQUIRE(c.findDeckIndexById(idA) == 2);
+    CHECK(replay() == 2);
+    CHECK(c.layers[0].runtime().activeRef() == (ClipRef{ idA, 2 }));
+
+    c.fire(0, 0, 0, Snap::Off, true);
+    const LayerRuntimeSnapshot rt = c.layers[0].runtime();
+    RemoveDeckCmd remove(resolverFor(c), passFence(), noMedia(), noDispose(), 2, c.decks[2], c.activeDeckIndex,
+                         "Remove Deck");
+    remove.execute();                                     // deck A removed
+    REQUIRE(c.findDeckIndexById(idA) == -1);
+    CHECK(replay() == -1);                                // skipped: none lands in another deck
+    CHECK(c.layers[0].runtime() == rt);
+}
+
+TEST_CASE("T14 a pad lights iff the shown deck's cell is the active ref of its row's layer; a retired source lights "
+          "nothing (bf9b, ruling-bf9b amendment 12)", "[show]")
+{
+    using PS = MidiOutputHandler::PadState;
+    Composition c = makeShow(2, 2, 3);
+    c.fire(0, 1, 1, Snap::Off, true);                     // layer 0 plays deck B (1)'s (0, 1)
+    auto lit = [](PS s) { return s == PS::Playing || s == PS::Triggered || s == PS::ActiveWithFx; };
+
+    for (int row = 0; row < 2; ++row)                     // deck A (0) shown: no pad lights
+        for (int col = 0; col < 3; ++col)
+            CHECK_FALSE(lit(MidiOutputHandler::padStateFor(c, 0, row, col)));
+    CHECK(MidiOutputHandler::padStateFor(c, 0, 0, 1) == PS::Loaded);
+    CHECK(lit(MidiOutputHandler::padStateFor(c, 1, 0, 1)));   // deck B shown: (0, 1) lights
+    CHECK_FALSE(lit(MidiOutputHandler::padStateFor(c, 1, 0, 0)));
+
+    REQUIRE(c.retireOrEraseDeck(1));                      // its source deck retired: nothing lights anywhere
+    for (int row = 0; row < 2; ++row)
+        for (int col = 0; col < 3; ++col)
+            CHECK_FALSE(lit(MidiOutputHandler::padStateFor(c, 0, row, col)));
+}
+
+TEST_CASE("T16 bindings: Selected on a layer playing a retired deck's clip fires nothing; ThisItem fires a clip from "
+          "a non-shown deck into its row's layer and its velocity lands on that clip (bf9b, ruling-bf9b amendment 20)",
+          "[show]")
+{
+    SECTION("Selected, its source retired")
+    {
+        Composition c = makeShow(2, 2, 3);
+        c.fire(0, 1, 2, Snap::Off, true);
+        REQUIRE(c.retireOrEraseDeck(1));
+        const auto rt0 = c.layers[0].runtime(), rt1 = c.layers[1].runtime();
+        Binding b;
+        b.action = Binding::Action::TriggerClip;
+        b.targetMode = Binding::TargetMode::Selected;
+        const BindingTarget t = resolveBindingTarget(c, b);
+        CHECK(t.layer == 0);
+        CHECK(t.retired);                                 // handleBindingAction fires nothing
+        CHECK(c.layers[0].runtime() == rt0);
+        CHECK(c.layers[1].runtime() == rt1);
+    }
+    SECTION("ThisItem on a non-shown deck")
+    {
+        Composition c = makeShow(2, 2, 3);
+        c.activeDeckIndex = 0;
+        Clip* target = c.decks[1].getClip(1, 2);
+        Binding b;
+        b.action = Binding::Action::TriggerClip;
+        b.targetMode = Binding::TargetMode::ThisItem;
+        b.targetClipId = target->id;
+        const BindingTarget t = resolveBindingTarget(c, b);
+        CHECK(t.layer == 1);
+        CHECK(t.column == 2);
+        CHECK(t.deck == 1);
+        CHECK_FALSE(t.retired);
+        CHECK(t.velocityDeck(c) == 1);
+        c.fire(t.layer, t.deck, t.column, Snap::Off, true);   // handleClipTrigger(layer, column, origin, deck)
+        CHECK(c.layers[1].runtime().activeRef() == (ClipRef{ c.decks[1].id, 2 }));
+        CHECK(c.playingClip(1) == target);
+
+        MacroBank bank;
+        ControlPath p;
+        p.scope = ControlPath::Scope::Clip;
+        p.deck = t.velocityDeck(c);
+        p.layer = t.layer;
+        p.col = t.column;
+        p.control = "scalar";
+        p.scalar = "opacity";
+        const auto ref = resolveControl(c, bank, p);
+        REQUIRE(ref.has_value());
+        CHECK(ref->manual == &target->clipOpacity);       // the velocity write lands on that clip
+    }
+}
+
+// ============================================================================================================
+// Old files (plan-bf9b F6 / F7 / S2.3, ruling-bf9b amendments 8, 9): pre-bf9b compositions and deck files gave every
+// deck its own layers (settings + clips); the converter (src/model/ShowMigration.h) is the only reader of their
+// "persistent" / "globalTransitionSpeed" keys.
+// ============================================================================================================
+namespace
+{
+// A pre-bf9b row: Layer::toVar (it always wrote "type") + the row's "clips" (+ "persistent" when set).
+juce::var legacyRow(const Layer& settings, const ClipRow& clips = {}, bool persistent = false)
+{
+    juce::var v = settings.toVar();
+    auto* obj = v.getDynamicObject();
+    obj->setProperty("clips", clips.toVar().getDynamicObject()->getProperty("clips"));
+    if (persistent)
+        obj->setProperty("persistent", true);
+    return v;
+}
+
+juce::var deckVar(const std::string& name, uint32_t id, int cols, const std::vector<juce::var>& rows)
+{
+    auto* obj = new juce::DynamicObject();
+    obj->setProperty("name", juce::String(name));
+    obj->setProperty("id", static_cast<int>(id));
+    obj->setProperty("numColumns", cols);
+    juce::Array<juce::var> arr;
+    for (const auto& r : rows)
+        arr.add(r);
+    obj->setProperty("layers", arr);
+    return juce::var(obj);
+}
+
+// A pre-bf9b composition: no top-level "layers"; the decks carry their layers; the old deck fade key.
+juce::var legacyShow(const std::vector<juce::var>& decks, double fadeSeconds)
+{
+    Composition base;
+    base.initDefault();
+    juce::var v = base.toVar();
+    auto* obj = v.getDynamicObject();
+    obj->removeProperty("layers");
+    juce::Array<juce::var> arr;
+    for (const auto& d : decks)
+        arr.add(d);
+    obj->setProperty("decks", arr);
+    obj->setProperty("globalTransitionSpeed", fadeSeconds);
+    return v;
+}
+
+Layer settings(const std::string& name, uint32_t id, Layer::Type type, float opacity,
+               Layer::MixMode blend = Layer::MixMode::Additive)
+{
+    Layer l;
+    l.name = name;
+    l.id = id;
+    l.type = type;
+    l.opacity = opacity;
+    l.blendMode = blend;
+    return l;
+}
+
+ClipRow rowOf(int cols, uint32_t firstId)
+{
+    ClipRow r;
+    r.ensureColumns(cols);
+    for (int c = 0; c < cols; ++c)
+    {
+        Clip clip;
+        clip.id = firstId + static_cast<uint32_t>(c);
+        clip.mediaType = Clip::MediaType::Image;
+        r.clips[static_cast<size_t>(c)] = clip;
+    }
+    return r;
+}
+
+// M1's show: Deck 1 = 3 rows, Deck 2 = 4 rows (row 2 different: type, opacity, blend, 1 layer effect, 1 connection;
+// row 4 only on Deck 2); Deck 1's "Layer 3" says "persistent": true; deck fade 1.2 s.
+juce::var m1Show()
+{
+    const Layer a = settings("Layer 1", 0, Layer::Type::Opaque, 1.0f);
+    const Layer b = settings("Layer 2", 1, Layer::Type::Transparent, 0.5f, Layer::MixMode::Screen);
+    const Layer c3 = settings("Layer 3", 2, Layer::Type::Transparent, 1.0f);
+    Layer b2 = settings("Layer 2", 1, Layer::Type::Mask, 0.9f, Layer::MixMode::Multiply);
+    Clip::EffectSlot fx;
+    fx.effectName = "ripple";
+    b2.layerEffects.push_back(fx);
+    b2.scalarConns[static_cast<size_t>(LayerScalar::Opacity)].source.kind = ConnSource::Kind::Signal;
+    b2.scalarConns[static_cast<size_t>(LayerScalar::Opacity)].source.signalName = "rms";
+    REQUIRE(b2.scalarConns[static_cast<size_t>(LayerScalar::Opacity)].isConnected());
+    const Layer d4 = settings("Layer 4", 3, Layer::Type::Transparent, 0.7f);
+    return legacyShow({ deckVar("Deck 1", 0, 2, { legacyRow(a, rowOf(2, 11)), legacyRow(b, rowOf(2, 21)),
+                                                  legacyRow(c3, rowOf(2, 31), true) }),
+                        deckVar("Deck 2", 1, 2, { legacyRow(a, rowOf(2, 111)), legacyRow(b2, rowOf(2, 121)),
+                                                  legacyRow(c3, rowOf(2, 131)), legacyRow(d4, rowOf(2, 141)) }) },
+                      1.2);
+}
+
+// Load Deck as MainComponent::loadDeck does it: the deck's clips (Deck::fromVar), validated, and its per-row legacy
+// settings (ShowMigration::legacyRowSettings) into InsertDeckCmd.
+std::unique_ptr<InsertDeckCmd> loadDeckCmd(Composition& c, const juce::var& v)
+{
+    Deck d;
+    d.fromVar(v);
+    REQUIRE(compload::validateDeck(d).empty());
+    return std::make_unique<InsertDeckCmd>(resolverFor(c), passFence(), noMedia(), noDispose(), std::move(d),
+                                           "Load Deck", ShowMigration::legacyRowSettings(v));
+}
+} // namespace
+
+TEST_CASE("M1 an old 2-deck show converts to ONE shared stack: the first deck's settings win, the extra row adds a "
+          "layer, every deck is padded, ONE note names the dropped set, the persistent layer and the fade (bf9b)",
+          "[show][backcompat]")
+{
+    Composition c;
+    c.fromVar(m1Show());
+    REQUIRE(c.getNumLayers() == 4);
+    CHECK(c.layers[0].type == Layer::Type::Opaque);
+    CHECK(c.layers[1].type == Layer::Type::Transparent);          // Deck 1's row 2, not Deck 2's Mask (plan R5)
+    CHECK(c.layers[1].opacity == Approx(0.5f));
+    CHECK(c.layers[1].blendMode == Layer::MixMode::Screen);
+    CHECK(c.layers[1].layerEffects.empty());
+    CHECK(c.layers[2].name == "Layer 3");
+    CHECK(c.layers[3].opacity == Approx(0.7f));                   // row 4 exists only on Deck 2: its settings
+    REQUIRE(c.decks.size() == 2);
+    for (const auto& d : c.decks)
+        CHECK(d.getNumRows() == 4);
+    CHECK(c.decks[0].getClip(0, 0)->id == 11u);                   // every clip kept in its row
+    CHECK(c.decks[1].getClip(3, 1)->id == 142u);
+    CHECK(c.decks[0].getClip(3, 0) == nullptr);                   // Deck 1 padded with an empty row
+    const std::string& note = c.migrationNote;
+    INFO("note: " << note);
+    CHECK(note.rfind("old show converted:", 0) == 0);
+    CHECK(note.find('\n') == std::string::npos);                  // ONE note
+    CHECK(note.find("Deck 2 row 2: settings dropped; 1 layer effect, 1 connection dropped") != std::string::npos);
+    CHECK(note.find("Deck 2 row 1") == std::string::npos);        // identical settings: not named
+    CHECK(note.find("Deck 2 row 3") == std::string::npos);
+    CHECK(note.find("'persistent' ignored on: Deck 1 / Layer 3") != std::string::npos);
+    CHECK(note.find("deck fade 1.20 s dropped") != std::string::npos);
+}
+
+TEST_CASE("M2 an old show loads, saves, loads, saves: the two saves are equal; the saved form has top-level layers, "
+          "rows with only clips, no persistent, no globalTransitionSpeed (bf9b, K7)", "[show][backcompat]")
+{
+    Composition first;
+    first.fromVar(m1Show());
+    REQUIRE_FALSE(first.migrationNote.empty());
+    const juce::String save1 = juce::JSON::toString(first.toVar());
+    Composition second;
+    second.fromVar(juce::JSON::parse(save1));
+    CHECK(second.migrationNote.empty());                          // a bf9b file: nothing converted
+    const juce::String save2 = juce::JSON::toString(second.toVar());
+    CHECK(save1 == save2);
+    CHECK_FALSE(save1.contains("persistent"));
+    CHECK_FALSE(save1.contains("globalTransitionSpeed"));
+    const juce::var v = juce::JSON::parse(save1);
+    REQUIRE(v.getProperty("layers", juce::var()).isArray());
+    CHECK(v.getProperty("layers", juce::var()).getArray()->size() == 4);
+    for (const auto& d : *v.getProperty("decks", juce::var()).getArray())
+        for (const auto& row : *d.getProperty("layers", juce::var()).getArray())
+        {
+            auto* obj = row.getDynamicObject();
+            REQUIRE(obj != nullptr);
+            CHECK(obj->getProperties().size() == 1);
+            CHECK(obj->hasProperty("clips"));
+        }
+}
+
+TEST_CASE("M3 Load Deck: an old 5-row deck into a 3-layer show adds 2 layers with the file's settings, a new-format deck "
+          "adds default layers, other decks are padded, undo removes the deck and the added layers (bf9b, F6)",
+          "[show][backcompat]")
+{
+    Composition c = makeShow(2, 3, 2);
+    std::vector<juce::String> keepBefore;
+    for (const auto& l : c.layers)
+        keepBefore.push_back(ShowMigration::settingsKey(l));
+
+    SECTION("an old-format deck")
+    {
+        std::vector<juce::var> rows;
+        for (int r = 0; r < 3; ++r)
+            rows.push_back(legacyRow(settings("Old " + std::to_string(r), static_cast<uint32_t>(r), Layer::Type::Mask, 0.1f),
+                                     rowOf(2, 500u + 10u * static_cast<uint32_t>(r))));
+        rows.push_back(legacyRow(settings("Old 3", 3, Layer::Type::Transparent, 0.33f), rowOf(2, 530)));
+        rows.push_back(legacyRow(settings("Old 4", 4, Layer::Type::FXOnly, 0.44f), rowOf(2, 540)));
+        auto cmd = loadDeckCmd(c, deckVar("Old5", 77, 2, rows));
+        cmd->execute();
+        REQUIRE(c.getNumLayers() == 5);
+        CHECK(cmd->addedLayerCount() == 2);
+        CHECK(c.layers[3].opacity == Approx(0.33f));
+        CHECK(c.layers[4].type == Layer::Type::FXOnly);
+        for (int i = 0; i < 3; ++i)
+            CHECK(ShowMigration::settingsKey(c.layers[static_cast<size_t>(i)]) == keepBefore[static_cast<size_t>(i)]);
+        CHECK(rowsEqualLayers(c));
+        CHECK(c.decks.back().getClip(4, 1)->id == 541u);
+        cmd->undo();
+        CHECK(c.decks.size() == 2);
+        CHECK(c.getNumLayers() == 3);
+        CHECK(rowsEqualLayers(c));
+    }
+    SECTION("a new-format deck")
+    {
+        std::vector<juce::var> rows;
+        for (int r = 0; r < 5; ++r)
+            rows.push_back(rowOf(2, 600u + 10u * static_cast<uint32_t>(r)).toVar());
+        auto cmd = loadDeckCmd(c, deckVar("New5", 78, 2, rows));
+        cmd->execute();
+        REQUIRE(c.getNumLayers() == 5);
+        CHECK(c.layers[3].type == Layer::Type::Transparent);       // what Add Layer makes
+        CHECK(c.layers[3].name == "Layer 4");
+        CHECK(c.layers[4].name == "Layer 5");
+        CHECK(rowsEqualLayers(c));
+        cmd->undo();
+        CHECK(c.getNumLayers() == 3);
+        CHECK(rowsEqualLayers(c));
+    }
+}
+
+TEST_CASE("M4 colliding layer ids across an old show's decks are re-minted unique; id 0 stays valid (bf9b, Pitfall 15)",
+          "[show][backcompat]")
+{
+    const juce::var v = legacyShow(
+        { deckVar("Deck 1", 0, 1, { legacyRow(settings("A", 0, Layer::Type::Opaque, 1.0f)),
+                                    legacyRow(settings("B", 5, Layer::Type::Transparent, 1.0f)) }),
+          deckVar("Deck 2", 1, 1, { legacyRow(settings("A", 0, Layer::Type::Opaque, 1.0f)),
+                                    legacyRow(settings("B", 5, Layer::Type::Transparent, 1.0f)),
+                                    legacyRow(settings("C", 0, Layer::Type::Transparent, 0.5f)),
+                                    legacyRow(settings("D", 5, Layer::Type::Transparent, 0.6f)) }) },
+        0.0);
+    Composition c;
+    c.fromVar(v);
+    REQUIRE(c.getNumLayers() == 4);
+    CHECK(c.layers[0].id == 0u);                                   // id 0 stays valid
+    CHECK(c.layers[1].id == 5u);
+    std::vector<uint32_t> ids;
+    for (const auto& l : c.layers)
+        ids.push_back(l.id);
+    std::sort(ids.begin(), ids.end());
+    CHECK(std::adjacent_find(ids.begin(), ids.end()) == ids.end());
+    CHECK(c.makeLayer().id > ids.back());                          // the mint is past every id
+}
+
+TEST_CASE("M5 an old take (no shared layers) restores the shared layers from its captured active deck; a v2 take "
+          "round-trips its layers (bf9b, plan F9)", "[show][backcompat]")
+{
+    Composition comp = makeShow(2, 2, 3);
+    SECTION("v1: the captured ACTIVE deck's layers")
+    {
+        PerfState cp0;
+        cp0.activeDeckIndex = 1;
+        PerfState::DeckRuntime d0, d1;
+        d0.deck = "Deck 1";
+        d1.deck = "Deck 2";
+        PerfState::LayerRuntime l;
+        l.layer = "Layer 1"; l.opacity = 0.2f; d0.layers[0] = l;
+        l.layer = "Layer 2"; l.opacity = 0.25f; d0.layers[1] = l;
+        l.layer = "Layer 1"; l.opacity = 0.9f; d1.layers[0] = l;
+        l.layer = "Layer 2"; l.opacity = 0.4f; d1.layers[1] = l;
+        cp0.decks[0] = d0;
+        cp0.decks[1] = d1;
+        Take take;
+        take.checkpoint0 = cp0;
+        const auto p = compile(take, comp, DriveClock::Wall);
+        std::map<int, float> opacity;
+        for (const auto& e : p->preambleContinuous)
+            if (e.key.scope == ControlPath::Scope::Layer && e.key.scalar == "opacity")
+                opacity[e.target.layer] = e.v;
+        REQUIRE(opacity.size() == 2);
+        CHECK(opacity.at(0) == Approx(0.9f));                      // Deck 2's (the captured active deck)
+        CHECK(opacity.at(1) == Approx(0.4f));
+    }
+    SECTION("v2: \"layers\" round-trips")
+    {
+        PerfState s;
+        s.activeDeckIndex = 1;
+        PerfState::LayerRuntime l;
+        l.layer = "Layer 1";
+        l.opacity = 0.3f;
+        l.activeClipColumn = 2;
+        l.activeDeck = 1;
+        l.activeDeckName = "Deck 2";
+        s.layers[0] = l;
+        const juce::var v = s.toVar();
+        CHECK_FALSE(v.getProperty("layers", juce::var()).isVoid());   // written as "layers"
+        const PerfState back = PerfState::fromVar(juce::JSON::parse(juce::JSON::toString(v)));
+        REQUIRE(back.layers.count(0) == 1);
+        CHECK(back.layers.at(0).opacity == Approx(0.3f));
+        CHECK(back.layers.at(0).activeClipColumn == 2);
+        CHECK(back.layers.at(0).activeDeck == 1);
+        CHECK(back.layers.at(0).activeDeckName == "Deck 2");
+    }
+}
+
+TEST_CASE("M6 Load Deck reads a deck file per row: new rows add default layers, old rows add layers with their "
+          "settings and leave the show's layers alone, a mixed file per row, {} rows are empty; undo removes it all "
+          "(bf9b, ruling-bf9b amendment 8)", "[show][backcompat]")
+{
+    Composition c = makeShow(1, 3, 2);
+    std::vector<juce::String> keepBefore;
+    for (const auto& l : c.layers)
+        keepBefore.push_back(ShowMigration::settingsKey(l));
+    std::vector<juce::var> rows;
+    for (int r = 0; r < 3; ++r)
+        rows.push_back(legacyRow(settings("Old", static_cast<uint32_t>(r), Layer::Type::Mask, 0.2f), rowOf(2, 700)));
+
+    SECTION("(c) a mixed file: row 4 old (its settings), row 5 new (a default layer)")
+    {
+        rows.push_back(legacyRow(settings("Old 4", 3, Layer::Type::ThreeD, 0.6f), rowOf(2, 730)));
+        rows.push_back(rowOf(2, 740).toVar());
+        auto cmd = loadDeckCmd(c, deckVar("Mixed", 9, 2, rows));
+        cmd->execute();
+        REQUIRE(c.getNumLayers() == 5);
+        CHECK(c.layers[3].type == Layer::Type::ThreeD);
+        CHECK(c.layers[3].opacity == Approx(0.6f));
+        CHECK(c.layers[4].type == Layer::Type::Transparent);
+        CHECK(c.layers[4].opacity == Approx(1.0f));
+        for (int i = 0; i < 3; ++i)                                // (b) the show's layers untouched
+            CHECK(ShowMigration::settingsKey(c.layers[static_cast<size_t>(i)]) == keepBefore[static_cast<size_t>(i)]);
+        cmd->undo();                                               // (e)
+        CHECK(c.decks.size() == 1);
+        CHECK(c.getNumLayers() == 3);
+        CHECK(rowsEqualLayers(c));
+    }
+    SECTION("(d) {} and {\"clips\": []} rows load as empty rows")
+    {
+        auto* emptyClips = new juce::DynamicObject();
+        emptyClips->setProperty("clips", juce::Array<juce::var>());
+        rows.push_back(juce::var(new juce::DynamicObject()));
+        rows.push_back(juce::var(emptyClips));
+        auto cmd = loadDeckCmd(c, deckVar("Empties", 10, 2, rows));
+        cmd->execute();
+        REQUIRE(c.getNumLayers() == 5);
+        const Deck& d = c.decks.back();
+        REQUIRE(d.getNumRows() == 5);
+        for (int r = 3; r < 5; ++r)
+            for (int col = 0; col < 2; ++col)
+                CHECK(d.getClip(r, col) == nullptr);
+        CHECK(c.layers[3].type == Layer::Type::Transparent);       // no settings: what Add Layer makes
+        cmd->undo();
+        CHECK(c.getNumLayers() == 3);
+    }
+}
+
+TEST_CASE("M7 the note: none for a 1-deck old show without persistent; Boris's show shape gives exactly one row line "
+          "(Deck 2 row 3) plus the fade (bf9b, ruling-bf9b amendment 9(b)(c))", "[show][backcompat]")
+{
+    SECTION("a 1-deck old show, no persistent: no note")
+    {
+        Composition c;
+        c.fromVar(legacyShow({ deckVar("Deck 1", 0, 2, { legacyRow(settings("A", 0, Layer::Type::Opaque, 1.0f)),
+                                                         legacyRow(settings("B", 1, Layer::Type::Transparent, 1.0f)) }) },
+                             0.3));
+        CHECK(c.migrationNote.empty());
+        CHECK(c.getNumLayers() == 2);
+    }
+    SECTION("Boris's show (R-F13): 2 decks x 3 layers, row 3 differs only in blendMode, Deck 2's row 3 holds no clip")
+    {
+        const Layer a = settings("Layer 1", 0, Layer::Type::Opaque, 1.0f);
+        const Layer b = settings("Layer 2", 1, Layer::Type::Transparent, 1.0f);
+        const Layer c1 = settings("Layer 3", 2, Layer::Type::Transparent, 1.0f, static_cast<Layer::MixMode>(46));
+        const Layer c2 = settings("Layer 3", 2, Layer::Type::Transparent, 1.0f, static_cast<Layer::MixMode>(1));
+        Composition c;
+        c.fromVar(legacyShow({ deckVar("Deck 1", 0, 2, { legacyRow(a, rowOf(2, 1)), legacyRow(b, rowOf(2, 11)),
+                                                         legacyRow(c1, rowOf(2, 21)) }),
+                               deckVar("Deck 2", 1, 2, { legacyRow(a, rowOf(2, 31)), legacyRow(b, rowOf(2, 41)),
+                                                         legacyRow(c2) }) },
+                             0.3));
+        const std::string& note = c.migrationNote;
+        INFO("note: " << note);
+        size_t rowLines = 0;
+        for (size_t at = note.find(" row "); at != std::string::npos; at = note.find(" row ", at + 1))
+            ++rowLines;
+        CHECK(rowLines == 1);
+        CHECK(note.find("Deck 2 row 3: settings dropped") != std::string::npos);
+        CHECK(note.find("deck fade 0.30 s dropped") != std::string::npos);
+        CHECK(note.find("persistent") == std::string::npos);
+        CHECK(c.layers[2].blendMode == static_cast<Layer::MixMode>(46));   // Deck 1's look kept
+    }
+}
+
+// Lane bf9b fix round (review MUST): Load / Duplicate Deck of a deck wider than the show grows the SHARED stack
+// (InsertDeckCmd -> Composition::insertLayer), which can move Composition::layers; Add / Remove Layer resize it. The
+// Layer inspector keeps a raw Layer* (and its effect stack a pointer into that layer's layerEffects), read every timer
+// tick by InspectorPanel::tickModulation. UndoService::withDeckDetached -- the fence every one of these commands runs
+// in -- hands such an edit to onLayerStackMoved, where MainComponent re-points the inspector by the selected layer row
+// (MainComponent::repointLayerInspector; the lambda below is that function's body over this test's selection).
+TEST_CASE("bf9b fix: a fenced edit that moves or resizes the shared layer stack calls onLayerStackMoved, so a Layer "
+          "inspector re-pointed there never holds a moved or removed Layer (Load Deck of a 5-row deck into a 3-layer "
+          "show; Add / Remove Layer; their undos)", "[show][asan]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    Composition c = makeShow(1, 3, 2);
+    c.layers.shrink_to_fit();
+    REQUIRE(c.layers.capacity() < 5);                          // so growing to 5 layers MUST move the storage
+    Fenced fenced(c);
+    LayerInspector inspector;
+    inspector.setSize(300, 900);
+    int selected = 1;                                          // the Layer row Boris clicked
+    inspector.setLayer(&c.layers[1], EffectScope::layer(-1, 1));
+    int calls = 0;
+    fenced.svc.onLayerStackMoved = [&] {
+        ++calls;
+        inspector.setLayer(selected >= 0 ? fenced.svc.resolveLayer(selected) : nullptr,
+                           selected >= 0 ? EffectScope::layer(-1, selected) : EffectScope::none());
+    };
+
+    SECTION("Load Deck of a 5-row deck: the stack moves; the inspector follows it; undo shrinks it again")
+    {
+        const Layer* before = &c.layers[1];
+        Deck wide;
+        wide.name = "Wide";
+        wide.numColumns = 2;
+        wide.initDefault(5);
+        InsertDeckCmd ins(resolverFor(c), fenced.hook(), noMedia(), noDispose(), std::move(wide), "Load Deck");
+        ins.execute();
+        REQUIRE(ins.addedLayerCount() == 2);
+        REQUIRE(c.getNumLayers() == 5);
+        REQUIRE(&c.layers[1] != before);                       // the storage moved: the old Layer* is freed memory
+        CHECK(calls == 1);
+        CHECK(inspector.getLayer() == c.getLayer(1));
+        inspector.tickModulation();                            // what the app's timer does next (reads the layer)
+        inspector.refresh();
+        ins.undo();                                            // erases the 2 added layers (a resize)
+        CHECK(calls == 2);
+        CHECK(c.getNumLayers() == 3);
+        CHECK(inspector.getLayer() == c.getLayer(1));
+    }
+    SECTION("Load Deck of a deck no wider than the show: the stack does not move, nothing is re-pointed")
+    {
+        Deck same;
+        same.name = "Same";
+        same.numColumns = 2;
+        same.initDefault(3);
+        InsertDeckCmd ins(resolverFor(c), fenced.hook(), noMedia(), noDispose(), std::move(same), "Load Deck");
+        ins.execute();
+        CHECK(ins.addedLayerCount() == 0);
+        CHECK(calls == 0);
+        CHECK(inspector.getLayer() == &c.layers[1]);
+    }
+    SECTION("Add Layer grows the stack; Remove Layer of the inspected (last) layer empties the inspector")
+    {
+        AddLayerCmd add(resolverFor(c), fenced.hook(), "Add Layer");
+        add.execute();
+        REQUIRE(c.getNumLayers() == 4);
+        CHECK(calls == 1);
+        CHECK(inspector.getLayer() == c.getLayer(1));
+        selected = 3;                                          // Boris selects the new last layer
+        inspector.setLayer(&c.layers[3], EffectScope::layer(-1, 3));
+        selected = -1;                                         // removing the selected row clears the selection
+        RemoveLayerCmd rem(resolverFor(c), fenced.hook(), noMedia(), noDispose(), 3, Layer(c.layers[3]),
+                           "Remove Layer");
+        rem.execute();
+        REQUIRE(c.getNumLayers() == 3);
+        CHECK(calls == 2);
+        CHECK(inspector.getLayer() == nullptr);
+    }
+}
+
+// ---- Lane bf9b fix stage (s-rta-1003; ruling-bf9b-merge.md AM-4 / AM-5 and Harmony's adoption item 2): the memory
+// cases. Tag [asan]: in a -DADNA_SANITIZE=address build they run under the ctest label `asan`
+// (.harmony/probe-asan-unit.sh), where one "ERROR: AddressSanitizer" fails the case. Each REQUIREs that the storage it
+// is about moved or died -- a failed precondition is a failure, never a pass. AS0 is the case above, unedited.
+namespace
+{
+// An address walk over every clip of every live and retired deck; `p` is never dereferenced.
+bool showHoldsClipAt(const Composition& c, const Clip* p)
+{
+    bool found = false;
+    c.forEachClip([&found, p](const Clip& clip, const ClipSite&) { found = found || &clip == p; });
+    return found;
+}
+
+// The app's two inspectors over the test's show, wired to the fence as MainComponent wires them, plus the calls its
+// timers make (InspectorPanel::tickModulation at timer rate; refresh at ~10 Hz for the shown tab -- both tabs here).
+struct AppInspectors
+{
+    ClipInspector clip;
+    LayerInspector layer;
+    int selectedLayerRow = -1;   // DeckView::getSelectedLayerIndex()
+
+    AppInspectors()
+    {
+        clip.setSize(413, 900);
+        layer.setSize(300, 900);
+    }
+    // MainComponent's two hook statements (lint B4h pins them): the production functions of ui/InspectorRepoint.h.
+    // (At FIX-1's first commit, src untouched, this was the old wiring: the Layer inspector alone, by the selected
+    // row -- the RED arm of AS5 / AS6 / AS7.)
+    void wire(UndoService& svc, Composition& c)
+    {
+        svc.onLayerStackMoved = [this, &c] { repointInspectorsAfterStackMove(clip, layer, c, selectedLayerRow); };
+        svc.onFencedEdit = [this, &c] { clearClipInspectorIfUnowned(clip, c); };
+    }
+    void timers()
+    {
+        clip.tickModulation();
+        layer.tickModulation();
+        clip.refresh();
+        layer.refresh();
+    }
+};
+}
+
+TEST_CASE("AS5 a model swap inside the fence with both inspectors bound, then the app's setClip(nullptr) / "
+          "setLayer(nullptr) and its timer calls, reads no Layer or Clip the swap destroyed (bf9b fix, AM-4)",
+          "[show][asan]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    Composition c = makeShow(1, 3, 2);
+    Fenced fenced(c);
+    AppInspectors ui;
+    ui.wire(fenced.svc, c);
+    ui.selectedLayerRow = 1;
+    ui.layer.setLayer(&c.layers[1], EffectScope::layer(-1, 1));
+    Clip* shown = c.decks[0].getClip(1, 0);
+    REQUIRE(shown != nullptr);
+    ui.clip.setClip(shown, EffectScope::clip(0, 1, 0));
+    ui.timers();
+    const Layer* layerBefore = &c.layers[1];
+
+    Composition loaded = makeShow(2, 4, 3);                            // the staged model of a load
+    fenced.svc.withDeckDetached([&] { c = std::move(loaded); });       // MainComponent::swapCompositionModel
+    REQUIRE(&c.layers[1] != layerBefore);                              // the old stack died
+    REQUIRE_FALSE(showHoldsClipAt(c, shown));                          // the old clip died
+    ui.clip.setClip(nullptr);                                          // MainComponent::refreshUiAfterModelSwap's order
+    ui.layer.setLayer(nullptr);
+    ui.timers();
+    CHECK(ui.clip.getClip() == nullptr);
+    CHECK(ui.layer.getLayer() == nullptr);
+}
+
+TEST_CASE("AS6 Undo of a wide Load Deck while the Clip inspector shows a clip of that deck, then the app's "
+          "setClip(fresh), reads no Clip the undo destroyed (bf9b fix, AM-4)", "[show][asan]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    Composition c = makeShow(1, 3, 2);
+    Fenced fenced(c);
+    AppInspectors ui;                                                  // no layer selected: the Layer tab stays empty
+    ui.wire(fenced.svc, c);
+    Deck wide;
+    wide.name = "Wide";
+    wide.numColumns = 2;
+    wide.initDefault(5);
+    Clip loadedClip;
+    loadedClip.id = 901;
+    loadedClip.name = "wide r1 c1";
+    loadedClip.mediaType = Clip::MediaType::Image;
+    wide.setClip(1, 1, loadedClip);
+    InsertDeckCmd ins(resolverFor(c), fenced.hook(), noMedia(), noDispose(), std::move(wide), "Load Deck");
+    ins.execute();
+    REQUIRE(ins.addedLayerCount() == 2);
+    REQUIRE(c.activeDeckIndex == 1);                                   // the loaded deck is the shown one
+    Clip* shown = c.decks[1].getClip(1, 1);
+    REQUIRE(shown != nullptr);
+    ui.clip.setClip(shown, EffectScope::clip(1, 1, 1));                // Boris clicked that cell
+    ui.timers();
+
+    ins.undo();                                                        // the deck and its two layers are erased
+    REQUIRE(c.decks.size() == 1);
+    REQUIRE(c.getNumLayers() == 3);
+    REQUIRE_FALSE(showHoldsClipAt(c, shown));                          // the clip died with its deck
+    // MainComponent::refreshAfterUndoRedo: the Clip inspector re-pointed by the selected cell on the shown deck.
+    Clip* fresh = fenced.svc.resolveClip(c.activeDeckIndex, 1, 1);
+    REQUIRE(fresh != nullptr);
+    ui.clip.setClip(fresh, EffectScope::clip(c.activeDeckIndex, 1, 1));
+    ui.timers();
+    CHECK(ui.clip.getClip() == fresh);
+}
+
+TEST_CASE("AS7 Layer > Clear Clips while the Clip inspector shows a clip of that row that has one effect: the "
+          "inspector's next timer calls read no dead clip, and it shows no clip (bf9b fix, adoption item 2)",
+          "[show][asan]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    Composition c = makeShow(1, 3, 2);
+    Fenced fenced(c);
+    AppInspectors ui;
+    ui.wire(fenced.svc, c);
+    Clip* shown = c.decks[0].getClip(1, 0);
+    REQUIRE(shown != nullptr);
+    Clip::EffectSlot fx;
+    fx.effectName = "Ripple";
+    fx.addParam(0.5f);
+    shown->effects.push_back(fx);                                      // the heap block that dies with the clip
+    ui.clip.setClip(shown, EffectScope::clip(0, 1, 0));
+    ui.timers();
+    const Layer* stackBefore = c.layers.data();
+    const size_t layersBefore = c.layers.size();
+
+    // MainComponent's Layer > Clear Clips (case kLayerClearClips): the shown deck's row, in its own fence.
+    fenced.svc.withDeckDetached([&c] {
+        ClipRow* row = c.decks[0].getRow(1);
+        row->clips.clear();
+        row->ensureColumns(c.decks[0].numColumns);
+    });
+    REQUIRE(c.layers.data() == stackBefore);                           // the stack did not move or resize:
+    REQUIRE(c.layers.size() == layersBefore);                          // onLayerStackMoved never sees this edit
+    REQUIRE_FALSE(showHoldsClipAt(c, shown));                          // the clip died
+    ui.timers();
+    CHECK(ui.clip.getClip() == nullptr);
+}
+
+// A 5-row deck for Load Deck into a 3-layer show (grows the shared stack by two layers).
+namespace
+{
+Deck wideDeck()
+{
+    Deck wide;
+    wide.name = "Wide";
+    wide.numColumns = 2;
+    wide.initDefault(5);
+    return wide;
+}
+const size_t kOpacity = static_cast<size_t>(LayerScalar::Opacity);
+const size_t kPosX = static_cast<size_t>(LayerScalar::PosX);
+}
+
+TEST_CASE("AS1 Load Deck of a 5-row deck with the Layer inspector on layer 1: the production hook function re-points "
+          "it to the moved layer; the timer calls read no freed Layer (bf9b fix, AM-2 / AM-4)", "[show][asan]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    Composition c = makeShow(1, 3, 2);
+    c.layers.shrink_to_fit();
+    REQUIRE(c.layers.capacity() < 5);                                  // growing to 5 layers MUST move the storage
+    Fenced fenced(c);
+    AppInspectors ui;
+    ui.wire(fenced.svc, c);
+    ui.selectedLayerRow = 1;
+    ui.layer.setLayer(&c.layers[1], EffectScope::layer(-1, 1));
+    ui.timers();
+    const Layer* before = &c.layers[1];
+
+    InsertDeckCmd ins(resolverFor(c), fenced.hook(), noMedia(), noDispose(), wideDeck(), "Load Deck");
+    ins.execute();
+    REQUIRE(c.getNumLayers() == 5);
+    REQUIRE(&c.layers[1] != before);                                   // the storage moved
+    CHECK(ui.layer.getLayer() == c.getLayer(1));
+    CHECK(ui.layer.opacityControlForTest().boundConnection() == &c.layers[1].scalarConns[kOpacity]);
+    ui.timers();
+}
+
+TEST_CASE("AS2 AS1 with a routine's grip (Hand::Lane) on layer 1's Opacity: after the move the grip is still held on "
+          "c.layers[1]'s connection and the control is bound to it (bf9b fix, AM-4)", "[show][asan]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    Composition c = makeShow(1, 3, 2);
+    c.layers.shrink_to_fit();
+    REQUIRE(c.layers.capacity() < 5);
+    Fenced fenced(c);
+    AppInspectors ui;
+    ui.wire(fenced.svc, c);
+    ui.selectedLayerRow = 1;
+    ui.layer.setLayer(&c.layers[1], EffectScope::layer(-1, 1));
+    ControlRef opacity;
+    opacity.conn = &c.layers[1].scalarConns[kOpacity];
+    REQUIRE(manualTouchCore(opacity, Hand::Lane, ParamConnection::Grip::Kind::Held, 10.0, c.gripHoldMs));
+    ui.timers();
+    const Layer* before = &c.layers[1];
+
+    InsertDeckCmd ins(resolverFor(c), fenced.hook(), noMedia(), noDispose(), wideDeck(), "Load Deck");
+    ins.execute();
+    REQUIRE(c.getNumLayers() == 5);
+    REQUIRE(&c.layers[1] != before);                                   // the storage moved
+    const ParamConnection& moved = c.layers[1].scalarConns[kOpacity];
+    CHECK(moved.grip.kind == ParamConnection::Grip::Kind::Held);       // a move keeps a grip; the re-point did not
+    CHECK(moved.grip.rank == static_cast<uint8_t>(Hand::Lane));        // release it (and wrote nothing to the old one)
+    CHECK(ui.layer.opacityControlForTest().boundConnection() == &moved);
+    ui.timers();
+}
+
+TEST_CASE("AS3 Remove Layer of the inspected last layer empties the Layer inspector; undo re-points it (bf9b fix, "
+          "AM-4)", "[show]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    Composition c = makeShow(1, 4, 2);
+    Fenced fenced(c);
+    AppInspectors ui;
+    ui.wire(fenced.svc, c);
+    ui.selectedLayerRow = 3;                                           // the last layer; the row stays selected
+    ui.layer.setLayer(&c.layers[3], EffectScope::layer(-1, 3));
+    RemoveLayerCmd rem(resolverFor(c), fenced.hook(), noMedia(), noDispose(), 3, Layer(c.layers[3]), "Remove Layer");
+    rem.execute();
+    REQUIRE(c.getNumLayers() == 3);
+    CHECK(ui.layer.getLayer() == nullptr);                             // row 3 is stale: cleared
+    ui.timers();
+    rem.undo();
+    REQUIRE(c.getNumLayers() == 4);
+    CHECK(ui.layer.getLayer() == c.getLayer(3));
+    ui.timers();
+}
+
+TEST_CASE("AS3b Remove Layer while the Clip inspector shows a clip of the LAST layer: the production hook function "
+          "clears it; its timer calls read no freed Clip (bf9b fix, AM-2 step 1)", "[show][asan]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    Composition c = makeShow(1, 4, 2);
+    Fenced fenced(c);
+    AppInspectors ui;
+    ui.wire(fenced.svc, c);
+    ui.selectedLayerRow = 1;
+    ui.layer.setLayer(&c.layers[1], EffectScope::layer(-1, 1));
+    Clip* shown = c.decks[0].getClip(3, 0);
+    REQUIRE(shown != nullptr);
+    ui.clip.setClip(shown, EffectScope::clip(0, 3, 0));
+    ui.timers();
+
+    RemoveLayerCmd rem(resolverFor(c), fenced.hook(), noMedia(), noDispose(), 3, Layer(c.layers[3]), "Remove Layer");
+    rem.execute();                                                     // erases row 3 of every deck: its clips die
+    REQUIRE(c.getNumLayers() == 3);
+    REQUIRE(c.decks[0].getNumRows() == 3);
+    REQUIRE_FALSE(showHoldsClipAt(c, shown));                          // the clip died with its row
+    CHECK(ui.clip.getClip() == nullptr);
+    CHECK(ui.layer.getLayer() == c.getLayer(1));                       // the Layer inspector follows its row
+    ui.timers();
+}
+
+TEST_CASE("AS4 Add Layer and its undo keep the Layer inspector on its row and leave an owned clip in the Clip "
+          "inspector (bf9b fix, AM-4)", "[show]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    Composition c = makeShow(1, 3, 2);
+    Fenced fenced(c);
+    AppInspectors ui;
+    ui.wire(fenced.svc, c);
+    ui.selectedLayerRow = 1;
+    ui.layer.setLayer(&c.layers[1], EffectScope::layer(-1, 1));
+    Clip* shown = c.decks[0].getClip(1, 0);
+    REQUIRE(shown != nullptr);
+    ui.clip.setClip(shown, EffectScope::clip(0, 1, 0));
+    AddLayerCmd add(resolverFor(c), fenced.hook(), "Add Layer");
+    add.execute();
+    REQUIRE(c.getNumLayers() == 4);
+    CHECK(ui.layer.getLayer() == c.getLayer(1));
+    CHECK(ui.clip.getClip() == c.decks[0].getClip(1, 0));              // an owned clip is left alone
+    ui.timers();
+    add.undo();
+    REQUIRE(c.getNumLayers() == 3);
+    CHECK(ui.layer.getLayer() == c.getLayer(1));
+    CHECK(ui.clip.getClip() == c.decks[0].getClip(1, 0));
+    ui.timers();
+}
+
+// N1 (AM-1's stated behaviour change, pinned): a re-point never releases a grip on the connection it leaves.
+TEST_CASE("N1 LayerInspector::setLayer(B) leaves a routine's grip and a touch on A's connections untouched; the "
+          "control is bound to B's (bf9b fix, AM-1)", "[show]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    Composition c = makeShow(1, 3, 2);
+    LayerInspector inspector;
+    inspector.setSize(300, 900);
+    inspector.setLayer(&c.layers[0], EffectScope::layer(-1, 0));
+    ParamConnection& lane = c.layers[0].scalarConns[kOpacity];
+    ParamConnection& touch = c.layers[0].scalarConns[kPosX];
+    ControlRef laneRef;
+    laneRef.conn = &lane;
+    REQUIRE(manualTouchCore(laneRef, Hand::Lane, ParamConnection::Grip::Kind::Held, 10.0, c.gripHoldMs));
+    touch.gripTouch(12.0);                                             // a Decaying touch (+ / - / right-click)
+
+    inspector.setLayer(&c.layers[1], EffectScope::layer(-1, 1));       // Boris selects another layer
+    CHECK(lane.grip.kind == ParamConnection::Grip::Kind::Held);
+    CHECK(lane.grip.rank == static_cast<uint8_t>(Hand::Lane));
+    CHECK(touch.grip.kind == ParamConnection::Grip::Kind::Decaying);
+    CHECK(touch.grip.lastTouch == 12.0);
+    CHECK(inspector.opacityControlForTest().boundConnection() == &c.layers[1].scalarConns[kOpacity]);
+    inspector.setLayer(nullptr);                                       // and clearing it releases nothing either
+    CHECK(lane.grip.kind == ParamConnection::Grip::Kind::Held);
+    CHECK(inspector.opacityControlForTest().boundConnection() == nullptr);
+}
+
+// Lane bf9b fix stage 5 (visual gate B7, problem 5): the layers are the show's, a deck is a box of clips -- Remove Deck
+// takes no layer away, so the Layer inspector stays on its layer through the command, its undo and its redo. Driven
+// here: the real RemoveDeckCmd through the real fence and the production hook functions (the hand-over the app
+// uses). MainComponent::removeDeck's own statements are not reachable headless: lint B4k pins that it never empties
+// the Layer inspector nor drops the selected layer row (the live run: bf9b-fix.md, stage FIX-5).
+TEST_CASE("AS8 Remove Deck -- of an empty deck and of a deck a layer plays from -- its undo and its redo leave the "
+          "Layer inspector on its layer; the Clip inspector keeps a clip the show still owns (bf9b fix stage 5)",
+          "[show]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    Composition c = makeShow(3, 3, 2);
+    c.decks[2].initDefault(3);                                         // deck 2: an empty box nobody plays from
+    c.fire(1, 1, 0, Snap::Off, true);                                  // layer 1 plays deck 1's clip
+    Clip* const playing = c.playingClip(1);
+    REQUIRE(playing != nullptr);
+    Fenced fenced(c);
+    AppInspectors ui;
+    ui.wire(fenced.svc, c);
+    ui.selectedLayerRow = 1;
+    Layer* const inspected = &c.layers[1];
+    ui.layer.setLayer(inspected, EffectScope::layer(-1, 1));
+    Clip* const shown = c.decks[0].getClip(0, 0);                      // the Clip tab: a clip of a deck that stays
+    REQUIRE(shown != nullptr);
+    ui.clip.setClip(shown, EffectScope::clip(0, 0, 0));
+    const auto stillOnItsLayer = [&] {
+        REQUIRE(ui.layer.getLayer() == inspected);
+        REQUIRE(ui.layer.getLayer() == c.getLayer(1));                 // and that is still the show's layer 1
+        CHECK(ui.layer.opacityControlForTest().boundConnection() == &c.layers[1].scalarConns[kOpacity]);
+        CHECK(ui.layer.titleTextForTest() == juce::String(c.layers[1].name));
+        CHECK(ui.clip.getClip() == shown);
+        ui.timers();
+    };
+
+    SECTION("an empty deck nobody plays from")
+    {
+        RemoveDeckCmd rem(resolverFor(c), fenced.hook(), noMedia(), noDispose(), 2, c.decks[2], c.activeDeckIndex,
+                          "Remove Deck");
+        rem.execute();
+        REQUIRE(c.decks.size() == 2);
+        REQUIRE_FALSE(rem.retired());
+        stillOnItsLayer();
+        rem.undo();
+        REQUIRE(c.decks.size() == 3);
+        stillOnItsLayer();
+        rem.execute();                                                 // redo
+        REQUIRE(c.decks.size() == 2);
+        stillOnItsLayer();
+    }
+    SECTION("the deck the inspected layer plays from")
+    {
+        RemoveDeckCmd rem(resolverFor(c), fenced.hook(), noMedia(), noDispose(), 1, c.decks[1], c.activeDeckIndex,
+                          "Remove Deck");
+        rem.execute();
+        REQUIRE(c.decks.size() == 2);
+        REQUIRE(rem.retired());
+        REQUIRE(c.playingClip(1) == playing);                          // it keeps playing from the retired deck
+        stillOnItsLayer();
+        rem.undo();
+        REQUIRE(c.decks.size() == 3);
+        REQUIRE(c.getNumRetiredDecks() == 0);
+        stillOnItsLayer();
+        rem.execute();                                                 // redo
+        REQUIRE(rem.retired());
+        stillOnItsLayer();
+    }
+}
+
+// Lane bf9b fix stage 5 (visual gate B7, capture P1): the Layer inspector with NO layer (a composition load unbinds
+// it) is an empty panel under the words "No layer selected" -- no title of the layer it left, no dashboard knobs.
+TEST_CASE("LayerInspector with no layer shows no title and no dashboard; a layer brings both back (bf9b fix stage 5)",
+          "[show]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    Composition c = makeShow(1, 3, 2);
+    LayerInspector inspector;
+    inspector.setSize(300, 900);
+    CHECK(inspector.titleTextForTest().isEmpty());                     // as built: no layer yet
+    CHECK_FALSE(inspector.dashboardVisibleForTest());
+    inspector.setLayer(&c.layers[2], EffectScope::layer(-1, 2));
+    CHECK(inspector.titleTextForTest() == juce::String(c.layers[2].name));
+    CHECK(inspector.dashboardVisibleForTest());
+    inspector.setLayer(nullptr);
+    CHECK(inspector.titleTextForTest().isEmpty());
+    CHECK_FALSE(inspector.dashboardVisibleForTest());
+    inspector.setLayer(&c.layers[0], EffectScope::layer(-1, 0));
+    CHECK(inspector.titleTextForTest() == juce::String(c.layers[0].name));
+    CHECK(inspector.dashboardVisibleForTest());
+}
+
+// Harmony's adoption item 9 (s-rta-1003; Boris: "I don't wanna see an under removed button at all. We just use control
+// Z. The only place that we will see undo remove, will be in the top edit menu."). The menu that holds Undo is
+// "Composition" (AudioDNAMenuBar has no menu named Edit); its first item names the action on top of the Undo history.
+// Driven here: the real RemoveDeckCmd with MainComponent::removeDeck's description, the real UndoManager and the real
+// menu model, wired as MainComponent wires getUndoState / getRedoState (that wiring itself is not driven by a test).
+TEST_CASE("After a Remove Deck the Composition menu's Undo item reads \"Undo Remove Deck\" (Cmd+Z); after the undo its "
+          "Redo item reads \"Redo Remove Deck\" (bf9b fix, adoption item 9)", "[show][menu]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    Composition c = makeShow(3, 2, 2);
+    UndoManager mgr;
+    AudioDNAMenuBar menuBar;
+    menuBar.getUndoState = [&mgr] { return std::make_pair(juce::String(mgr.undoDescription()), mgr.canUndo()); };
+    menuBar.getRedoState = [&mgr] { return std::make_pair(juce::String(mgr.redoDescription()), mgr.canRedo()); };
+    auto item = [&menuBar](int id) {
+        const int menuIndex = menuBar.getMenuBarNames().indexOf("Composition");
+        REQUIRE(menuIndex >= 0);
+        const auto menu = menuBar.getMenuForIndex(menuIndex, "Composition");
+        for (juce::PopupMenu::MenuItemIterator it(menu); it.next();)
+            if (it.getItem().itemID == id)
+                return it.getItem();
+        FAIL("the Composition menu has no item " << id);
+        return juce::PopupMenu::Item();
+    };
+    CHECK(item(AudioDNAMenuBar::kCompUndo).text == "Undo");
+    CHECK_FALSE(item(AudioDNAMenuBar::kCompUndo).isEnabled);
+
+    mgr.perform(std::make_unique<RemoveDeckCmd>(resolverFor(c), passFence(), noMedia(), noDispose(), 1, c.decks[1],
+                                                c.activeDeckIndex, "Remove Deck"));
+    REQUIRE(c.decks.size() == 2);
+    CHECK(item(AudioDNAMenuBar::kCompUndo).text == "Undo Remove Deck");
+    CHECK(item(AudioDNAMenuBar::kCompUndo).isEnabled);
+    CHECK(item(AudioDNAMenuBar::kCompUndo).shortcutKeyDescription == "Cmd+Z");
+
+    REQUIRE(mgr.undo());
+    CHECK(c.decks.size() == 3);   // Cmd+Z brings the deck back
+    CHECK(item(AudioDNAMenuBar::kCompRedo).text == "Redo Remove Deck");
+    CHECK(item(AudioDNAMenuBar::kCompRedo).isEnabled);
+}

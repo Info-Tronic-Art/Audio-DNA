@@ -1,5 +1,6 @@
 #pragma once
 #include "model/Clip.h"
+#include "model/ClipRef.h"
 #include "connect/ParamConnection.h"
 #include "connect/LiveValue.h"
 #include "connect/ScalarParams.h"
@@ -38,6 +39,8 @@ struct FeedbackConfig
 
 // A value copy of the tuple (same 5 fields as before the lane; an aggregate, so a test can write
 // layer.setRuntime({ .activeClipColumn = 1, .crossfadeProgress = 0.5f })).
+// bf9b S1: each clip slot also carries the id of the deck it names (activeRef() / previousRef() / pendingRef() =
+// a ClipRef); the deck ids default to ClipRef::kNoDeck and come last, so a column-only tuple is written as before.
 // pendingTriggerSnapOverride rides alongside pendingTriggerColumn (L5 Quantize): Off means "derive the granularity
 // from the target clip's own beatSnapMode"; non-Off means a caller (global Quantize) FORCED a granularity for this
 // one queued trigger (the clip's own beatSnapMode is never mutated).
@@ -48,6 +51,13 @@ struct LayerRuntimeSnapshot
     float crossfadeProgress = 1.0f;  // 1.0 = fully transitioned
     int pendingTriggerColumn = -1;   // beat snap: a queued trigger awaiting its beat / bar (-1 = none)
     Clip::BeatSnapMode pendingTriggerSnapOverride = Clip::BeatSnapMode::Off;
+    uint32_t activeDeckId = ClipRef::kNoDeck;     // the deck box each slot's column is in (kNoDeck = none)
+    uint32_t previousDeckId = ClipRef::kNoDeck;
+    uint32_t pendingDeckId = ClipRef::kNoDeck;
+
+    ClipRef activeRef() const { return { activeDeckId, activeClipColumn }; }
+    ClipRef previousRef() const { return { previousDeckId, previousClipColumn }; }
+    ClipRef pendingRef() const { return { pendingDeckId, pendingTriggerColumn }; }
 };
 
 inline bool operator==(const LayerRuntimeSnapshot& a, const LayerRuntimeSnapshot& b)
@@ -56,7 +66,10 @@ inline bool operator==(const LayerRuntimeSnapshot& a, const LayerRuntimeSnapshot
         && a.previousClipColumn == b.previousClipColumn
         && a.crossfadeProgress == b.crossfadeProgress
         && a.pendingTriggerColumn == b.pendingTriggerColumn
-        && a.pendingTriggerSnapOverride == b.pendingTriggerSnapOverride;
+        && a.pendingTriggerSnapOverride == b.pendingTriggerSnapOverride
+        && a.activeDeckId == b.activeDeckId
+        && a.previousDeckId == b.previousDeckId
+        && a.pendingDeckId == b.pendingDeckId;
 }
 
 // One transition of the tuple: `before` is the tuple the compare-exchange replaced and `after` the tuple it
@@ -70,11 +83,14 @@ struct LayerRuntimeTransition
     bool changed() const { return !(before == after); }
 };
 
-// The tuple as one lock-free 16-byte atomic word: int32 active, int32 previous, float progress, uint32 pending
-// (pending + 1 in the low 28 bits, the snap override in the high 4: pending -1 .. kMaxPendingColumn). No padding
-// bits, so the compare-exchange compares exactly the tuple. Apple clang arm64: ldp + dmb (acquire load), stp
-// (release store), caspal (CAS) -- no lock, and a reader never writes the cache line. Apple clang x86_64 is lock-free
-// too, without -mcx16, but its load is a lock cmpxchg16b (a reader writes the line). Elsewhere a 16-byte atomic may
+// The tuple as one lock-free 16-byte atomic word: int32 active, int32 previous, float progress, uint32 pending.
+// Each clip slot packs a ClipRef (bf9b S1): active / previous = (deck << 16) | uint16(column) -- a deck-less ref
+// stores deck field 0xFFFF, so "no clip" is -1 as before; pending = the low 28 bits ((deck << 14) | (column + 1),
+// deck field 0x3FFF = no deck) under the snap override in the high 4. Columns -1 .. ClipRef::kMaxColumn, deck ids
+// 0 .. ClipRef::kMaxDeckId; every value in those ranges round-trips (the bijection test). No padding bits, so the
+// compare-exchange compares exactly the tuple. Apple clang arm64: ldp + dmb (acquire load), stp (release store),
+// caspal (CAS) -- no lock, and a reader never writes the cache line. Apple clang x86_64 is lock-free too, without
+// -mcx16, but its load is a lock cmpxchg16b (a reader writes the line). Elsewhere a 16-byte atomic may
 // not be lock-free (GCC x86_64 needs -mcx16 and reports it not always-lock-free; MSVC's are not): the static_assert
 // below guards the Apple build only.
 class LayerRuntimeCell
@@ -87,19 +103,26 @@ public:
         float progress;
         uint32_t pendingPacked;
     };
-    static constexpr int kMaxPendingColumn = 0x0FFFFFFF - 1;   // 268,435,454
+    static constexpr int kMaxPendingColumn = ClipRef::kMaxColumn;   // 16,382
 
     static Word pack(const LayerRuntimeSnapshot& r) noexcept
     {
-        return { r.activeClipColumn, r.previousClipColumn, r.crossfadeProgress,
-                 (static_cast<uint32_t>(r.pendingTriggerColumn + 1) & 0x0FFFFFFFu)
+        // bf9b S2 (ruling-bf9b amendment 2(c)): every tuple-writing entry refuses a ref the word cannot hold; this is
+        // the last line (an out-of-range field would alias another valid ref).
+        jassert(r.activeRef().storable() && r.previousRef().storable() && r.pendingRef().storable());
+        return { packSlot(r.activeDeckId, r.activeClipColumn), packSlot(r.previousDeckId, r.previousClipColumn),
+                 r.crossfadeProgress,
+                 packPending(r.pendingDeckId, r.pendingTriggerColumn)
                      | (static_cast<uint32_t>(r.pendingTriggerSnapOverride) << 28) };
     }
     static LayerRuntimeSnapshot unpack(const Word& w) noexcept
     {
-        return { w.active, w.previous, w.progress,
-                 static_cast<int>(w.pendingPacked & 0x0FFFFFFFu) - 1,
-                 static_cast<Clip::BeatSnapMode>(w.pendingPacked >> 28) };
+        const uint32_t pendingDeck = (w.pendingPacked >> 14) & 0x3FFFu;
+        return { slotColumn(w.active), slotColumn(w.previous), w.progress,
+                 static_cast<int>(w.pendingPacked & 0x3FFFu) - 1,
+                 static_cast<Clip::BeatSnapMode>(w.pendingPacked >> 28),
+                 slotDeck(w.active), slotDeck(w.previous),
+                 pendingDeck == 0x3FFFu ? ClipRef::kNoDeck : pendingDeck };
     }
 
     LayerRuntimeCell() noexcept : w_(pack(LayerRuntimeSnapshot{})) {}
@@ -131,6 +154,24 @@ public:
     }
 
 private:
+    // One ClipRef slot <-> its packed field (see the word layout above).
+    static int32_t packSlot(uint32_t deckId, int column) noexcept
+    {
+        const uint32_t deck = deckId == ClipRef::kNoDeck ? 0xFFFFu : (deckId & 0xFFFFu);
+        return static_cast<int32_t>((deck << 16) | (static_cast<uint32_t>(column) & 0xFFFFu));
+    }
+    static uint32_t slotDeck(int32_t v) noexcept
+    {
+        const uint32_t deck = static_cast<uint32_t>(v) >> 16;
+        return deck == 0xFFFFu ? ClipRef::kNoDeck : deck;
+    }
+    static int slotColumn(int32_t v) noexcept { return static_cast<int16_t>(static_cast<uint32_t>(v) & 0xFFFFu); }
+    static uint32_t packPending(uint32_t deckId, int column) noexcept
+    {
+        const uint32_t deck = deckId == ClipRef::kNoDeck ? 0x3FFFu : (deckId & 0x3FFFu);
+        return (deck << 14) | (static_cast<uint32_t>(column + 1) & 0x3FFFu);
+    }
+
     std::atomic<Word> w_;
 #if defined(__APPLE__)
     static_assert(std::atomic<Word>::is_always_lock_free, "the Layer trigger tuple must be one lock-free word");
@@ -139,8 +180,9 @@ private:
 static_assert(sizeof(LayerRuntimeCell::Word) == 16, "the tuple word is 16 bytes with no padding");
 static_assert(static_cast<int>(Clip::BeatSnapMode::FourBar) < 16, "the snap override packs into 4 bits");
 
-// Layer: a row in the deck. Contains clips across columns.
-// One clip is active per layer at a time.
+// Layer: one layer of the show's shared stack (Composition::layers; lane bf9b). It holds the layer's settings and its
+// playing tuple; its clips live in row N of every deck box (Deck::rows). One clip is active per layer at a time,
+// named by a ClipRef (deck id, column) -- possibly from a deck that is not the one shown.
 struct Layer
 {
     // === Identity ===
@@ -158,19 +200,6 @@ struct Layer
     };
     Type type = Type::Opaque;
 
-    // s-rta-0926b R4-types: which layer types can keep rendering while their
-    // deck is not active. Opaque / Transparent composite over the active deck;
-    // FX Only applies its clip's effects over whatever is on screen at that
-    // point. Mask (masking "everything below" across decks has no defined
-    // order) and 3D (not implemented on any path) cannot. ONE rule, consulted
-    // by CompositorEngine::compositePersistentLayers AND the LayerInspector
-    // Persistent toggle, so the toggle is disabled exactly when the flag would
-    // do nothing.
-    static constexpr bool canBePersistent(Type t)
-    {
-        return t == Type::Opaque || t == Type::Transparent || t == Type::FXOnly;
-    }
-
     // === Layer Controls ===
     RelaxedFloat opacity = 1.0f;   // a manualRef scalar (lane tsan: the GL thread reads it via eff(); Pitfall 63)
     bool visible = true;
@@ -179,16 +208,15 @@ struct Layer
     bool muted = false;          // Audio mute
     bool autopilotEnabled = false;
     bool ignoreColumnTrigger = false;
-    bool persistent = false;        // If true, this layer keeps rendering even when deck is not active
     bool folded = false;            // P24.12: If true, layer row is collapsed in DeckView
 
     // === Mix Mode — unified list for both layer blending and clip transitions ===
-    // V dropdown picks a MixMode for persistent layer compositing.
+    // V dropdown picks a MixMode for the layer's blend.
     // F dropdown picks a MixMode for momentary clip-to-clip transitions.
     // Same list, different contexts: V = "the look", F = "the flash".
     enum class MixMode : uint8_t
     {
-        // === Standard Compositing (persistent blend modes) ===
+        // === Standard Compositing (layer blend modes) ===
         // Basic
         Normal, Additive, Screen, Multiply, Overlay,
         // Light
@@ -288,10 +316,6 @@ struct Layer
     int autopilotLoops = 1;  // Number of clip loops before advancing (1 = advance after first play)
     bool autopilotEndOfVideo = false;  // true = advance when video playhead reaches outPoint
 
-    // === Clips (one per column) ===
-    // Indexed by column. Use std::optional so empty cells are explicit.
-    std::vector<std::optional<Clip>> clips;
-
     // === Runtime State: the trigger tuple (one atomic word; see LayerRuntimeCell above) ===
     // runtime(): ONE acquire load. setRuntime(): a release store (a value restore -- undo / redo, a load, tests).
     // casRuntime(): ONE compare-exchange; on failure `expected` receives the current tuple.
@@ -331,41 +355,20 @@ struct Layer
         return { cur, cur, false };
     }
 
-    // === Helpers ===
-    // ONE load, then the clip at that column.
-    Clip* getActiveClip() { return getClipAt(runtime().activeClipColumn); }
-    const Clip* getActiveClip() const { return getClipAt(runtime().activeClipColumn); }
-
-    Clip* getClipAt(int column)
-    {
-        if (column >= 0 && column < static_cast<int>(clips.size()))
-        {
-            if (clips[static_cast<size_t>(column)].has_value())
-                return &clips[static_cast<size_t>(column)].value();
-        }
-        return nullptr;
-    }
-
-    const Clip* getClipAt(int column) const
-    {
-        if (column >= 0 && column < static_cast<int>(clips.size()))
-        {
-            if (clips[static_cast<size_t>(column)].has_value())
-                return &clips[static_cast<size_t>(column)].value();
-        }
-        return nullptr;
-    }
-
-    // The pure tuple functions (no clip effects): an immediate trigger of `column` (a retrigger when it is already
-    // active: only the queue is cleared, the fade keeps running), and a clear.
-    static LayerRuntimeSnapshot immediateNext(LayerRuntimeSnapshot r, int column, float transitionSpeedSeconds)
+    // The pure tuple functions (no clip effects): an immediate trigger of `ref` (a retrigger when it is already
+    // active: only the queue is cleared, the fade keeps running), and a clear. bf9b: a slot names a ClipRef -- the
+    // same column from ANOTHER deck is a new clip (it crossfades), never a retrigger.
+    static LayerRuntimeSnapshot immediateNext(LayerRuntimeSnapshot r, ClipRef ref, float transitionSpeedSeconds)
     {
         r.pendingTriggerColumn = -1;
+        r.pendingDeckId = ClipRef::kNoDeck;
         r.pendingTriggerSnapOverride = Clip::BeatSnapMode::Off;
-        if (column == r.activeClipColumn)
+        if (ref == r.activeRef())
             return r;
         r.previousClipColumn = r.activeClipColumn;
-        r.activeClipColumn = column;
+        r.previousDeckId = r.activeDeckId;
+        r.activeClipColumn = ref.column;
+        r.activeDeckId = ref.deckId;
         r.crossfadeProgress = (transitionSpeedSeconds <= 0.0f) ? 1.0f : 0.0f;
         return r;
     }
@@ -377,9 +380,12 @@ struct Layer
     static LayerRuntimeSnapshot clearedNext(LayerRuntimeSnapshot r)
     {
         r.previousClipColumn = r.activeClipColumn;
+        r.previousDeckId = r.activeDeckId;
         r.activeClipColumn = -1;
+        r.activeDeckId = ClipRef::kNoDeck;
         r.crossfadeProgress = 1.0f;
         r.pendingTriggerColumn = -1;
+        r.pendingDeckId = ClipRef::kNoDeck;
         r.pendingTriggerSnapOverride = Clip::BeatSnapMode::Off;
         return r;
     }
@@ -388,67 +394,74 @@ struct Layer
     // message thread); the GL thread (autopilot, beat snap) passes 16 and never waits: if 16 consecutive
     // message-thread CASes on this layer beat it inside one call, the trigger retries at the next beat crossing (a
     // Bar / TwoBar / FourBar trigger slips to its next qualifying edge).
+    // bf9b: every trigger names a ClipRef (deck id, column) and resolves the clips of this layer's row through
+    // `rows` (Composition::rowClips(i)). A ref that is not valid (out of range, or a column without a deck) is REFUSED
+    // -- the unchanged transition, no tail (ruling-bf9b amendment 2(c): never clamped, an out-of-range column would
+    // alias another valid ref).
 
     // Trigger a clip: queue it for its beat / bar when beat snap is on (or a caller FORCES a granularity, global
     // Quantize) and it is not already active; otherwise trigger it immediately. An empty cell clears the layer.
-    // onlyIfActive: a GL-thread trigger DECIDED from a tuple snapshot (the autopilot advance) passes the active column
-    // it decided from; the trigger then applies only while the tuple still names that column -- tested inside the
-    // pure function of every CAS attempt, so a clear, or an IMMEDIATE user trigger of another column, that landed since
-    // the snapshot stands and the call is a no-op (no tuple change, no clip tail). The guard compares the ACTIVE column
-    // only: a user trigger QUEUED by beat snap after the snapshot, or a retrigger of the same active column, leaves it
+    // onlyIfActive: a GL-thread trigger DECIDED from a tuple snapshot (the autopilot advance) passes the active ref
+    // it decided from; the trigger then applies only while the tuple still names that ref -- tested inside the
+    // pure function of every CAS attempt, so a clear, or an IMMEDIATE user trigger of another clip, that landed since
+    // the snapshot stands and the call is a no-op (no tuple change, no clip tail). The guard compares the ACTIVE ref
+    // only: a user trigger QUEUED by beat snap after the snapshot, or a retrigger of the same active clip, leaves it
     // unchanged, so the advance still applies and (immediateNext) cancels that queue -- as before this guard existed.
-    LayerRuntimeTransition triggerClip(int column, Clip::BeatSnapMode forcedSnap = Clip::BeatSnapMode::Off,
-                                       int maxAttempts = 0, std::optional<int> onlyIfActive = std::nullopt)
+    LayerRuntimeTransition triggerClip(ClipRef ref, const RowClips& rows,
+                                       Clip::BeatSnapMode forcedSnap = Clip::BeatSnapMode::Off,
+                                       int maxAttempts = 0, std::optional<ClipRef> onlyIfActive = std::nullopt)
     {
-        if (column < 0 || column >= static_cast<int>(clips.size()))
+        if (!ref.valid() || (onlyIfActive.has_value() && !onlyIfActive->storable()) || !rows.hasCell(ref))
             return unchanged();
-        if (!clips[static_cast<size_t>(column)].has_value())
-            return clearActiveClip(onlyIfActive, maxAttempts);
+        const Clip* target = rows.at(ref);
+        if (target == nullptr)
+            return clearActiveClip(rows, onlyIfActive, maxAttempts);
 
-        const Clip& target = *clips[static_cast<size_t>(column)];
         const bool snapEnabled = forcedSnap != Clip::BeatSnapMode::Off
-                              || target.beatSnapMode != Clip::BeatSnapMode::Off || target.beatSnap;
+                              || target->beatSnapMode != Clip::BeatSnapMode::Off || target->beatSnap;
         const float speed = transitionSpeed;
-        return activate(column, maxAttempts, onlyIfActive, [&](LayerRuntimeSnapshot r) {
-            if (snapEnabled && column != r.activeClipColumn)
+        return activate(ref, rows, maxAttempts, onlyIfActive, [&](LayerRuntimeSnapshot r) {
+            if (snapEnabled && ref != r.activeRef())
             {
-                r.pendingTriggerColumn = column;
+                r.pendingTriggerColumn = ref.column;
+                r.pendingDeckId = ref.deckId;
                 r.pendingTriggerSnapOverride = forcedSnap;
                 return r;
             }
-            return immediateNext(r, column, speed);
+            return immediateNext(r, ref, speed);
         });
     }
 
-    // Execute a clip trigger immediately (bypasses beat snap). A retrigger of the active column restarts its clip
-    // from the in-point and keeps its play / pause state.
-    LayerRuntimeTransition triggerClipImmediate(int column, int maxAttempts = 0)
+    // Execute a clip trigger immediately (bypasses beat snap). A retrigger of the active clip restarts it from the
+    // in-point and keeps its play / pause state.
+    LayerRuntimeTransition triggerClipImmediate(ClipRef ref, const RowClips& rows, int maxAttempts = 0)
     {
-        if (column < 0 || column >= static_cast<int>(clips.size()))
+        if (!ref.valid() || !rows.hasCell(ref))
             return unchanged();
         const float speed = transitionSpeed;
-        return activate(column, maxAttempts, std::nullopt,
-                        [&](const LayerRuntimeSnapshot& r) { return immediateNext(r, column, speed); });
+        return activate(ref, rows, maxAttempts, std::nullopt,
+                        [&](const LayerRuntimeSnapshot& r) { return immediateNext(r, ref, speed); });
     }
 
     // Fire the queued trigger if this beat qualifies. Call on each beat crossing. beatInBar: which beat within the bar
     // (0-3). barCount: total bars elapsed. One CAS-guarded transition, so a trigger cancelled on the message thread
-    // (deck switch, clear, momentary release) can never fire afterwards.
-    LayerRuntimeTransition processPendingTrigger(int beatInBar = 0, int barCount = 0, int maxAttempts = 16)
+    // (clear, momentary release, a removed deck) can never fire afterwards.
+    LayerRuntimeTransition processPendingTrigger(int beatInBar, int barCount, const RowClips& rows,
+                                                 int maxAttempts = 16)
     {
         const float speed = transitionSpeed;
         auto fire = [&](LayerRuntimeSnapshot r) {
-            const int col = r.pendingTriggerColumn;
-            if (col < 0 || col >= static_cast<int>(clips.size()))
+            const ClipRef pending = r.pendingRef();
+            if (!pending.valid() || !rows.hasCell(pending))
                 return r;
             // A forced override (global Quantize) wins outright; otherwise the pending clip's own beatSnapMode.
             auto snapMode = Clip::BeatSnapMode::Beat;
-            const auto& clipOpt = clips[static_cast<size_t>(col)];
+            const Clip* clip = rows.at(pending);
             if (r.pendingTriggerSnapOverride != Clip::BeatSnapMode::Off)
                 snapMode = r.pendingTriggerSnapOverride;
-            else if (clipOpt.has_value())
-                snapMode = (clipOpt->beatSnapMode != Clip::BeatSnapMode::Off) ? clipOpt->beatSnapMode
-                                                                              : Clip::BeatSnapMode::Beat;
+            else if (clip != nullptr)
+                snapMode = (clip->beatSnapMode != Clip::BeatSnapMode::Off) ? clip->beatSnapMode
+                                                                           : Clip::BeatSnapMode::Beat;
             bool shouldTrigger = false;
             switch (snapMode)
             {
@@ -466,53 +479,53 @@ struct Layer
                     shouldTrigger = (beatInBar == 0 && (barCount % 4) == 0);
                     break;
             }
-            return shouldTrigger ? immediateNext(r, col, speed) : r;
+            return shouldTrigger ? immediateNext(r, pending, speed) : r;
         };
-        return updateRuntime(fire, maxAttempts, [this](const LayerRuntimeSnapshot& from, const LayerRuntimeSnapshot& to) {
-            if (from.pendingTriggerColumn >= 0 && to.activeClipColumn == from.pendingTriggerColumn)
-                applyActivationTail(from, to);
+        return updateRuntime(fire, maxAttempts, [&](const LayerRuntimeSnapshot& from, const LayerRuntimeSnapshot& to) {
+            if (from.pendingTriggerColumn >= 0 && to.activeRef() == from.pendingRef())
+                applyActivationTail(rows, from, to);
         });
     }
 
-    // Clear the layer (and cancel its queued trigger, L5). onlyIfActive: clear only if that column is the active one
+    // Clear the layer (and cancel its queued trigger, L5). onlyIfActive: clear only if that ref is the active one
     // (one CAS: no separate check first). The old active clip stops playing.
-    LayerRuntimeTransition clearActiveClip(std::optional<int> onlyIfActive = std::nullopt, int maxAttempts = 0)
+    LayerRuntimeTransition clearActiveClip(const RowClips& rows, std::optional<ClipRef> onlyIfActive = std::nullopt,
+                                           int maxAttempts = 0)
     {
+        if (onlyIfActive.has_value() && !onlyIfActive->storable())
+            return unchanged();
         auto t = updateRuntime([&](const LayerRuntimeSnapshot& r) {
-            if (onlyIfActive.has_value() && r.activeClipColumn != *onlyIfActive)
+            if (onlyIfActive.has_value() && r.activeRef() != *onlyIfActive)
                 return r;
             return clearedNext(r);
         }, maxAttempts);
-        applyClearTail(t);
+        applyClearTail(rows, t);
         return t;
     }
 
-    // A momentary pad released (MIDI / keyboard): ONE CAS. Its column active -> today's clear (incl. the pending
-    // cancel); else its column still QUEUED (released before the beat) -> the queued trigger is cancelled, the
+    // A momentary pad released (MIDI / keyboard): ONE CAS. Its clip active -> today's clear (incl. the pending
+    // cancel); else its clip still QUEUED (released before the beat) -> the queued trigger is cancelled, the
     // active clip untouched; else nothing.
-    LayerRuntimeTransition releaseMomentary(int column)
+    LayerRuntimeTransition releaseMomentary(ClipRef ref, const RowClips& rows)
     {
+        if (!ref.valid())
+            return unchanged();
         auto t = updateRuntime([&](LayerRuntimeSnapshot r) {
-            if (r.activeClipColumn == column)
+            if (r.activeRef() == ref)
                 return clearedNext(r);
-            if (r.pendingTriggerColumn == column)
+            if (r.pendingRef() == ref)
             {
                 r.pendingTriggerColumn = -1;
+                r.pendingDeckId = ClipRef::kNoDeck;
                 r.pendingTriggerSnapOverride = Clip::BeatSnapMode::Off;
             }
             return r;
         });
-        applyClearTail(t);
+        applyClearTail(rows, t);
         return t;
     }
 
-    void ensureColumns(int count)
-    {
-        if (static_cast<int>(clips.size()) < count)
-            clips.resize(static_cast<size_t>(count));
-    }
-
-    // === Serialization ===
+    // === Serialization (settings only: a layer's clips live in the deck rows, Deck::rows) ===
     juce::var toVar() const;
     void fromVar(const juce::var& v);
 
@@ -523,60 +536,61 @@ private:
         return { r, r, true };
     }
 
-    // The activation tail of a transition that makes a column active (a new activation, or a retrigger of the
-    // active column): the clip's playhead back to its in-point, its beat count to 0, and -- only on a NEW activation
+    // The activation tail of a transition that makes a clip active (a new activation, or a retrigger of the
+    // active clip): the clip's playhead back to its in-point, its beat count to 0, and -- only on a NEW activation
     // of a clip never triggered -- playing = true. Written BEFORE each CAS attempt that would install the
     // transition (idempotent, recomputed per attempt), so the acq_rel CAS publishes it: a GL-thread load that names
-    // the column happens-after the reset (autopilot never counts a fresh trigger from a stale beatsPlayed). The
+    // the clip happens-after the reset (autopilot never counts a fresh trigger from a stale beatsPlayed). The
     // clip runtime fields are per-field atomics; the tuple word is the only consistent unit. Not reverted when the
     // CAS never lands (a concurrent cancel, or a bounded update out of attempts): harmless -- the clip is inactive,
     // nothing reads its playhead / beat count until its next activation re-runs this tail (a never-triggered clip
     // may be left playing = true, which its next first activation sets anyway).
-    void applyActivationTail(const LayerRuntimeSnapshot& from, const LayerRuntimeSnapshot& to)
+    static void applyActivationTail(const RowClips& rows, const LayerRuntimeSnapshot& from,
+                                    const LayerRuntimeSnapshot& to)
     {
-        if (Clip* clip = getClipAt(to.activeClipColumn))
+        if (Clip* clip = rows.at(to.activeRef()))
         {
             clip->playheadPosition = static_cast<double>(clip->inPoint);
             clip->beatsPlayed = 0;
-            if (to.activeClipColumn != from.activeClipColumn && !clip->hasBeenTriggered)
+            if (to.activeRef() != from.activeRef() && !clip->hasBeenTriggered)
                 clip->playing = true;   // only auto-play on first activation; returning clips keep their state
         }
     }
 
-    // fn may queue or activate `column`; the tail runs before each CAS that would make `column` active. A retrigger
+    // fn may queue or activate `ref`; the tail runs before each CAS that would make `ref` active. A retrigger
     // with nothing queued changes no tuple field (no CAS), so its tail runs once after. onlyIfActive (see
-    // triggerClip): fn runs only while the tuple's active column is that one; otherwise the attempt is a no-op.
+    // triggerClip): fn runs only while the tuple's active ref is that one; otherwise the attempt is a no-op.
     template <class Fn>
-    LayerRuntimeTransition activate(int column, int maxAttempts, std::optional<int> onlyIfActive, Fn&& fn)
+    LayerRuntimeTransition activate(ClipRef ref, const RowClips& rows, int maxAttempts,
+                                    std::optional<ClipRef> onlyIfActive, Fn&& fn)
     {
         auto guarded = [&](const LayerRuntimeSnapshot& r) -> LayerRuntimeSnapshot {
-            if (onlyIfActive.has_value() && r.activeClipColumn != *onlyIfActive)
-                return r;   // decided from a stale snapshot: a changed active column (clear / immediate trigger) stands
+            if (onlyIfActive.has_value() && r.activeRef() != *onlyIfActive)
+                return r;   // decided from a stale snapshot: a changed active clip (clear / immediate trigger) stands
             return fn(r);
         };
         auto t = updateRuntime(guarded, maxAttempts,
                                [&](const LayerRuntimeSnapshot& from, const LayerRuntimeSnapshot& to) {
-                                   if (to.activeClipColumn == column)
-                                       applyActivationTail(from, to);
+                                   if (to.activeRef() == ref)
+                                       applyActivationTail(rows, from, to);
                                });
-        if (t.applied && !t.changed() && t.after.activeClipColumn == column
-            && (!onlyIfActive.has_value() || *onlyIfActive == column))
-            applyActivationTail(t.before, t.after);
+        if (t.applied && !t.changed() && t.after.activeRef() == ref
+            && (!onlyIfActive.has_value() || *onlyIfActive == ref))
+            applyActivationTail(rows, t.before, t.after);
         return t;
     }
 
     // The clear tail: the OLD active clip stops playing, applied once after the successful CAS. No guard needed: no
     // GL-thread path re-activates a cleared layer -- the autopilot needs an active playing clip, and an advance it
-    // decided before the clear landed is conditioned on the column it decided from (triggerClip's onlyIfActive), so
+    // decided before the clear landed is conditioned on the ref it decided from (triggerClip's onlyIfActive), so
     // it is a no-op on the cleared tuple; a queued trigger was cancelled in the same word.
-    void applyClearTail(const LayerRuntimeTransition& t)
+    static void applyClearTail(const RowClips& rows, const LayerRuntimeTransition& t)
     {
         if (t.applied && t.before.activeClipColumn >= 0 && t.after.activeClipColumn < 0)
-            if (Clip* clip = getClipAt(t.before.activeClipColumn))
+            if (Clip* clip = rows.at(t.before.activeRef()))
                 clip->playing = false;
     }
 
-    // Declared after `clips` (member order = copy order).
     LayerRuntimeCell runtime_;
 };
 

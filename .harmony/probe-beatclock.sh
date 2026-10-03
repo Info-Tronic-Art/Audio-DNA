@@ -29,7 +29,7 @@
 # full-screen capture; graceful osascript quit first, pkill only as the last resort. The stall hook sleeps the
 # app's message thread for at most 550 ms per call.
 # PROBE RIG GATE (probehygiene2, s-rta-0926b): refuses (exit 64) unless /tmp/audiodna-live.lock/owner exists; if
-# AUDIODNA_LOCK_OWNER is set, it must match the owner file's first field. adna_pids/adna_running/adna_kill filter
+# AUDIODNA_LOCK_OWNER is set, it must match the owner file's first field. adna_pids/adna_running filter
 # on `ps -o ucomm=` (the kernel's real exec-time process name) being exactly "Audio-DNA" -- see probe-routines.sh.
 set -u
 # --- live-lock gate: refuse unless the caller holds /tmp/audiodna-live.lock (rig rule) ---
@@ -41,11 +41,11 @@ if [ -n "${AUDIODNA_LOCK_OWNER:-}" ]; then
 fi
 adna_pids() { ps -eo pid=,ucomm= | awk '$2=="Audio-DNA"{print $1}'; }
 adna_running() { [ -n "$(adna_pids)" ]; }
-adna_kill() { local p; p="$(adna_pids)"; [ -n "$p" ] && kill $p 2>/dev/null; }
 OUT_BASE="${1:-/tmp/audiodna-beatclock}"
 OUT="$OUT_BASE/run-$(date +%Y%m%d-%H%M%S)-$$"
 mkdir -p "$OUT"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+. "$ROOT/.harmony/probe-quit-ours.sh"   # refuse_foreign_start / record_ourpid / quit_ours: quit ONLY the app this run launched
 BUILD_DIR="${BEATCLOCK_BUILD_DIR:-build}"
 APPBUNDLE="${BEATCLOCK_APP:-$ROOT/$BUILD_DIR/AudioDNA_artefacts/Release/Audio-DNA.app}"
 PXPY="${BEATCLOCK_PY:-$ROOT/.venv/bin/python}"
@@ -151,7 +151,7 @@ elif cmd == 'b3':
 PY
 
 # --- 0. preconditions --------------------------------------------------------
-adna_running && { echo "REFUSE: an Audio-DNA instance is already running. Quit it, then re-run."; exit 64; }
+refuse_foreign_start || exit 64
 [ -d "$APPBUNDLE" ] || { echo "REFUSE: no built app at $APPBUNDLE (set BEATCLOCK_APP or BEATCLOCK_BUILD_DIR)"; exit 64; }
 [ -x "$PXPY" ] || { echo "REFUSE: no python at $PXPY with pyobjc Quartz (set BEATCLOCK_PY)"; exit 64; }
 echo "(app: $APPBUNDLE)"
@@ -160,6 +160,7 @@ echo "(artifacts: $OUT)"
 # --- 1. launch, manual 120 BPM -------------------------------------------------
 : > "$OUT/app-out.log"; : > "$OUT/app-err.log"
 open -g --stdout "$OUT/app-out.log" --stderr "$OUT/app-err.log" "$APPBUNDLE"
+record_ourpid; echo "ours: pid ${OURPID:-none}"
 for _ in $(seq 1 60); do [ -n "$(curl -s --max-time 2 "$A/api/health" 2>/dev/null)" ] && break; sleep 1; done
 [ -n "$(curl -s --max-time 2 "$A/api/health" 2>/dev/null)" ] || { echo "FAIL: health never came up on $A (do NOT full-screen capture to check)"; exit 1; }
 PID="$(adna_pids | head -1)"
@@ -187,13 +188,7 @@ if [ -n "$HAVE_HOOK" ]; then
 fi
 
 # --- teardown (SCREEN-SAFETY LAW) ---------------------------------------------------
-osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
-for _ in $(seq 1 30); do adna_running || break; sleep 1; done
-if adna_running; then
-    echo "graceful quit did not clear the process within 30 s -- pkill (last resort)"
-    adna_kill
-    for _ in $(seq 1 20); do adna_running || break; sleep 1; done
-fi
+quit_ours
 adna_running && no "APP STILL RUNNING after quit + pkill" || ok "app terminated, no process remains"
 W="$("$PXPY" -c "
 import Quartz

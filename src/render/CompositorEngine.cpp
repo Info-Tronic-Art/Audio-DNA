@@ -647,7 +647,7 @@ GLuint CompositorEngine::applyClipTransform(const Clip& clip, GLuint srcTex,
     const float effClipOpacity = clip.eff(ClipScalar::Opacity);
 
     // s-rta-0926b plan-fitmode. Only media with a picture of its own is fitted: a Source renders AT the
-    // canvas size (compositeDeck's sourceRenderFn_ call) and Camera has no deck path. Size = the texture's
+    // canvas size (compositeShow's sourceRenderFn_ call) and Camera has no deck path. Size = the texture's
     // real size, never clipWidth/clipHeight (only the video open sites set those). Stretch runs today's
     // code: no query, and fit stays {1,1}.
     ClipFit::Scale fit;                                                   // {1,1}
@@ -722,7 +722,7 @@ GLuint CompositorEngine::applyClipTransform(const Clip& clip, GLuint srcTex,
     //
     // s-rta-0925 ms-white FIX: forceCopy=needsTransform. When a transform
     // ran, transformedTex IS effectTex_A_ (this function's own scratch
-    // above) -- the caller of applyClipTransform (compositeDeck) feeds the
+    // above) -- the caller of applyClipTransform (compositeShow) feeds the
     // returned texture straight into applyClipEffects, whose ping-pong
     // ALWAYS writes its first enabled effect to effectFBO_A_. Left as a
     // true no-op at the default 1.0 opacity, that handed effectTex_A_ back
@@ -754,7 +754,7 @@ GLuint CompositorEngine::applyClipOpacity(float opacity, GLuint srcTex, GLuint d
     // Screen/Darken/Lighten blend modes never reference GL_SRC_ALPHA for the
     // src operand at all (alpha is a complete no-op under those), and a
     // layer left at the Opaque type with layer.opacity at its 1.0 default
-    // disables GL_BLEND outright (CompositorEngine.cpp's compositeDeck,
+    // disables GL_BLEND outright (CompositorEngine.cpp's compositeShow,
     // Opaque branch) -- a straight overwrite that never reads alpha either.
     // "clip_opacity_blend" scales RGB directly instead (dims toward black),
     // the same technique masterOpacity and layer.opacity's own Opaque-path
@@ -814,7 +814,7 @@ GLuint CompositorEngine::applyLayerTransform(const Layer& layer, GLuint srcTex,
 
     // s-rta-0926 xfade class sweep: render into the effect pool, NOT
     // scratchFBO_. A Transparent layer keys its texture INTO scratchFBO_
-    // right after this (compositeDeck), so returning scratchTex_ made the
+    // right after this (compositeShow), so returning scratchTex_ made the
     // keying pass sample the texture it draws into (GL feedback loop, UB --
     // measured harmless on this driver only because keying's glClear is
     // deferred to the tile, not a guarantee). Nothing is held here.
@@ -968,31 +968,35 @@ void CompositorEngine::applyMaskLayer(const Clip& /*clip*/, GLuint clipTex,
 
 bool CompositorEngine::advanceCrossfade(Layer& layer, LayerRuntimeSnapshot& rt, float dt)
 {
-    // s-rta-0926b plan4 T1: the body lives in LayerClock (pure) so DeckClock::tick -- decks that are not on
-    // screen -- runs the very same clock. Real dt (function param), not a hardcoded 1/60 -- see
-    // compositeDeck()'s header comment and LayerClock::advanced's.
+    // s-rta-0926b plan4 T1: the body lives in LayerClock (pure, unit-tested). Real dt (function param), not a
+    // hardcoded 1/60 -- see compositeShow()'s header comment and LayerClock::advanced's.
     if (LayerClock::tick(layer, rt, dt))
         return true;
     ++tupleAdopts_;
     return false;
 }
 
-GLuint CompositorEngine::renderLayerStages(Layer& layer, const LayerRuntimeSnapshot& rt, uint32_t deckId,
-                                           const Clip& clip, GLuint clipTex,
+GLuint CompositorEngine::renderLayerStages(Layer& layer, const LayerRuntimeSnapshot& rt, const RowClips& rows,
+                                           uint32_t stackKey, const Clip& clip, GLuint clipTex,
                                            ShaderManager& shaderMgr, FullscreenQuad& quad,
                                            float time, float dt, int width, int height)
 {
-    // s-rta-0926b R2: this layer's state (temporal buffers, frame rings,
-    // feedback) is keyed by deck AND layer id -- layer ids repeat across decks.
-    const uint64_t clipKey = LayerStateKey::clipChain(deckId, layer.id);
+    // This layer's state (temporal buffers, frame rings, feedback) is keyed by the SHARED layer (lane bf9b: layer
+    // ids are unique per show; stackKey = kShowStackKey), so a deck switch can never touch it (Pitfall 35).
+    const uint64_t clipKey = LayerStateKey::clipChain(stackKey, layer.id);
 
     // s-rta-0926b R1: while the layer crossfades, the outgoing clip's chain runs
     // on its own key. At the first frame of each crossfade the layer's clip-chain
     // history is handed to it (copy buffer, swap ring) -- BEFORE the incoming
     // clip's chain reads or writes that history this frame. Nothing happens at
     // fade end: the slot idles as the spare for the next fade.
-    const uint64_t outKey = LayerStateKey::outgoingChain(deckId, layer.id);
-    if (crossfadeStart_[clipKey].observe(rt.previousClipColumn, rt.activeClipColumn, rt.crossfadeProgress))
+    const uint64_t outKey = LayerStateKey::outgoingChain(stackKey, layer.id);
+    // bf9b: the detector compares REFS (deck + column), packed into one int each: the same column from another deck
+    // is another clip (a new fade).
+    auto refKey = [](ClipRef r) {
+        return r.column < 0 ? -1 : static_cast<int>(((r.deckId & 0x3FFFu) << 16) | (static_cast<uint32_t>(r.column) & 0xFFFFu));
+    };
+    if (crossfadeStart_[clipKey].observe(refKey(rt.previousRef()), refKey(rt.activeRef()), rt.crossfadeProgress))
         handOverClipHistory(clipKey, outKey, shaderMgr, quad, width, height);
 
     // Apply per-clip transform (position, scale, rotation) + clip opacity
@@ -1003,8 +1007,8 @@ GLuint CompositorEngine::renderLayerStages(Layer& layer, const LayerRuntimeSnaps
 
     // P14: Apply clip-to-clip transition if crossfading. S167-L4b
     // DT-FIX: real measured dt (function param) -- see
-    // compositeDeck()'s header comment.
-    clipTex = applyTransition(layer, rt, outKey, clipTex, time, shaderMgr, quad, width, height, dt);
+    // compositeShow()'s header comment.
+    clipTex = applyTransition(layer, rt, rows, outKey, clipTex, time, shaderMgr, quad, width, height, dt);
 
     // P16: Apply feedback (Larsen loop) if enabled
     if (layer.feedback.enabled && layer.feedback.amount > 0.001f)
@@ -1018,14 +1022,14 @@ GLuint CompositorEngine::renderLayerStages(Layer& layer, const LayerRuntimeSnaps
     {
         // Own temporal/ring state (LayerStateKey::layerChain): never the clip chain's.
         clipTex = applyClipEffects(layer.layerEffects, clipTex, shaderMgr, quad, time, width, height,
-                                   LayerStateKey::layerChain(deckId, layer.id));
+                                   LayerStateKey::layerChain(stackKey, layer.id));
     }
 
     // P13.5.5: Apply layer transform
     return applyLayerTransform(layer, clipTex, shaderMgr, quad, width, height);
 }
 
-GLuint CompositorEngine::compositeDeck(Deck& deck,
+GLuint CompositorEngine::compositeShow(Composition& show,
                                         ShaderManager& shaderMgr,
                                         FullscreenQuad& quad,
                                         float time, float dt,
@@ -1034,22 +1038,24 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
     using namespace juce::gl;
 
     hasActiveLayers_ = false;
+    const uint32_t stackKey = LayerStateKey::kShowStackKey;
 
-    // Solo: if any layer in the deck is soloed, only soloed layers render.
+    // Solo: if any shared layer is soloed, only soloed layers render.
     // visible/bypassed are checked first below (same `||` skip condition) so
     // they still gate as before — solo narrows the remaining set further, it
     // does not un-hide a hidden layer or un-bypass a bypassed one.
     bool anySolo = false;
-    for (const auto& layer : deck.layers)
+    for (const auto& layer : show.layers)
     {
         if (layer.solo) { anySolo = true; break; }
     }
 
     // Check if any layer has an active clip with content
-    for (const auto& layer : deck.layers)
+    for (int i = 0; i < show.getNumLayers(); ++i)
     {
+        const Layer& layer = show.layers[static_cast<size_t>(i)];
         if (!layer.visible || layer.bypassed || (anySolo && !layer.solo)) continue;
-        const Clip* clip = layer.getActiveClip();
+        const Clip* clip = show.playingClip(i);
         if (clip == nullptr) continue;
         if (clipHasContent(*clip))
         { hasActiveLayers_ = true; break; }
@@ -1067,19 +1073,22 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Composite layers bottom to top (index 0 is bottom)
-    for (auto& layer : deck.layers)
+    for (int li = 0; li < show.getNumLayers(); ++li)
     {
+        Layer& layer = show.layers[static_cast<size_t>(li)];
         if (!layer.visible || layer.bypassed || (anySolo && !layer.solo))
             continue;
 
         // Lane tsan (s-rta-1002; Fork 6): ONE tuple load for this layer this frame, where its first read always sat;
         // every read below (incoming clip, fade tick, crossfade start, transition) uses this one tuple. A fade tick
-        // that adopted a concurrent trigger re-fetches the clip it names.
+        // that adopted a concurrent trigger re-fetches the clip it names. Lane bf9b: the clip comes from the deck its
+        // ref names (any live or retired deck), through the layer's row.
+        const RowClips rows = show.rowClips(li);
         LayerRuntimeSnapshot rt = layer.runtime();
-        const Clip* clip = layer.getClipAt(rt.activeClipColumn);
+        const Clip* clip = rows.at(rt.activeRef());
         // C1 (s-rta-0928): a crossfade onto an image that is still decoding waits for it (the layer holds meanwhile).
         if (!incomingImagePending(layer, rt, clip) && !advanceCrossfade(layer, rt, dt))
-            clip = layer.getClipAt(rt.activeClipColumn);
+            clip = rows.at(rt.activeRef());
 
         if (clip == nullptr)
             continue;
@@ -1106,7 +1115,7 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
                           clip->mediaType == Clip::MediaType::ImageSequence) && videoFrameFn_)
                 {
                     // S167-L4b DT-FIX: real measured dt (function param), not
-                    // a hardcoded 1/60 -- see compositeDeck()'s header comment.
+                    // a hardcoded 1/60 -- see compositeShow()'s header comment.
                     clipTex = videoFrameFn_(clip, dt, &pending);   // R1.4: a sequence with nothing to show yet
                 }
 
@@ -1116,14 +1125,14 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
                     // effects as FX Only, below). Hold this layer's LAST picture (its Layer Router output from the
                     // previous frame); the layer's current keying/opacity still apply below, and no effect, ring,
                     // feedback or transition runs on the stand-in. Nothing to hold -> the layer draws nothing.
-                    clipTex = heldLayerOutput(layer.id, deck.id);
+                    clipTex = heldLayerOutput(layer.id, stackKey);
                     if (clipTex == 0)
                     {
                         imageSkipFrames_.fetch_add(1, std::memory_order_relaxed);
                         continue;
                     }
                     imageHoldFrames_.fetch_add(1, std::memory_order_relaxed);
-                    touchLayerOutput(layer.id, deck.id);
+                    touchLayerOutput(layer.id, stackKey);
                 }
                 else
                 {
@@ -1131,19 +1140,18 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
                     if (clipTex == 0)
                     {
                         if (clip->hasEffects())
-                            applyFXOnlyLayer(*clip, layer, LayerStateKey::clipChain(deck.id, layer.id),
+                            applyFXOnlyLayer(*clip, layer, LayerStateKey::clipChain(stackKey, layer.id),
                                              shaderMgr, quad, time, width, height);
                         continue;
                     }
 
                     // Clip transform + opacity, clip effects, transition, feedback,
-                    // layer effects, layer transform (s-rta-0926b R4: shared with
-                    // compositePersistentLayers).
-                    clipTex = renderLayerStages(layer, rt, deck.id, *clip, clipTex, shaderMgr, quad,
+                    // layer effects, layer transform (s-rta-0926b R4: renderLayerStages).
+                    clipTex = renderLayerStages(layer, rt, rows, stackKey, *clip, clipTex, shaderMgr, quad,
                                                 time, dt, width, height);
 
                     // P20: Save layer output for Layer Router sources
-                    saveLayerOutput(layer.id, deck.id, clipTex, shaderMgr, quad, width, height);
+                    saveLayerOutput(layer.id, stackKey, clipTex, shaderMgr, quad, width, height);
                 }
 
                 if (layer.type == Layer::Type::Transparent)
@@ -1194,7 +1202,7 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
             case Layer::Type::FXOnly:
             {
                 // P13.5.2: Apply clip's effects to the accumulator (with opacity)
-                applyFXOnlyLayer(*clip, layer, LayerStateKey::clipChain(deck.id, layer.id),
+                applyFXOnlyLayer(*clip, layer, LayerStateKey::clipChain(stackKey, layer.id),
                                  shaderMgr, quad, time, width, height);
                 break;
             }
@@ -1214,13 +1222,13 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
                           clip->mediaType == Clip::MediaType::ImageSequence) && videoFrameFn_)
                 {
                     // S167-L4b DT-FIX: real measured dt (function param), not
-                    // a hardcoded 1/60 -- see compositeDeck()'s header comment.
+                    // a hardcoded 1/60 -- see compositeShow()'s header comment.
                     clipTex = videoFrameFn_(clip, dt, &pending);   // R1.4
                 }
 
                 // s-rta-0928 R1.2: a Mask whose image still decodes holds its last IMAGE mask; nothing to hold -> no
                 // mask this frame.
-                const uint64_t maskKey = LayerStateKey::clipChain(deck.id, layer.id);
+                const uint64_t maskKey = LayerStateKey::clipChain(stackKey, layer.id);
                 if (pending)
                 {
                     const auto held = lastMaskImageTex_.find(maskKey);
@@ -1261,181 +1269,6 @@ bool CompositorEngine::clipHasContent(const Clip& clip)
         return true;
     // Layers with effects (even without media) are active — FX applies to accumulator
     return !clip.effects.empty();
-}
-
-bool CompositorEngine::hasPersistentContent(const Deck& deck)
-{
-    // The same gates as compositePersistentLayers() below, in the same order.
-    bool anySolo = false;
-    for (const auto& layer : deck.layers)
-    {
-        if (layer.solo) { anySolo = true; break; }
-    }
-    for (const auto& layer : deck.layers)
-    {
-        if (!layer.persistent || !layer.visible || layer.bypassed || (anySolo && !layer.solo))
-            continue;
-        const Clip* clip = layer.getActiveClip();
-        if (clip != nullptr && Layer::canBePersistent(layer.type) && clipHasContent(*clip))
-            return true;
-    }
-    return false;
-}
-
-GLuint CompositorEngine::beginEmptyActiveDeck(int width, int height)
-{
-    if (!glInitialized_)
-        return 0;
-
-    // compositeDeck() returned before its resize + clear (nothing on the active
-    // deck to draw); do both here, as compositeDeck does before its first layer.
-    resize(width, height);
-
-    // Opaque black, not compositeDeck's transparent black: the persistent layers
-    // then land on exactly what an Opaque black clip at full opacity leaves in
-    // the accumulator (compositeDeck's Opaque branch clears to opaque black and
-    // draws the clip with blending off), so an EMPTY active deck and a BLACK
-    // active deck give the same frame, alpha included.
-    glBindFramebuffer(GL_FRAMEBUFFER, accumulatorFBO_);
-    glViewport(0, 0, width, height);
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-    return accumulatorTex_;
-}
-
-void CompositorEngine::compositePersistentLayers(Deck& deck,
-                                                  ShaderManager& shaderMgr,
-                                                  FullscreenQuad& quad,
-                                                  float time, float dt,
-                                                  int width, int height)
-{
-    using namespace juce::gl;
-
-    if (!glInitialized_) return;
-
-    // Solo: same read class as visible/bypassed (see compositeDeck() above).
-    // Scanned per-deck — solo is a per-Layer field, not deck-scoped, so this
-    // deck's own solo state must be evaluated independently of whichever deck
-    // is currently active.
-    bool anySolo = false;
-    for (const auto& layer : deck.layers)
-    {
-        if (layer.solo) { anySolo = true; break; }
-    }
-
-    // Iterate layers, compositing only those marked persistent and with active clips
-    for (auto& layer : deck.layers)
-    {
-        if (!layer.persistent || !layer.visible || layer.bypassed || (anySolo && !layer.solo))
-            continue;
-
-        // s-rta-0926b R4: a persistent layer's crossfade keeps running while its
-        // deck is inactive, exactly as it would on the active deck (it used to
-        // freeze until the deck was active again, and the layer hard-cut to the
-        // incoming clip meanwhile). C1 (s-rta-0928): except while its incoming
-        // image is still decoding. Lane tsan: ONE tuple load for this layer this frame (as compositeDeck).
-        LayerRuntimeSnapshot rt = layer.runtime();
-        const Clip* clip = layer.getClipAt(rt.activeClipColumn);
-        if (!incomingImagePending(layer, rt, clip) && !advanceCrossfade(layer, rt, dt))
-            clip = layer.getClipAt(rt.activeClipColumn);
-
-        if (clip == nullptr)
-            continue;
-
-        // s-rta-0926b R4-types: Opaque / Transparent / FX Only (Layer::
-        // canBePersistent -- the same rule disables the LayerInspector toggle).
-        // Mask and 3D persistent layers stay skipped.
-        if (!Layer::canBePersistent(layer.type))
-            continue;
-
-        // FX Only: the clip's effects over the accumulator as it stands at this
-        // point of the persistent pass (the active deck + persistent layers of
-        // lower-index decks) -- the same call and key as on its own deck.
-        if (layer.type == Layer::Type::FXOnly)
-        {
-            applyFXOnlyLayer(*clip, layer, LayerStateKey::clipChain(deck.id, layer.id),
-                             shaderMgr, quad, time, width, height);
-            continue;
-        }
-
-        GLuint clipTex = 0;
-        bool pending = false;   // s-rta-0928 R1.2
-        if (clip->mediaType == Clip::MediaType::Image && mediaPresent(*clip))
-        {
-            clipTex = getKeyTexture(clip->mediaFile, &pending);
-        }
-        else if (clip->mediaType == Clip::MediaType::Source && !clip->sourceType.empty() && sourceRenderFn_)
-        {
-            const auto* params = clip->sourceParams.empty() ? nullptr : &clip->sourceParams;
-            clipTex = sourceRenderFn_(clip->sourceType, time, width, height, params);
-        }
-        else if ((clip->mediaType == Clip::MediaType::Video ||
-                  clip->mediaType == Clip::MediaType::ImageSequence) && videoFrameFn_)
-        {
-            // S167-L4b DT-FIX: real measured dt (function param), not a
-            // hardcoded 1/60 -- see compositePersistentLayers()'s header
-            // comment (CompositorEngine.h).
-            clipTex = videoFrameFn_(clip, dt, &pending);   // R1.4
-        }
-
-        // s-rta-0928 R1.2: a persistent layer whose image still decodes draws nothing this frame (it saves no Layer
-        // Router output to hold) -- never "no media" (the FX-only branch below).
-        if (pending)
-        {
-            imageSkipFrames_.fetch_add(1, std::memory_order_relaxed);
-            continue;
-        }
-
-        // A media-less clip with effects on an Opaque/Transparent layer applies
-        // as FX Only, exactly as on the active deck (s-rta-0926b R4-types).
-        if (clipTex == 0)
-        {
-            if (clip->hasEffects())
-                applyFXOnlyLayer(*clip, layer, LayerStateKey::clipChain(deck.id, layer.id),
-                                 shaderMgr, quad, time, width, height);
-            continue;
-        }
-
-        // s-rta-0926b R4: the same per-layer stages as on the active deck
-        // (clip transform + opacity, clip effects, transition, feedback, layer
-        // effects, layer transform). It used to run only the clip effects.
-        // Deliberately different from an active-deck layer (ruling
-        // .harmony/.reports/s-rta-0926b/ruling-render-forks.md): an Opaque
-        // persistent layer blends over the active deck with its blend mode and
-        // layer opacity (it never clears the accumulator); no Layer Router
-        // output is saved (the router addresses the active deck only); Mask /
-        // 3D persistent layers are skipped above.
-        GLuint processedTex = renderLayerStages(layer, rt, deck.id, *clip, clipTex, shaderMgr, quad,
-                                                time, dt, width, height);
-        if (processedTex == 0) processedTex = clipTex;
-
-        // Keying for transparent layers
-        if (layer.type == Layer::Type::Transparent)
-        {
-            applyLayerKeying(layer, layer.keyingMode, processedTex, scratchFBO_, shaderMgr, quad, width, height);
-            blendLayerOntoAccumulator(layer, scratchTex_, shaderMgr, quad, width, height);
-        }
-        else if (layer.eff(LayerScalar::Opacity) < 0.999f)
-        {
-            // s-rta-0926b R4-opaque (ruling (1)): a persistent Opaque layer sits
-            // on TOP of the active deck (persistent layers composite after it),
-            // so it blends over it with its blend mode -- it never clears the
-            // accumulator the way an active-deck Opaque layer does (that would
-            // black out the whole active deck from a default-typed layer). Its
-            // layer opacity used to be ignored here; it now goes through the
-            // same alpha keying pass (u_opacity) a Transparent layer gets.
-            // processedTex is never scratchTex_ (applyLayerTransform renders
-            // into the effect pool), so the pass never samples its own target.
-            applyLayerKeying(layer, Layer::KeyingMode::Alpha, processedTex, scratchFBO_, shaderMgr, quad,
-                             width, height);
-            blendLayerOntoAccumulator(layer, scratchTex_, shaderMgr, quad, width, height);
-        }
-        else
-        {
-            // Opacity 1.0: the direct blend, unchanged (no keying pass).
-            blendLayerOntoAccumulator(layer, processedTex, shaderMgr, quad, width, height);
-        }
-    }
 }
 
 GLuint CompositorEngine::applyGlobalEffects(const std::vector<Clip::EffectSlot>& globalEffects,
@@ -1644,8 +1477,8 @@ juce::String CompositorEngine::getTransitionShaderName(Layer::MixMode mode)
 
 // === Phase 14: Transition rendering ===
 
-GLuint CompositorEngine::applyTransition(Layer& layer, const LayerRuntimeSnapshot& rt, uint64_t outgoingKey,
-                                          GLuint newClipTex, float time,
+GLuint CompositorEngine::applyTransition(Layer& layer, const LayerRuntimeSnapshot& rt, const RowClips& rows,
+                                          uint64_t outgoingKey, GLuint newClipTex, float time,
                                           ShaderManager& shaderMgr, FullscreenQuad& quad,
                                           int w, int h, float dt)
 {
@@ -1655,8 +1488,8 @@ GLuint CompositorEngine::applyTransition(Layer& layer, const LayerRuntimeSnapsho
     if (rt.crossfadeProgress >= 1.0f || rt.previousClipColumn < 0)
         return newClipTex;
 
-    // Get previous clip texture
-    Clip* prevClip = layer.getClipAt(rt.previousClipColumn);
+    // Get previous clip texture (lane bf9b: from the deck its ref names -- possibly not the incoming clip's deck)
+    Clip* prevClip = rows.at(rt.previousRef());
     if (prevClip == nullptr)
         return newClipTex;
 
@@ -1673,7 +1506,7 @@ GLuint CompositorEngine::applyTransition(Layer& layer, const LayerRuntimeSnapsho
     //     no pass of it writes the incoming result (both clips effected: the
     //     incoming result sat in effectTex_A_, the outgoing chain started at
     //     effectFBO_A_ and overwrote it).
-    const Clip* newClip = layer.getClipAt(rt.activeClipColumn);
+    const Clip* newClip = rows.at(rt.activeRef());
     if (newClip != nullptr
         && newClip->mediaType == Clip::MediaType::Source && prevClip->mediaType == Clip::MediaType::Source
         && !newClip->sourceType.empty() && newClip->sourceType == prevClip->sourceType
@@ -1700,7 +1533,7 @@ GLuint CompositorEngine::applyTransition(Layer& layer, const LayerRuntimeSnapsho
 
     // s-rta-0926b render lane (R3): the outgoing clip goes through the SAME
     // per-clip stages, in the same order, as it did while it was the active
-    // clip (compositeDeck: applyClipTransform = transform + clip opacity, then
+    // clip (compositeShow: applyClipTransform = transform + clip opacity, then
     // applyClipEffects). This used to run effects -> opacity with no transform:
     // an outgoing clip with Position/Scale/Rotation snapped to identity for the
     // whole crossfade (measured: every dissolve frame fit the UNSCALED clip,

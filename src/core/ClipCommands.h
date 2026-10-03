@@ -1,7 +1,7 @@
 #pragma once
 #include "core/Command.h"
 #include "model/Layer.h"   // Layer (and Clip)
-#include "model/Deck.h"    // Deck (for SwapClipsCmd's numColumns + two-layer reach)
+#include "model/Deck.h"    // Deck / ClipRow (for SwapClipsCmd's numColumns + two-row reach)
 #include <functional>
 #include <optional>
 #include <string>
@@ -10,10 +10,20 @@
 // Injected hooks that keep clip commands decoupled from the renderer/UI so they
 // can be unit-tested headless against a bare Composition (spec §7).
 
-// Re-resolve a Layer through the live model by coordinate. Returns nullptr if
-// the coordinate no longer resolves (deck/layer removed). Commands NEVER store
-// raw Layer*/Clip* — they hold coordinates and re-resolve on every apply.
-using ClipLayerResolver = std::function<Layer*(int deckIndex, int layerIndex)>;
+struct Composition;
+
+// Re-resolve a SHARED layer (Composition::layers, lane bf9b) through the live model by index. Returns nullptr if
+// the index no longer resolves (layer removed). Commands NEVER store raw Layer*/Clip* — they hold coordinates and
+// re-resolve on every apply.
+using ClipLayerResolver = std::function<Layer*(int layerIndex)>;
+
+// Re-resolve a deck's clip row (Deck::rows, lane bf9b) by (deckIndex, row). nullptr when it no longer resolves.
+using ClipRowResolver = std::function<ClipRow*(int deckIndex, int row)>;
+
+// Re-resolve the live Composition (commands that need the shared stack AND the deck boxes: the trigger, clear and
+// layer / deck structure commands). The Composition is a stable member of MainComponent; the vectors INSIDE it
+// reallocate, which is why structure mutations are fenced.
+using CompositionResolver = std::function<Composition*()>;
 
 // Reconnect renderer-side media (video / image sequence, keyed by clip id) for
 // a clip if it is missing. No-op in headless contexts. This is the spec risk #4
@@ -70,7 +80,7 @@ using DeckFenceHook = std::function<void(const std::function<void()>&)>;
 class SetClipCmd : public Command
 {
 public:
-    SetClipCmd(ClipLayerResolver resolver, DeckFenceHook fence, ClipMediaHook mediaHook,
+    SetClipCmd(ClipRowResolver resolver, DeckFenceHook fence, ClipMediaHook mediaHook,
                ClipMediaDisposeHook disposeHook,
                int deckIndex, int layerIndex, int column,
                std::optional<Clip> before, std::optional<Clip> after,
@@ -97,11 +107,11 @@ public:
 private:
     void apply(const std::optional<Clip>& state, const std::optional<Clip>& leaving)
     {
-        Layer* layer = resolver_ ? resolver_(deckIndex_, layerIndex_) : nullptr;
-        if (layer == nullptr)
+        ClipRow* row = resolver_ ? resolver_(deckIndex_, layerIndex_) : nullptr;
+        if (row == nullptr || column_ < 0)
             return;
-        layer->ensureColumns(column_ + 1);
-        auto& cell = layer->clips[static_cast<size_t>(column_)];
+        row->ensureColumns(column_ + 1);
+        auto& cell = row->clips[static_cast<size_t>(column_)];
         if (state.has_value())
         {
             cell = *state;                      // value copy
@@ -121,11 +131,11 @@ private:
     }
     void runFenced(const std::function<void()>& m) { if (fence_) fence_(m); else if (m) m(); }
 
-    ClipLayerResolver resolver_;
+    ClipRowResolver resolver_;
     DeckFenceHook fence_;
     ClipMediaHook mediaHook_;
     ClipMediaDisposeHook disposeHook_;
-    int deckIndex_, layerIndex_, column_;
+    int deckIndex_, layerIndex_, column_;   // layerIndex_ = the row
     std::optional<Clip> before_, after_;
     std::string description_;
 };
@@ -136,7 +146,7 @@ private:
 class ToggleClipLockCmd : public Command
 {
 public:
-    ToggleClipLockCmd(ClipLayerResolver resolver, int deckIndex, int layerIndex,
+    ToggleClipLockCmd(ClipRowResolver resolver, int deckIndex, int layerIndex,
                       int column, bool before, bool after, std::string description)
         : resolver_(std::move(resolver)), deckIndex_(deckIndex),
           layerIndex_(layerIndex), column_(column),
@@ -149,14 +159,14 @@ public:
 private:
     void apply(bool locked)
     {
-        Layer* layer = resolver_ ? resolver_(deckIndex_, layerIndex_) : nullptr;
-        if (layer == nullptr)
+        ClipRow* row = resolver_ ? resolver_(deckIndex_, layerIndex_) : nullptr;
+        if (row == nullptr)
             return;
-        if (Clip* clip = layer->getClipAt(column_))
+        if (Clip* clip = row->getClipAt(column_))
             clip->contentLocked = locked;
     }
 
-    ClipLayerResolver resolver_;
+    ClipRowResolver resolver_;
     int deckIndex_, layerIndex_, column_;
     bool before_, after_;
     std::string description_;
@@ -236,11 +246,11 @@ private:
     void applyCell(Deck& deck, int layerIndex, int column,
                    const std::optional<Clip>& state)
     {
-        Layer* layer = deck.getLayer(layerIndex);
-        if (layer == nullptr)
+        ClipRow* row = deck.getRow(layerIndex);
+        if (row == nullptr || column < 0)
             return;
-        layer->ensureColumns(column + 1);
-        auto& cell = layer->clips[static_cast<size_t>(column)];
+        row->ensureColumns(column + 1);
+        auto& cell = row->clips[static_cast<size_t>(column)];
         if (state.has_value())
         {
             cell = *state;                      // value copy

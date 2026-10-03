@@ -6,29 +6,32 @@ every captured PNG with PIL+numpy (never file hashes). Every render_frame respon
 capture is a FAIL. The output dir is fresh per run.
 
 usage: probe-render-state.py <root> <fresh-outdir> <media-dir> [row,row,...]
-rows: r2_temporal r2_ring r4_clip_transform r4_clip_opacity r4_layer_effects r4_layer_transform r4_feedback
-      r4_transition r5_hold r5_burst
-      (s-rta-0926b render2) r1_temporal r1_control r1_ring r1_retrigger r1_counts r4_opaque_opacity
-      r4_opaque_overlay r4_fxonly_persistent r4_fxonly_medialess r4_mask_skipped r4_empty_active_deck
+rows: r5_hold r5_burst
+      (s-rta-0926b render2) r1_temporal r1_control r1_ring r1_retrigger r1_counts r1_cells
+      (bf9 Stage P) a4_feedback a4_fxonly a4_fxonly_medialess p_flag_ignored p_flag_ignored_empty p_api_no_field
+      p_ignore_column
+env RSTATE_REF=<dir>: a previous run's out dir (the BASE arm); the a4_* rows then also apply bar (ii).
 
 Metric: d(X, Y) = mean |X - Y| over RGB, 0..255. non-blank = alpha>0 fraction >= 0.5 and RGB std >= 3.
 
-R2 (persistent layers' state keys across decks): deck 0 (active) layer id 0 = A + fx, deck 1 layer id 0
-  persistent = B + fx (covers the frame). Reference = same composition, deck 0 layer WITHOUT fx.
-  PASS: 3 subject frames non-blank and d(subject, reference) <= tol (1.5).
-  Calibration: 6e8f120 (pre-change) temporal 9.45 (persistent layer = 33% of deck 0's image), ring 29.39
-  (persistent layer shows deck 0's image); fixed build 0.00 / 0.00.
-R4 (persistent layer stages): base deck 0 layer id 0 Opaque = A; subject layer id 5 Transparent = B + stage.
-  reference = subject as a NORMAL layer on deck 0; subject = the same layer PERSISTENT on deck 1;
-  absent = the persistent layer without the stage.
-  PASS: d(reference, absent) >= 5 (the fixture exercises the stage) and d(subject, reference) <= tol.
-  Calibration (d(subject, reference)): 6e8f120 clip transform 28.26, clip opacity 9.62, layer effects
-  228.25, layer transform 30.87, feedback 15.02; fixed build 0.00 on all five.
-R4 transition: deck 1 persistent layer (OUT = A, IN = B, Dissolve 8 s); IN triggered on deck 1, deck left
-  0.3 s later. 4 persistent frames at ~0.8..3.6 s: each ON the OUT->IN line (least-squares residual <= tol,
-  0.03 < p < 0.97) and p rising by >= 0.15 overall; back on deck 1 after T + 2 s: frame == IN within tol.
-  Calibration: 6e8f120 every persistent frame == IN (p = 1.00, a hard cut) and back on deck 1 p = 0.07
-  (progress frozen while inactive); fixed build p 0.09 -> 0.44, resid <= 0.12, final d(f, IN) = 0.00.
+RETIRED with the Persistent layer feature (bf9 Stage P, s-rta-1002b; ruling-bf9 amendment 12(a)): rows r2_temporal
+  r2_ring r4_clip_transform r4_clip_opacity r4_layer_effects r4_layer_transform r4_feedback r4_transition
+  r4_opaque_opacity r4_opaque_overlay r4_fxonly_persistent r4_fxonly_medialess r4_mask_skipped r4_empty_active_deck
+  and fixture keys r2 r4 r4_transition r4_opaque r4_fxonly r4_empty_active_deck. Their subject (a persistent layer
+  drawn while another deck is shown) no longer exists. Where each stage they touched is covered now (ruling-bf9
+  R-F9 / R-F10; this map replaces plan-bf9 R2):
+    clip transform    probe-crossfade.json:38 (scale 0.5)              -- active deck
+    clip opacity      probe-crossfade.json:44 (clipOpacity 0.5)        -- active deck
+    layer transform   probe-crossfade.json:59-60, probe-fitmode.py:340 (layerScale 0.5)
+    layer effects     probe-effects-parity (V1 / V5 / V6), probe-crossfade
+    clip transitions  probe-crossfade (a-f, k-l); a fade across a deck switch: probe-boxes k1c_switch_midfade
+    layer feedback    a4_feedback (below)                              -- NO other live coverage before
+    FX Only layer     a4_fxonly (below)                                -- NO other live coverage before
+    media-less effect clip on a Transparent layer: a4_fxonly_medialess -- NO other live coverage before
+    the per-deck history key at the GL call sites (r2_*): successor = bf9b gate K1t
+    r4_opaque_*, r4_mask_skipped, r4_empty_active_deck, r4_transition tested persistent-only behaviour: no successor.
+  The R4 rows' only active-deck assertion was "the fixture exercises the stage" (d(reference, absent) >= 5).
+
 R5 hold (deterministic): fresh layer id; col 1 = A + [Screen Split, Freeze 1.0]. Freeze 1.0 outputs its
   history, and a fresh history is cleared to transparent black, so the layer must stay transparent black.
   PASS: 3 frames with mean |RGBA| <= tol. Calibration: 6e8f120 (13, 13, 13, 255) = Screen Split's glClear
@@ -73,27 +76,35 @@ R1 cells (s-rta-0928 R5 = C4 of plan-renderperf): a fresh layer id, col 0 = A + 
   trig 0; 0.3 s s1; 1.0 s s2. PASS: (1) 1 <= cells(s1) - cells(s0) < 480; (2) the growth s1 -> s2 is > 0 and at most
   1.3 x (t2 - t1) x fps + 5 (one cell per ring per frame); (3) cells(s2) - cells(s0) <= 480 x the new rings.
   Calibration: main has no frame_ring_cells field (FAIL); lane: .harmony/.reports/s-rta-0928/renderleft.md.
-R4-opaque (persistent Opaque layer over the active deck): base deck 0 layer 0 Opaque = A.
-  r4_opaque_opacity subject = deck 1 layer id 5 Opaque, persistent, Normal, opacity 0.5, clip B (covers the
-    frame); reference = the same layer as a NORMAL Transparent (Alpha key) layer on deck 0 above A; full =
-    the subject at opacity 1.0. PASS: d(reference, full) >= 5 and d(subject, reference) <= tol.
-    Calibration (INFERRED): base subject = B (opacity ignored), d ~ 0.5 d(A,B) ~ 15; fixed 0.00.
-  r4_opaque_overlay (guard, PASS on both builds -- pins "blend over, never hide the active deck"): the
-    subject at opacity 1.0 with clip scale 0.5. PASS: outside the centre (x or y outside 0.2..0.8) the frame
-    equals A-only (d <= tol) and inside 0.3..0.7 it does not (d >= 5).
-R4-types: base deck 0 layer 0 Opaque = A; fx clip = media-less clip {mediaType 0, effects [Invert 1.0]}.
-  r4_fxonly_persistent deck 1 layer id 5 FX Only (type 2), persistent, fx clip; reference = the same layer as
-    a normal layer on deck 0 above A. PASS: d(reference, A-only) >= 5 and d(subject, reference) <= tol.
-    Calibration: base subject = A (skipped), d = 228 (the r4b Invert stage); fixed 0.00.
-  r4_fxonly_medialess the same with a Transparent layer (type 1) holding the media-less fx clip.
-  r4_mask_skipped (guard, PASS on both builds): deck 1 layer id 5 Mask (type 4), persistent, clip B.
-    PASS: the frame == A-only within tol (Mask persistent layers stay skipped).
-R4 empty active deck (Harmony item, wave-1 found_not_fixed #1): deck 0 layer 0 = a black image, deck 1 layer
-  id 5 Transparent persistent = B (covers the frame). reference = deck 0's black clip triggered (a black
-  active deck); subject = the same composition with NO clip triggered on deck 0 (an empty active deck).
-  Both captured at a locked 756x878 (render_frame width/height) so the viewport never depends on the
-  fallback image. PASS: reference non-blank and d(subject, reference) <= tol. Calibration: base subject =
-  the fallback (black), d ~ 19 (wave-1 r4g 19.46); fixed 0.00.
+--- bf9 Stage P (s-rta-1002b; ruling .harmony/.reports/s-rta-1002b/ruling-bf9.md amendment 12, gate G5) ---
+A4 (active-deck stages, deck 0 only): layer 0 Opaque A; layer id 5 = a4_feedback: Transparent B with the a4.feedback
+  values | a4_fxonly: FX Only (type 2) holding the media-less fx clip {mediaType 0, effects [Invert 1.0]} |
+  a4_fxonly_medialess: Transparent (type 1) holding that clip. Steps: trig(0, 0), trig(1, 0), settle 2.5 s, cap1
+  (<row>_cap1.png), wait 0.5 s, cap2 (<row>_cap2.png); noise = d(cap1, cap2).
+  absent = a_only() for the two fx rows; for a4_feedback the same file with feedbackEnabled false (same steps, cap1).
+  (i)  PASS iff d(cap1, absent) >= 5 (the fixture exercises the stage).
+  (ii) only when RSTATE_REF=<dir> is set (the BRANCH arm; <dir> = the BASE arm's out dir): PASS iff
+       d(cap1, REF cap1) <= max(1.5, 4 x the REF run's noise) (REF noise = d(REF cap1, REF cap2)).
+P (the Persistent layer feature is removed; floor/tol = tol 1.5):
+  p_flag_ignored: subject = deck 0 layer 0 Opaque A; deck 1 layer id 5 Transparent, "persistent": true, clip B
+    (covers the frame); control = the same file without the key. Each: load, persist_setup(), settle 2.5 s, cap.
+    VALID iff d(control, a_only("pfi")) <= tol. PASS iff nonblank(subject) and d(subject, control) <= tol.
+    BASE expected: d(subject, control) ~ d(B, A) (FAIL: B drawn over A). Also prints /api/state frame_time_ms and
+    peak_frame_time_ms after the subject capture (ruling-bf9 G6: INFO, no bar).
+  p_flag_ignored_empty: subject = deck 0 one Opaque layer whose clip A is never triggered; deck 1 as above; control
+    the same without the key. Each: load, persist_setup(active_layer_idx_list=()), settle 2.0 s, cap at lock 756x878.
+    VALID iff mean RGB(control) <= 2.0 (switch(0)'s refresh cleared the fallback: black). PASS iff d(subject,
+    control) <= tol. BASE expected: black + B (FAIL).
+  lane bf9b (plan-bf9b 4.B, one shared layer stack; the arm is read from GET /api/composition's top-level "layers"):
+    p_flag_ignored's fixture is the case "B's row is A's row" (both row 0: persist_setup fires B, then A replaces it in
+    the one shared layer) -> VALID unchanged (control == A alone). p_flag_ignored_empty's fixture is the case "B's
+    layer is not replaced" (persist_setup(()) fires nothing after B) -> VALID iff control == B's picture (a 1-deck
+    reference: B in an Opaque layer, the shared layer's settings being deck 0's Opaque row); PASS clause unchanged.
+  p_api_no_field: the p_flag_ignored subject loaded; no decks[].layers[] object of GET /api/composition has
+    "persistent", and every one has id, visible and activeClipColumn. BASE: the key is present (FAIL).
+  p_ignore_column: deck 0 = 2 layers x 2 image columns, layer 1 "ignoreColumnTrigger": true. trigger_clip(1, 0);
+    POST /api/trigger_column {"column": 1}; 0.5 s later layer 0 activeClipColumn == 1 and layer 1 == 0. PASS on both
+    arms (Ignore Column Trigger unchanged).
 """
 import json, os, subprocess, sys, threading, time
 
@@ -230,104 +241,12 @@ def nonblank(a):
     return float((a[..., 3] > 0).mean()) >= 0.5 and float(a[..., :3].std()) >= 3.0
 
 
-def fit_line(f, x, y):
-    dx = (y - x)[..., :3].ravel(); df = (f - x)[..., :3].ravel()
-    den = float(dx @ dx)
-    p = float(df @ dx) / den if den > 0 else 0.0
-    return p, float(np.abs(f[..., :3] - (x[..., :3] + p * (y - x)[..., :3])).mean())
-
-
 def persist_setup(active_layer_idx_list=(0,)):
     """deck 1's layer 0 active, then back on deck 0 with its layers triggered."""
     switch(1); time.sleep(0.5); trig(0, 0); time.sleep(0.5)
     switch(0); time.sleep(0.5)
     for li in active_layer_idx_list:
         trig(li, 0)
-
-
-def r2(tag, fxs):
-    frames = {}
-    for key, fa in (("reference", []), ("subject", fxs)):
-        d0 = deck(0, [layer(0, [clip(1, IMG_A, fa)])])
-        d1 = deck(1, [layer(0, [clip(2, IMG_B, fxs)], persistent=True)])
-        if not load(f"{tag}_{key}", [d0, d1]):
-            return
-        persist_setup(); time.sleep(2.0)
-        frames[key] = [cap(f"{tag}_{key}_{i}") for i in range(3)]
-        if any(f is None for f in frames[key]):
-            no(f"{tag}: capture failed ({key})"); return
-    ref = frames["reference"][0]
-    for i, f in enumerate(frames["subject"]):
-        de = d(f, ref); nb = nonblank(f)
-        (ok if nb and de <= TOL else no)(
-            f"{tag}: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame {i} "
-            f"non-blank={nb} d(subject, reference)={de:.2f} (tol {TOL})")
-
-
-def r4(tag, spec):
-    ce = spec.get("clip", {}); le = spec.get("layer", {})
-    base = layer(0, [clip(1, IMG_A)])
-    out = {}
-    if not load(f"{tag}_reference", [deck(0, [base, layer(5, [clip(2, IMG_B, **ce)], ltype=1, **le)])]):
-        return
-    trig(0, 0); trig(1, 0); time.sleep(2.5)
-    out["reference"] = cap(f"{tag}_reference")
-    for key, lay in (("subject", layer(5, [clip(2, IMG_B, **ce)], ltype=1, persistent=True, **le)),
-                     ("absent", layer(5, [clip(2, IMG_B)], ltype=1, persistent=True))):
-        if not load(f"{tag}_{key}", [deck(0, [base]), deck(1, [lay])]):
-            return
-        persist_setup(); time.sleep(2.5)
-        out[key] = cap(f"{tag}_{key}")
-    if any(v is None for v in out.values()):
-        no(f"{tag}: capture failed"); return
-    dra = d(out["reference"], out["absent"]); dsr = d(out["subject"], out["reference"])
-    print(f"      {tag}: d(reference, absent)={dra:.2f} d(subject, reference)={dsr:.2f} "
-          f"d(subject, absent)={d(out['subject'], out['absent']):.2f}", flush=True)
-    if dra < 5.0:
-        no(f"{tag}: fixture does not exercise the stage (d(reference, absent)={dra:.2f} < 5)"); return
-    (ok if nonblank(out["subject"]) and dsr <= TOL else no)(
-        f"{tag}: persistent layer renders like the same layer on the active deck (d={dsr:.2f}, tol {TOL})")
-
-
-def r4_transition(spec):
-    T = float(spec["T"])
-    base = layer(0, [clip(1, IMG_A, [["Invert", 1.0]])])
-    subj = layer(5, [clip(2, IMG_A), clip(3, IMG_B)], ltype=1, persistent=True, speed=T)
-    if not load("r4_transition", [deck(0, [base], ncols=2), deck(1, [subj], ncols=2)]):
-        return
-    trig(0, 0); time.sleep(0.5)
-    switch(1); time.sleep(0.5); trig(0, 0); time.sleep(1.5)
-    ref_out = cap("r4t_OUT")
-    trig(0, 1); time.sleep(T + 1.5)
-    ref_in = cap("r4t_IN")
-    trig(0, 0); time.sleep(T + 1.5)
-    if ref_out is None or ref_in is None:
-        no("r4_transition: reference capture failed"); return
-    trig(0, 1); t0 = time.time()
-    time.sleep(0.3); switch(0); time.sleep(0.4)
-    ps, bad = [], []
-    for k in range(4):
-        f = cap(f"r4t_persist_mid{k}"); tt = time.time() - t0
-        if f is None:
-            bad.append(f"frame {k} capture failed"); continue
-        p, res = fit_line(f, ref_out, ref_in); ps.append(p)
-        print(f"      r4_transition: t={tt:.2f}s p={p:.2f} residual={res:.2f} d(f,IN)={d(f, ref_in):.2f}", flush=True)
-        if not (res <= TOL and 0.03 < p < 0.97):
-            bad.append(f"t={tt:.2f}s p={p:.2f} res={res:.2f}")
-        time.sleep(0.8)
-    (ok if len(ps) == 4 and not bad else no)(
-        f"r4_transition: persistent layer mid-crossfade frames lie between OUT and IN ({4 - len(bad)}/4): {bad[:3]}")
-    rising = len(ps) >= 2 and ps[-1] - ps[0] >= 0.15
-    (ok if rising else no)(f"r4_transition: crossfade keeps advancing while the deck is inactive "
-                           f"(p {[round(p, 2) for p in ps]})")
-    time.sleep(max(0.0, T + 2.0 - (time.time() - t0)))
-    switch(1); time.sleep(0.3)
-    f = cap("r4t_back_on_deck1")
-    if f is None:
-        return
-    df = d(f, ref_in)
-    (ok if df <= TOL else no)(f"r4_transition: back on its deck after T + 2 s the crossfade is complete "
-                              f"(d(f, IN)={df:.2f}, tol {TOL})")
 
 
 def r5_hold(spec):
@@ -521,134 +440,177 @@ def a_only(tag):
     return cap(f"{tag}_Aonly")
 
 
-def r4_opaque_opacity(spec):
-    op = float(spec["opacity"]); out = {}
-    if not load("r4oo_reference", [deck(0, [base_only(), layer(5, [clip(2, IMG_B)], ltype=1, opacity=op)])]):
-        return
-    trig(0, 0); trig(1, 0); time.sleep(2.5)
-    out["reference"] = cap("r4oo_reference")
-    for key, o in (("subject", op), ("full", 1.0)):
-        subj = layer(5, [clip(2, IMG_B)], ltype=0, persistent=True, opacity=o)
-        if not load(f"r4oo_{key}", [deck(0, [base_only()]), deck(1, [subj])]):
-            return
-        persist_setup(); time.sleep(2.5)
-        out[key] = cap(f"r4oo_{key}")
-    if any(v is None for v in out.values()):
-        no("r4_opaque_opacity: capture failed"); return
-    drf = d(out["reference"], out["full"]); dsr = d(out["subject"], out["reference"])
-    print(f"      r4_opaque_opacity: d(reference, full)={drf:.2f} d(subject, reference)={dsr:.2f} "
-          f"d(subject, full)={d(out['subject'], out['full']):.2f}", flush=True)
-    if drf < 5.0:
-        no(f"r4_opaque_opacity: fixture does not exercise opacity (d(reference, full)={drf:.2f} < 5)"); return
-    (ok if nonblank(out["subject"]) and dsr <= TOL else no)(
-        f"r4_opaque_opacity: a persistent Opaque layer at opacity {op} blends over the active deck like the "
-        f"same layer at that opacity on the deck (d={dsr:.2f}, tol {TOL})")
-
-
-def r4_opaque_overlay(spec):
-    a = a_only("r4ov")
-    subj = layer(5, [clip(2, IMG_B, scale=float(spec["overlayScale"]))], ltype=0, persistent=True)
-    if a is None or not load("r4ov_subject", [deck(0, [base_only()]), deck(1, [subj])]):
-        no("r4_opaque_overlay: setup failed"); return
-    persist_setup(); time.sleep(2.5)
-    f = cap("r4ov_subject")
-    if f is None:
-        return
-    H, W = f.shape[:2]; yy, xx = np.mgrid[0:H, 0:W]
-    outside = (xx < 0.2 * W) | (xx > 0.8 * W) | (yy < 0.2 * H) | (yy > 0.8 * H)
-    centre = (xx > 0.3 * W) & (xx < 0.7 * W) & (yy > 0.3 * H) & (yy < 0.7 * H)
-    dout = float(np.abs(f[..., :3] - a[..., :3])[outside].mean())
-    din = float(np.abs(f[..., :3] - a[..., :3])[centre].mean())
-    print(f"      r4_opaque_overlay: outside centre d(f, A)={dout:.2f}; centre d(f, A)={din:.2f}", flush=True)
-    (ok if dout <= TOL and din >= 5.0 else no)(
-        f"r4_opaque_overlay: a persistent Opaque layer never hides the active deck (outside d={dout:.2f} "
-        f"<= {TOL}, centre d={din:.2f} >= 5)")
-
-
 def fx_clip(cid, effects):
     return {"name": f"c{cid}", "id": cid, "mediaType": 0, "effects": [fx(e) for e in effects]}
 
 
-def r4_fxonly(tag, spec, ltype):
-    fc = fx_clip(2, spec["fx"])
-    a = a_only(tag)
-    if a is None or not load(f"{tag}_reference", [deck(0, [base_only(), layer(5, [fc], ltype=ltype)])]):
-        no(f"{tag}: setup failed"); return
+def comp():
+    try:
+        return S.get(A + "/api/composition", timeout=6).json()
+    except Exception as e:  # noqa: BLE001
+        no(f"/api/composition: {e}")
+        return None
+
+
+# ------------------------------------------------------------------ bf9 Stage P rows
+REF = os.environ.get("RSTATE_REF", "")
+
+
+def a4(tag, kind):
+    cfg = FIX["a4"]
+    if kind == "feedback":
+        subj = layer(5, [clip(2, IMG_B)], ltype=1, **cfg["feedback"])
+    else:
+        subj = layer(5, [fx_clip(2, cfg["fx"])], ltype=(2 if kind == "fxonly" else 1))
+    if not load(f"{tag}", [deck(0, [base_only(), subj])]):
+        return
     trig(0, 0); trig(1, 0); time.sleep(2.5)
-    ref = cap(f"{tag}_reference")
-    if not load(f"{tag}_subject", [deck(0, [base_only()]), deck(1, [layer(5, [fc], ltype=ltype, persistent=True)])]):
-        return
-    persist_setup(); time.sleep(2.5)
-    subj = cap(f"{tag}_subject")
-    if ref is None or subj is None:
+    c1 = cap(f"{tag}_cap1"); time.sleep(0.5)
+    c2 = cap(f"{tag}_cap2")
+    if kind == "feedback":
+        off = layer(5, [clip(2, IMG_B)], ltype=1, **dict(cfg["feedback"], feedbackEnabled=False))
+        absent = None
+        if load(f"{tag}_absent", [deck(0, [base_only(), off])]):
+            trig(0, 0); trig(1, 0); time.sleep(2.5)
+            absent = cap(f"{tag}_absent")
+    else:
+        absent = a_only(tag)
+    if c1 is None or c2 is None or absent is None:
         no(f"{tag}: capture failed"); return
-    dra = d(ref, a); dsr = d(subj, ref)
-    print(f"      {tag}: d(reference, A-only)={dra:.2f} d(subject, reference)={dsr:.2f} d(subject, A-only)="
-          f"{d(subj, a):.2f}", flush=True)
-    if dra < 5.0:
-        no(f"{tag}: fixture does not exercise the effect (d(reference, A)={dra:.2f} < 5)"); return
-    (ok if dsr <= TOL else no)(
-        f"{tag}: a persistent layer (type {ltype}) with a media-less effect clip applies its effects over the "
-        f"active deck like the same layer on the deck (d={dsr:.2f}, tol {TOL})")
-
-
-def r4_mask_skipped(spec):
-    a = a_only("r4mask")
-    if a is None or not load("r4mask_subject", [deck(0, [base_only()]),
-                                                deck(1, [layer(5, [clip(2, IMG_B)], ltype=4, persistent=True)])]):
-        no("r4_mask_skipped: setup failed"); return
-    persist_setup(); time.sleep(2.5)
-    f = cap("r4mask_subject")
-    if f is None:
+    noise = d(c1, c2); dab = d(c1, absent)
+    print(f"      {tag}: d(cap1, absent)={dab:.2f} noise d(cap1, cap2)={noise:.2f}", flush=True)
+    (ok if dab >= 5.0 else no)(f"{tag}: (i) the fixture exercises the stage on the active deck (d(cap1, absent)="
+                               f"{dab:.2f} >= 5)")
+    if not REF:
+        print(f"      {tag}: (ii) not applied (RSTATE_REF unset -- this is the REF / BASE arm)", flush=True)
         return
-    df = d(f, a)
-    (ok if df <= TOL else no)(f"r4_mask_skipped: a persistent Mask layer stays skipped (frame == A-only, d={df:.2f}, "
-                              f"tol {TOL})")
+    rp1, rp2 = os.path.join(REF, f"{tag}_cap1.png"), os.path.join(REF, f"{tag}_cap2.png")
+    if not (os.path.isfile(rp1) and os.path.isfile(rp2)):
+        no(f"{tag}: (ii) RSTATE_REF={REF} has no {tag}_cap1.png / _cap2.png"); return
+    r1, r2 = decode(rp1), decode(rp2)
+    rnoise = d(r1, r2); fl = max(1.5, 4.0 * rnoise); dr = d(c1, r1)
+    print(f"      {tag}: (ii) d(cap1, REF cap1)={dr:.2f} REF noise={rnoise:.2f} floor={fl:.2f}", flush=True)
+    (ok if dr <= fl else no)(f"{tag}: (ii) renders as on the BASE arm (d(cap1, REF cap1)={dr:.2f} <= floor {fl:.2f})")
 
 
-def r4_empty_active_deck(spec):
+def p_flag_files(tag, deck0, flag):
+    extra = {"persistent": True} if flag else {}
+    return [deck0, deck(1, [layer(5, [clip(2, IMG_B)], ltype=1, **extra)])]
+
+
+def p_flag_ignored(spec):
+    a = a_only("pfi")
+    out = {}
+    for key, flag in (("control", False), ("subject", True)):
+        if not load(f"pfi_{key}", p_flag_files(key, deck(0, [base_only()]), flag)):
+            return
+        persist_setup(); time.sleep(2.5)
+        out[key] = cap(f"pfi_{key}")
+    st = state() or {}   # G6 (INFO, no bar): frame time at the end of p_flag_ignored, printed on both arms
+    print(f"      p_flag_ignored: G6 INFO frame_time_ms={st.get('frame_time_ms')} "
+          f"peak_frame_time_ms={st.get('peak_frame_time_ms')}", flush=True)
+    if a is None or any(v is None for v in out.values()):
+        no("p_flag_ignored: capture failed"); return
+    dva = d(out["control"], a); dsc = d(out["subject"], out["control"]); nb = nonblank(out["subject"])
+    print(f"      p_flag_ignored: d(control, A-only)={dva:.2f} d(subject, control)={dsc:.2f} "
+          f"d(subject, A-only)={d(out['subject'], a):.2f} non-blank={nb}", flush=True)
+    if isinstance((comp() or {}).get("layers"), list):
+        print("      p_flag_ignored: bf9b shared stack -- fixture case 'B's row is A's row' (row 0 on both decks): "
+              "VALID = control == A alone (plan-bf9b 4.B)", flush=True)
+    if dva > TOL:
+        no(f"p_flag_ignored: INVALID -- the control is not A-only (d={dva:.2f} > tol {TOL})"); return
+    (ok if nb and dsc <= TOL else no)(
+        f"p_flag_ignored: a file's \"persistent\": true is ignored -- the other deck's layer never draws "
+        f"(d(subject, control)={dsc:.2f}, tol {TOL})")
+
+
+def p_flag_ignored_empty(spec):
     lock = spec["lock"]
-    black = os.path.join(OUT, "black.png")
-    Image.new("RGBA", Image.open(IMG_A).size, (0, 0, 0, 255)).save(black)
-    comp = [deck(0, [layer(0, [clip(1, black)])]), deck(1, [layer(5, [clip(2, IMG_B)], ltype=1, persistent=True)])]
-    if not load("r4e_reference", comp):
+    out = {}
+    for key, flag in (("control", False), ("subject", True)):
+        if not load(f"pfie_{key}", p_flag_files(key, deck(0, [layer(0, [clip(1, IMG_A)])]), flag)):
+            return
+        persist_setup(active_layer_idx_list=()); time.sleep(2.0)
+        out[key] = cap(f"pfie_{key}", lock)
+    shared = isinstance((comp() or {}).get("layers"), list)   # lane bf9b: one shared layer stack (4.B)
+    bref = None
+    if shared:
+        if load("pfie_Bonly", [deck(0, [layer(0, [clip(2, IMG_B)])])]):
+            trig(0, 0); time.sleep(2.0)
+            bref = cap("pfie_Bonly", lock)
+    if any(v is None for v in out.values()) or (shared and bref is None):
+        no("p_flag_ignored_empty: capture failed"); return
+    mc = float(out["control"][..., :3].mean()); dsc = d(out["subject"], out["control"])
+    if shared:
+        dcb = d(out["control"], bref)
+        print(f"      p_flag_ignored_empty: bf9b shared stack -- fixture case 'B's layer is not replaced': control == "
+              f"B's picture? d(control, B-only)={dcb:.2f}; d(subject, control)={dsc:.2f}", flush=True)
+        if dcb > TOL:
+            no(f"p_flag_ignored_empty: INVALID -- the control is not B's picture (d={dcb:.2f} > tol {TOL})"); return
+        (ok if dsc <= TOL else no)(
+            f"p_flag_ignored_empty: a file's \"persistent\": true changes nothing on the shared stack "
+            f"(d(subject, control)={dsc:.2f}, tol {TOL})")
         return
-    persist_setup(); time.sleep(2.0)              # deck 0's black clip triggered: a BLACK active deck
-    ref = cap("r4e_reference", lock)
-    if not load("r4e_subject", comp):
+    print(f"      p_flag_ignored_empty: control mean RGB {mc:.2f}, subject mean RGB "
+          f"{float(out['subject'][..., :3].mean()):.2f}, d(subject, control)={dsc:.2f}", flush=True)
+    if mc > 2.0:
+        no(f"p_flag_ignored_empty: INVALID -- the control is not black (mean RGB {mc:.2f} > 2.0)"); return
+    (ok if dsc <= TOL else no)(
+        f"p_flag_ignored_empty: an empty shown deck stays black -- another deck's \"persistent\" layer never draws "
+        f"(d(subject, control)={dsc:.2f}, tol {TOL})")
+
+
+def p_api_no_field(spec):
+    if not load("papi_subject", p_flag_files("subject", deck(0, [base_only()]), True)):
         return
-    persist_setup(active_layer_idx_list=()); time.sleep(2.0)   # nothing triggered on deck 0: an EMPTY active deck
-    subj = cap("r4e_subject", lock)
-    if ref is None or subj is None:
-        no("r4_empty_active_deck: capture failed"); return
-    dsr = d(subj, ref)
-    print(f"      r4_empty_active_deck: reference rgb {ref[..., :3].mean():.2f}, subject rgb {subj[..., :3].mean():.2f}, "
-          f"d(subject, reference)={dsr:.2f}", flush=True)
-    (ok if nonblank(ref) and dsr <= TOL else no)(
-        f"r4_empty_active_deck: persistent layers render over an EMPTY active deck exactly as over a black one "
-        f"(d={dsr:.2f}, tol {TOL})")
+    c = comp()
+    if c is None:
+        return
+    layers = [L for dk in c.get("decks", []) for L in dk.get("layers", [])]
+    has_key = [L.get("id") for L in layers if "persistent" in L]
+    missing = [L.get("id") for L in layers if not all(k in L for k in ("id", "visible", "activeClipColumn"))]
+    print(f"      p_api_no_field: {len(layers)} layer objects; with \"persistent\": {has_key}; missing id / visible / "
+          f"activeClipColumn: {missing}", flush=True)
+    (ok if layers and not has_key and not missing else no)(
+        f"p_api_no_field: GET /api/composition layers carry no \"persistent\" and keep id / visible / activeClipColumn "
+        f"({len(layers)} layers)")
+
+
+def p_ignore_column(spec):
+    l0 = layer(0, [clip(1, IMG_A), clip(2, IMG_B)])
+    l1 = layer(1, [clip(3, IMG_A), clip(4, IMG_B)], ltype=1, ignoreColumnTrigger=True)
+    if not load("pic", [deck(0, [l0, l1], ncols=2)]):
+        return
+    trig(1, 0); time.sleep(0.3)
+    S.post(A + "/api/trigger_column", json={"column": 1}, timeout=6)
+    time.sleep(0.5)
+    c = comp()
+    if c is None:
+        return
+    try:
+        L = c["decks"][0]["layers"]
+        a0, a1 = L[0].get("activeClipColumn"), L[1].get("activeClipColumn")
+    except (KeyError, IndexError, TypeError):
+        no(f"p_ignore_column: /api/composition has no deck 0 with 2 layers"); return
+    (ok if a0 == 1 and a1 == 0 else no)(
+        f"p_ignore_column: a column trigger skips the Ignore Column Trigger layer (layer 0 activeClipColumn {a0} "
+        f"== 1, layer 1 {a1} == 0)")
 
 
 def main():
-    rows = [
-        ("r2_temporal", lambda: r2("r2_temporal", FIX["r2"]["temporal"]["fx"])),
-        ("r2_ring", lambda: r2("r2_ring", FIX["r2"]["ring"]["fx"])),
-    ]
-    for k in ("clip_transform", "clip_opacity", "layer_effects", "layer_transform", "feedback"):
-        rows.append((f"r4_{k}", (lambda k=k: r4(f"r4_{k}", FIX["r4"][k]))))
-    rows += [("r4_transition", lambda: r4_transition(FIX["r4_transition"])),
-             ("r5_hold", lambda: r5_hold(FIX["r5_hold"])),
-             ("r5_burst", lambda: r5_burst(FIX["r5_burst"]))]
+    rows = [("r5_hold", lambda: r5_hold(FIX["r5_hold"])),
+            ("r5_burst", lambda: r5_burst(FIX["r5_burst"]))]
     for k in ("temporal", "control", "ring", "retrigger"):
         rows.append((f"r1_{k}", (lambda k=k: r1_wipe(f"r1_{k}", FIX["r1"][k]))))
     rows += [("r1_counts", lambda: r1_counts(FIX["r1"]["counts"])),
              ("r1_cells", lambda: r1_cells(FIX["r1"]["cells"])),
-             ("r4_opaque_opacity", lambda: r4_opaque_opacity(FIX["r4_opaque"])),
-             ("r4_opaque_overlay", lambda: r4_opaque_overlay(FIX["r4_opaque"])),
-             ("r4_fxonly_persistent", lambda: r4_fxonly("r4_fxonly_persistent", FIX["r4_fxonly"], 2)),
-             ("r4_fxonly_medialess", lambda: r4_fxonly("r4_fxonly_medialess", FIX["r4_fxonly"], 1)),
-             ("r4_mask_skipped", lambda: r4_mask_skipped(FIX["r4_fxonly"])),
-             ("r4_empty_active_deck", lambda: r4_empty_active_deck(FIX["r4_empty_active_deck"]))]
+             ("a4_feedback", lambda: a4("a4_feedback", "feedback")),
+             ("a4_fxonly", lambda: a4("a4_fxonly", "fxonly")),
+             ("a4_fxonly_medialess", lambda: a4("a4_fxonly_medialess", "medialess")),
+             ("p_flag_ignored", lambda: p_flag_ignored(FIX["p_flag"])),
+             ("p_flag_ignored_empty", lambda: p_flag_ignored_empty(FIX["p_flag"])),
+             ("p_api_no_field", lambda: p_api_no_field(FIX["p_flag"])),
+             ("p_ignore_column", lambda: p_ignore_column(FIX["p_flag"]))]
     for name, fn in rows:
         if ONLY is None or name in ONLY:
             print(f"--- {name}", flush=True)

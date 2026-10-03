@@ -36,7 +36,6 @@ juce::var Layer::toVar() const
     obj->setProperty("muted", muted);
     obj->setProperty("autopilotEnabled", autopilotEnabled);
     obj->setProperty("ignoreColumnTrigger", ignoreColumnTrigger);
-    obj->setProperty("persistent", persistent);
     obj->setProperty("folded", folded);
     obj->setProperty("blendMode", static_cast<int>(blendMode));
     obj->setProperty("keyingMode", static_cast<int>(keyingMode));
@@ -125,17 +124,7 @@ juce::var Layer::toVar() const
     if (!scalarConnsVar.isVoid())
         obj->setProperty("conns", scalarConnsVar);
 
-    // Clips
-    juce::Array<juce::var> clipArray;
-    for (const auto& clipOpt : clips)
-    {
-        if (clipOpt.has_value())
-            clipArray.add(clipOpt->toVar());
-        else
-            clipArray.add(juce::var()); // null for empty cells
-    }
-    obj->setProperty("clips", clipArray);
-
+    // bf9b: no "clips" -- a layer's clips live in the deck rows (ClipRow::toVar).
     return juce::var(obj);
 }
 
@@ -153,7 +142,6 @@ void Layer::fromVar(const juce::var& v)
         muted = static_cast<bool>(obj->getProperty("muted"));
         autopilotEnabled = static_cast<bool>(obj->getProperty("autopilotEnabled"));
         ignoreColumnTrigger = static_cast<bool>(obj->getProperty("ignoreColumnTrigger"));
-        persistent = static_cast<bool>(obj->getProperty("persistent"));
         if (obj->hasProperty("folded"))
             folded = static_cast<bool>(obj->getProperty("folded"));
         blendMode = static_cast<MixMode>(static_cast<int>(obj->getProperty("blendMode")));
@@ -266,23 +254,6 @@ void Layer::fromVar(const juce::var& v)
 
         if (obj->hasProperty("conns"))
             ConnSerialization::scalarsFromVar<LayerScalar>(scalarConns, layerScalarDefs(), obj->getProperty("conns"));
-
-        clips.clear();
-        if (auto* clipArray = obj->getProperty("clips").getArray())
-        {
-            for (const auto& clipVar : *clipArray)
-            {
-                if (clipVar.isVoid() || clipVar.isUndefined())
-                {
-                    clips.push_back(std::nullopt);
-                }
-                else
-                {
-                    Clip clip;
-                    clip.fromVar(clipVar);
-                    clips.push_back(std::move(clip));
-                }
-            }
-        }
+        // bf9b: settings only; a legacy row's "clips" are read by ClipRow::fromVar (ShowMigration / Load Deck).
     }
 }

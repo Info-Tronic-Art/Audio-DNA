@@ -197,10 +197,23 @@ public:
     std::function<void(juce::File)> onDebugLoadDeck;
     std::function<void(int deckIndex)> onDebugDuplicateDeck;
     std::function<void()> onDebugCancelLoad;
+    // Lane bf9b (TEST-ONLY routes, ruling-bf9b amendment 4(g)): POST /api/debug/remove_deck {deck} = the tab menu's
+    // Remove Deck. Marshalled to the message thread; answers at once. (Undo by REST: the ui lane's onDebugUndo below.)
+    std::function<void(int deckIndex)> onDebugRemoveDeck;
+    // Lane bf9b fix round (TEST-ONLY): POST /api/debug/save_composition {path} = File > Save As... to that absolute
+    // path (no chooser) -- the live driver of K7 / B5's "save + reload". Marshalled to the message thread; answers at
+    // once (the caller polls for the file).
+    std::function<void(juce::File)> onDebugSaveComposition;
     std::function<juce::String()> onDebugUiText;
     // s-rta-0929b btguard (TEST-ONLY): /api/debug/ui_text "audio_notice" -- the no-input / no-device notice beside the
     // file label ("" when hidden), read in the same message-thread hop as file_label.
     std::function<juce::String()> onDebugAudioNotice;
+    // Lane bf9b fix stage (TEST-ONLY; ruling-bf9b-merge AM-6): /api/debug/ui_text "inspected_layer" / "inspected_clip"
+    // -- the name of the layer / clip the Layer / Clip inspector is bound to ("" when none) -- and "inspector_tab" --
+    // the active inspector tab's name ("Clip", "Layer", "Composition", "Signal"). Same message-thread hop as file_label.
+    std::function<juce::String()> onDebugInspectedLayer;
+    std::function<juce::String()> onDebugInspectedClip;
+    std::function<juce::String()> onDebugInspectorTab;
 #if AUDIODNA_TEST_SERVER
     // s-rta-0929b btguard (TEST-ONLY route, production port, no --test-mode): GET /api/debug/audio_devices answers
     // AudioEngine::deviceStatusVar() (a mutex-guarded copy published on the message thread). Set it BEFORE start().
@@ -298,6 +311,8 @@ private:
     void handleDebugLoadDeck(const httplib::Request& req, httplib::Response& res);
     void handleDebugDuplicateDeck(const httplib::Request& req, httplib::Response& res);
     void handleDebugCancelLoad(const httplib::Request& req, httplib::Response& res);
+    void handleDebugRemoveDeck(const httplib::Request& req, httplib::Response& res);   // lane bf9b
+    void handleDebugSaveComposition(const httplib::Request& req, httplib::Response& res);   // lane bf9b fix round
     void handleDebugAudioDevices(const httplib::Request& req, httplib::Response& res);   // s-rta-0929b btguard
     void handleDebugAudioDeny(const httplib::Request& req, httplib::Response& res);      // s-rta-0930 bt2
     void handleDebugAudioStop(const httplib::Request& req, httplib::Response& res);      // s-rta-0930 bt2

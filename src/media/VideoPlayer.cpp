@@ -395,33 +395,6 @@ void VideoPlayer::advanceFrame(double dt)
         thread_.notify();
 }
 
-void VideoPlayer::advanceClock(double dt)
-{
-    if (!open_.load(std::memory_order_relaxed))
-        return;
-
-    // A pending seek lands on the clock only; the ring's frames are stale (generation bump). The decode thread is
-    // not woken: the next advanceFrame() does it, and the thread then re-seeks and catches up.
-    if (seekRequested_.load(std::memory_order_acquire))
-    {
-        seekRequested_.store(false, std::memory_order_relaxed);
-        double target = seekTarget_.load(std::memory_order_relaxed);
-        currentTime_ = target * duration_;
-        playheadPosition_.store(target, std::memory_order_relaxed);
-        wantReverse_.store(reverseNow_, std::memory_order_release);
-        gen_.fetch_add(1, std::memory_order_acq_rel);
-        return;
-    }
-
-    advanceTransport(dt);
-    if (discontinuity_)
-    {
-        discontinuity_ = false;
-        wantReverse_.store(reverseNow_, std::memory_order_release);
-        gen_.fetch_add(1, std::memory_order_acq_rel);
-    }
-}
-
 bool VideoPlayer::advanceTransport(double dt)
 {
     if (!playing_.load(std::memory_order_relaxed))
@@ -769,8 +742,8 @@ void VideoPlayer::decodeLoop()
         // again below). Before the idle check: trimIfIdle notifies a parked thread for exactly this.
         serviceTrim();   // s-rta-0929b gopcache R-10: the cache is dropped with the Free slots
 
-        // Rule 15: a player that is not drawn (its deck off screen) decodes nothing. V2: a frame waiting for a ring slot is
-        // dropped when the thread parks (the clock moved on while it was off screen).
+        // Rule 15: a player that is not drawn (no layer plays its clip) decodes nothing. V2: a frame waiting for a ring slot
+        // is dropped when the thread parks (the clock may have moved on before it parked).
         if (VideoRing::idleStep(nowMs(), lastDrawMs_.load(std::memory_order_acquire), pol_) == VideoRing::Idle::Park)
         {
             endRun();   // s-rta-0929b gopcache: a parked player holds no run (GC9: nor the one-PREFETCH token)

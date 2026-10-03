@@ -27,7 +27,7 @@
 # has a listener.
 # PROBE RIG GATE (probehygiene2, s-rta-0926b; cloned from probe-crossfade.sh): refuses (exit 64) unless
 # /tmp/audiodna-live.lock/owner exists; if AUDIODNA_LOCK_OWNER is set, it must match the owner file's first field.
-# adna_pids / adna_running / adna_kill filter on `ps -o ucomm=` (the kernel's exec-time name, immune to argv[0]
+# adna_pids / adna_running filter on `ps -o ucomm=` (the kernel's exec-time name, immune to argv[0]
 # spoofing) being exactly "Audio-DNA".
 set -u
 # --- live-lock gate: refuse unless the caller holds /tmp/audiodna-live.lock (rig rule) ---
@@ -39,9 +39,9 @@ if [ -n "${AUDIODNA_LOCK_OWNER:-}" ]; then
 fi
 adna_pids() { ps -eo pid=,ucomm= | awk '$2=="Audio-DNA"{print $1}'; }
 adna_running() { [ -n "$(adna_pids)" ]; }
-adna_kill() { local p; p="$(adna_pids)"; [ -n "$p" ] && kill $p 2>/dev/null; }
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; A='http://127.0.0.1:7070'
+. "$ROOT/.harmony/probe-quit-ours.sh"   # refuse_foreign_start / record_ourpid / quit_ours: quit ONLY the app this run launched
 MAIN="$(cd "$(git -C "$ROOT" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)/.." 2>/dev/null && pwd)"
 [ $# -eq 2 ] || { echo "usage: probe-tsan.sh <out-dir> \"<N:scen@arm> ...\""; exit 64; }
 OUT="$1"; SPEC="$2"
@@ -92,9 +92,9 @@ audio_check() {  # 0 = the default input AND output devices are built-in
   [ "$nd" -ge 2 ] && [ "$nb" -eq 0 ]
 }
 quit_graceful() {  # prints "graceful=yes|no"
-  osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
+  ask_ours_to_quit   # only when the app this run launched is the ONLY Audio-DNA running (probe-quit-ours.sh)
   for _ in $(seq 1 30); do adna_running || break; sleep 1; done
-  if adna_running; then adna_kill; sleep 3; echo "graceful=no (killed after 30 s)"; else echo "graceful=yes"; fi
+  if adna_running; then kill_ours; sleep 3; echo "graceful=no (killed after 30 s)"; else echo "graceful=yes"; fi
 }
 
 STAMP="$(date +%Y%m%d-%H%M%S)"; BLOG="$OUT/batch-$STAMP.log"
@@ -102,7 +102,7 @@ exec > >(tee -a "$BLOG") 2>&1
 echo "=== probe-tsan batch $STAMP start $(date '+%F %T')  history_size=$HIST  media=$MEDIA"
 ls ~/Library/Logs/DiagnosticReports 2>/dev/null | grep -i "^Audio-DNA" | sort > "$OUT/ips-before-$STAMP.txt"
 echo "UNC windows (OptionAll) before: $(unc_all)"
-adna_running && { echo "REFUSE: Audio-DNA already running"; exit 64; }
+refuse_foreign_start || exit 64
 INVALID=0
 for item in $SPEC; do
   N=${item%%:*}; R=${item#*:}; SC=${R%%@*}; ARM=${R#*@}
@@ -113,12 +113,13 @@ for item in $SPEC; do
     cat "$RD/audio-precheck.txt"; echo "STOP: the default audio device is not built-in before tsan-$N (no launch)"
     printf 'tsan\t%s\t%s\t%s\tSKIPPED-AUDIO\n' "$N" "$SC" "$ARM" >> "$OUT/launches.tsv"; INVALID=1; break
   fi
-  adna_running && { echo "REFUSE: Audio-DNA running before tsan-$N"; INVALID=1; break; }
+  refuse_foreign_start || { echo "REFUSE: Audio-DNA running before tsan-$N"; INVALID=1; break; }
   BAD=0; for p in 7070 8080; do lsof -nP -iTCP:$p -sTCP:LISTEN >/dev/null 2>&1 && { echo "REFUSE: $p has a listener"; BAD=1; }; done
   [ $BAD = 1 ] && { INVALID=1; break; }
   T0=$(date +%s)
   open -g --env "TSAN_OPTIONS=halt_on_error=0:abort_on_error=0:exitcode=0:report_signal_unsafe=0:history_size=$HIST:log_path=$RD/tsan" \
        --stdout "$RD/app-out.log" --stderr "$RD/app-err.log" "$APP"
+  record_ourpid; echo "ours: pid ${OURPID:-none}"
   H=""; GONE=0
   for i in $(seq 1 150); do
     H=$(curl -s --max-time 3 -H 'Connection: close' "$A/api/health"); [ -n "$H" ] && break

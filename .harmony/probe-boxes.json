@@ -1,0 +1,26 @@
+{
+  "_doc": "Fixtures + bars for .harmony/probe-boxes.sh (lane bf9b, s-rta-1002b: decks are boxes of clips; the layers are ONE shared playing stack). Renamed from probe-deck-clock (its rows: ruling-bf9 K6 dispositions, in the .py docstring). Bars are ruling-bf9b's FINAL CONSOLIDATED GATE LIST, VERBATIM (K1-K10): never re-threshold. Pictures 'D<deck> C<col>' are drawn with PIL into the run's fresh out dir; ramp12.mp4 (frame mean G = 255 * t / 12) is made with ffmpeg there. JSON enum ints: Clip MediaType Image 1 / Video 2, LoopMode Loop 0 / PingPong 1, BeatSnapMode Bar 2, AutopilotAction PlayNext 2, AutopilotDuration Beat4 3 (Clip.h); Layer Type Opaque 0 / Transparent 1, MixMode Normal 0 / Screen 2 (Layer.h).",
+  "floor": { "_why": "floor = max(1.5, 4 x noise), noise = d of two captures of one steady scene 0.5 s apart, same run; tol = 1.5 (OUT -> IN line residual)", "min": 1.5, "k": 4.0, "tol": 1.5 },
+  "video": {
+    "_why": "ramp12.mp4: 12 s, 320x240, 30 fps; t = 12 x meanG / 255",
+    "ffmpeg": ["-f", "lavfi", "-i", "color=c=black:s=320x240:r=30:d=12", "-vf", "geq=r='255*(1-T/12)':g='255*T/12':b='0'", "-g", "30", "-c:v", "libx264", "-pix_fmt", "yuv420p"],
+    "fps": 30
+  },
+  "k1b": { "_why": "K1b: t >= 4 s at the switch; at +2 s |t - (t_switch + 2.0)| <= 0.5 and the REST playhead moved by 2.0 / 12 within 0.06", "lead": 4.5, "after": 2.0, "tTol": 0.5, "phTol": 0.06 },
+  "k1c": { "_why": "K1c: Dissolve T = 4 s, switch at p ~ 0.25; on-line residual <= tol; p rises >= 0.15 between +0.5 s and +2 s; complete by T + 1 s", "T": 4.0, "switchAt": 1.0, "rise": 0.15 },
+  "k1d": {
+    "_why": "K1d: switch 0 -> 1 at W - 0.5 s and 1 -> 0 at W + 0.75 s",
+    "ia": { "speed": 0.5, "W": 4.0, "dt": [0.25, 1.25], "dp": 0.0625, "dpTol": 0.06 },
+    "ib": { "speed": 1.0, "W": 13.0, "dt": [-2.0, -1.0], "dp": -0.125, "dpTol": 0.06 },
+    "ii": { "opacity": 0.5, "blendMode": 2, "valid": 5.0 },
+    "iii": { "_why": "clip opacity connected to the signal 'Volume' (= RMS), driven by inject_features rms (deterministic: test mode has no analysis thread)", "min": 0.2, "max": 1.0, "valid": 5.0 }
+  },
+  "k2": { "_why": "advancing = playhead delta > 0.005 over 1 s; VALID iff >= 2 clips advance", "adv": 0.005, "minAdv": 2 },
+  "k2v": { "_why": "20 decks x rows 0-2 = 60 copies of ramp12.mp4; awake <= 4 on every sample and == 3 on >= 8 of 10; video_frames_decoded 5-s delta in [3 x fps x 5 x 0.5, 3 x fps x 5 x 1.5 + 30]; the left clip and every non-layer clip move <= 0.001", "players": 60, "awakeMax": 4, "awakeEq": 3, "awakeEqMin": 8, "still": 0.001 },
+  "k3": { "_why": "PlayNext / Beat4 over A, B, C; 12 injected beats; R2 switches at beats 3 (-> deck 1) and 9 (-> deck 0); frames at beats 4, 8, 12 vs R1 within floor", "beats": 12, "at": [4, 8, 12], "switches": { "3": 1, "9": 0 } },
+  "k5": { "_why": "a Bar-snapped trigger (beatSnapMode 2) queued at beatInBar 1, switch to deck 1 before the bar; fires on the bar (beatInBar 0)" },
+  "k7": { "_why": "an old 2-deck show: Deck 1 / Deck 2 layers differ, Deck 1 / L1 'persistent': true, a Deck-2 row-2 layer connection, a 1.2 s deck fade", "fade": 1.2 },
+  "k8": { "_why": "20 decks; switch_deck through all 20 within 10 s; activeDeck == target, K1a's bar, peak_frame_time_ms <= 50", "within": 10.0, "peakMs": 50.0 },
+  "k9": { "_why": "K9b: Dissolve T = 4 s from deck 2's image to deck 0's, remove deck 2 at p ~ 0.3", "T": 4.0, "removeAt": 1.2 },
+  "k10": { "_why": "K10: first capture <= 0.3 s after a fire: t <= 0.5; the re-fire resumes within 0.5 s of t_r; the left clip's playhead moves <= 0.001 in 5 s", "firstMax": 0.5, "resumeTol": 0.5, "still": 0.001, "away": 5.0 }
+}

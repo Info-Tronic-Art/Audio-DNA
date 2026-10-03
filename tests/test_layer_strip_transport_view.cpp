@@ -10,6 +10,8 @@
 #include <catch2/catch_approx.hpp>
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "ui/LayerStrip.h"
+#include "model/Composition.h"
+#include "ShowFixture.h"
 #include "ui/LookAndFeel.h"
 #include "ui/UiPaintCounters.h"
 
@@ -27,14 +29,18 @@ Clip seqClip()
     return c;
 }
 
-void activate(Layer& layer, const Clip& clip)
+// Lane bf9b: a strip shows a SHARED layer (Composition::layers[i]); its playing clip is the cell its ref names -- here
+// deck 0's row-i column 0. A one-deck show of 3 layers x 2 columns, every cell empty.
+Composition show() { return ShowFixture::makeShow(1, 3, 2, false); }
+
+void activate(Composition& comp, int i, const Clip& clip)
 {
-    layer.clips.resize(2);
-    layer.clips[0] = clip;
+    comp.decks[0].setClip(i, 0, clip);
     {
-        LayerRuntimeSnapshot rt = layer.runtime();
+        LayerRuntimeSnapshot rt = comp.layers[static_cast<size_t>(i)].runtime();
         rt.activeClipColumn = 0;
-        layer.setRuntime(rt);
+        rt.activeDeckId = comp.decks[0].id;
+        comp.layers[static_cast<size_t>(i)].setRuntime(rt);
     }
 }
 
@@ -72,31 +78,31 @@ RoutineDeckView::Band playing(float progress)
 
 TEST_CASE("LayerStrip::transportViewOf: equal views paint equal pixels", "[idlepaint][strip]")
 {
-    Layer layer;
-    activate(layer, seqClip());
-    auto* clip = layer.getActiveClip();
-    const auto v0 = LayerStrip::transportViewOf(&layer, kBar);
+    Composition comp = show();
+    activate(comp, 0, seqClip());
+    auto* clip = comp.playingClip(0);
+    const auto v0 = LayerStrip::transportViewOf(comp.playingClip(0), kBar);
     CHECK(v0.showsClip);
     CHECK(v0.playheadX == 0);
     clip->playheadPosition = 0.005;                     // 0.39 px: the same pixel
-    CHECK(LayerStrip::transportViewOf(&layer, kBar) == v0);
+    CHECK(LayerStrip::transportViewOf(comp.playingClip(0), kBar) == v0);
     clip->playheadPosition = 0.02;                      // 1.56 px: the next pixel
-    const auto v1 = LayerStrip::transportViewOf(&layer, kBar);
+    const auto v1 = LayerStrip::transportViewOf(comp.playingClip(0), kBar);
     CHECK_FALSE(v1 == v0);
     CHECK(v1.playheadX == 1);
     clip->playheadPosition = 0.0;
     clip->inPoint = 0.01f;                              // an in-point edit moves an anti-aliased edge
-    CHECK_FALSE(LayerStrip::transportViewOf(&layer, kBar) == v0);
+    CHECK_FALSE(LayerStrip::transportViewOf(comp.playingClip(0), kBar) == v0);
 }
 
 TEST_CASE("LayerStrip::transportViewOf: an Image clip and no layer show no clip", "[idlepaint][strip]")
 {
-    Layer layer;
+    Composition comp = show();
     Clip img;
     img.mediaType = Clip::MediaType::Image;
-    activate(layer, img);
-    layer.getActiveClip()->playheadPosition = 0.7;
-    const auto v = LayerStrip::transportViewOf(&layer, kBar);
+    activate(comp, 0, img);
+    comp.playingClip(0)->playheadPosition = 0.7;
+    const auto v = LayerStrip::transportViewOf(comp.playingClip(0), kBar);
     CHECK_FALSE(v.showsClip);
     CHECK(v == LayerStrip::TransportView {});
     CHECK(LayerStrip::transportViewOf(nullptr, kBar) == LayerStrip::TransportView {});
@@ -105,31 +111,30 @@ TEST_CASE("LayerStrip::transportViewOf: an Image clip and no layer show no clip"
 TEST_CASE("LayerStrip: the transport rect repaints only when its pixels change", "[idlepaint][strip]")
 {
     juce::ScopedJuceInitialiser_GUI gui;
-    Layer layer;
-    activate(layer, seqClip());
+    Composition comp = show();
+    activate(comp, 0, seqClip());
     LayerStrip strip;
-    strip.setLayer(&layer, 0);
+    strip.setLayer(&comp.layers[0], 0, &comp);
     strip.setSize(250, 96);
     strip.timerTick();
     const auto base = transportRepaints();
     strip.timerTick();
     strip.timerTick();
     CHECK(transportRepaints() == base);                 // nothing moved: silent
-    layer.getActiveClip()->playheadPosition = 0.005;
+    comp.playingClip(0)->playheadPosition = 0.005;
     strip.timerTick();
     CHECK(transportRepaints() == base);                 // moved less than a pixel: silent
-    layer.getActiveClip()->playheadPosition = 0.3;
+    comp.playingClip(0)->playheadPosition = 0.3;
     strip.timerTick();
     CHECK(transportRepaints() == base + 1);
     strip.timerTick();
     CHECK(transportRepaints() == base + 1);
 
-    Layer still;                                        // an Image clip's strip: silent at idle
-    Clip img;
+    Clip img;                                           // an Image clip's strip: silent at idle
     img.mediaType = Clip::MediaType::Image;
-    activate(still, img);
+    activate(comp, 1, img);
     LayerStrip strip2;
-    strip2.setLayer(&still, 1);
+    strip2.setLayer(&comp.layers[1], 1, &comp);
     strip2.setSize(250, 96);
     const auto b2 = transportRepaints();
     for (int i = 0; i < 30; ++i)
@@ -140,15 +145,15 @@ TEST_CASE("LayerStrip: the transport rect repaints only when its pixels change",
 TEST_CASE("LayerStrip (I2): the playhead read at the tick is the one painted", "[idlepaint][strip]")
 {
     juce::ScopedJuceInitialiser_GUI gui;
-    Layer layer;
-    activate(layer, seqClip());
+    Composition comp = show();
+    activate(comp, 0, seqClip());
     LayerStrip strip;
-    strip.setLayer(&layer, 0);
+    strip.setLayer(&comp.layers[0], 0, &comp);
     strip.setSize(250, 96);
-    layer.getActiveClip()->playheadPosition = 0.5;
+    comp.playingClip(0)->playheadPosition = 0.5;
     strip.timerTick();
     CHECK(playheadColumn(strip) == 39);                 // 0.5 x 78
-    layer.getActiveClip()->playheadPosition = 0.9;      // the render thread moves on between two ticks...
+    comp.playingClip(0)->playheadPosition = 0.9;       // the render thread moves on between two ticks...
     CHECK(playheadColumn(strip) == 39);                 // ...paint never re-reads the model
     strip.timerTick();
     CHECK(playheadColumn(strip) == 70);                 // 0.9 x 78 = 70.2
@@ -157,10 +162,10 @@ TEST_CASE("LayerStrip (I2): the playhead read at the tick is the one painted", "
 TEST_CASE("LayerStrip (I3): the routine band hairline repaints only when its painted width changes", "[idlepaint][strip]")
 {
     juce::ScopedJuceInitialiser_GUI gui;
-    Layer layer;
-    activate(layer, seqClip());
+    Composition comp = show();
+    activate(comp, 0, seqClip());
     LayerStrip strip;
-    strip.setLayer(&layer, 0);
+    strip.setLayer(&comp.layers[0], 0, &comp);
     strip.setSize(250, 96);                             // thumbnail 76 x 76: bands shown
     strip.setRoutineBands({ playing(0.5f) });
     strip.timerTick();
@@ -185,14 +190,14 @@ TEST_CASE("LayerStrip (I3): the routine band hairline repaints only when its pai
 TEST_CASE("LayerStrip: the tick still pulls the faders from the model (Pitfall 41)", "[idlepaint][strip]")
 {
     juce::ScopedJuceInitialiser_GUI gui;
-    Layer layer;
-    activate(layer, seqClip());
+    Composition comp = show();
+    activate(comp, 0, seqClip());
     LayerStrip strip;
-    strip.setLayer(&layer, 0);
+    strip.setLayer(&comp.layers[0], 0, &comp);
     strip.setSize(250, 96);
     auto* v = dynamic_cast<juce::Slider*>(strip.findChildWithID("layerOpacity"));
     REQUIRE(v != nullptr);
-    layer.opacity = 0.25f;
+    comp.layers[0].opacity = 0.25f;
     strip.timerTick();
     CHECK(v->getValue() == Approx(0.25));
 }

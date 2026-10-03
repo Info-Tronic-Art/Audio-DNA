@@ -80,6 +80,16 @@ namespace
         return layerIt == deckIt->second.layers.end() ? nullptr : &layerIt->second;
     }
 
+    // PerfState v2 (lane bf9b): a SHARED layer's settings (tuple, flags, opacity, layer effects) live in cp0.layers,
+    // by layer position; a v1 take keeps them per deck. A clip's runtime stays per deck (checkpointLayer) in both.
+    const PerfState::LayerRuntime* checkpointLayerSettings(const PerfState& cp0, const ControlPath& key)
+    {
+        if (cp0.layers.empty())
+            return checkpointLayer(cp0, key);
+        auto it = cp0.layers.find(key.layer);
+        return it == cp0.layers.end() ? nullptr : &it->second;
+    }
+
     const PerfState::ClipRuntime* checkpointClip(const PerfState::LayerRuntime& lr, int col)
     {
         auto it = lr.clips.find(col);
@@ -108,7 +118,8 @@ namespace
     {
         if (key.scope != ControlPath::Scope::Layer && key.scope != ControlPath::Scope::Clip)
             return Source::Unknown;
-        const auto* lr = checkpointLayer(cp0, key);
+        const auto* lr = key.scope == ControlPath::Scope::Layer ? checkpointLayerSettings(cp0, key)
+                                                                : checkpointLayer(cp0, key);
         if (lr == nullptr)
             return Source::Unknown;
 
@@ -141,7 +152,8 @@ namespace
     {
         if (key.scope != ControlPath::Scope::Layer && key.scope != ControlPath::Scope::Clip)
             return Source::Unknown;
-        const auto* lr = checkpointLayer(cp0, key);
+        const auto* lr = key.scope == ControlPath::Scope::Layer ? checkpointLayerSettings(cp0, key)
+                                                                : checkpointLayer(cp0, key);
         if (lr == nullptr)
             return Source::Unknown;
 

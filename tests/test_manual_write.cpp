@@ -109,7 +109,7 @@ TEST_CASE("resolveControl: every addressable control shape", "[manualwrite][reso
 
     SECTION("layer (deck 0, layer 1) positionX -> &layer.positionX")
     {
-        auto* layer = comp.decks[0].getLayer(1);
+        auto* layer = comp.getLayer(1);   // lane bf9b: the shared layer (the path's deck part is ignored)
         REQUIRE(layer != nullptr);
         auto ref = resolveControl(comp, bank, layerScalar(0, 1, "positionX"));
         REQUIRE(ref.has_value());

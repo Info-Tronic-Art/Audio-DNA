@@ -1,4 +1,5 @@
 #!/bin/bash
+echo "ARCHIVED RECORD (R-N1, s-rta-1003): this script quits Audio-DNA by name -- never run or source it; use .harmony/probe-quit-ours.sh" >&2; exit 64
 # usage: live.sh <label> <app-bundle> <script.py> [script args...]
 # Acquire /tmp/audiodna-live.lock as source-defects (poll 20 s, <= 120 min; >= 45 s after our own last release),
 # launch <app> in test mode (open -g, background), run the script, quit (osascript; kill only after 30 s), release.

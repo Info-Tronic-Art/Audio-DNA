@@ -1,7 +1,5 @@
 #include "midi/MidiOutputHandler.h"
-#include "model/Deck.h"
-#include "model/Layer.h"
-#include "model/Clip.h"
+#include "model/Composition.h"
 #include <iostream>
 
 MidiOutputHandler::MidiOutputHandler()
@@ -60,53 +58,40 @@ juce::String MidiOutputHandler::getDeviceName() const
     return {};
 }
 
-void MidiOutputHandler::updateFromDeck(const Deck* deck)
+MidiOutputHandler::PadState MidiOutputHandler::padStateFor(const Composition& comp, int shownDeck, int row, int col)
 {
-    if (!outputDevice_ || !deck)
-        return;
+    if (shownDeck < 0 || shownDeck >= static_cast<int>(comp.decks.size()))
+        return PadState::Empty;
+    const Deck& deck = comp.decks[static_cast<size_t>(shownDeck)];
+    const Clip* clip = deck.getClip(row, col);
+    if (clip == nullptr)
+        return PadState::Empty;
+    const Layer* layer = comp.getLayer(row);
+    if (layer == nullptr || layer->runtime().activeRef() != ClipRef{ deck.id, col })
+        return PadState::Loaded;
+    if (!clip->playing)
+        return PadState::Triggered;
+    // Check if clip has active effects
+    for (const auto& fx : clip->effects)
+        if (!fx.bypassed)
+            return PadState::ActiveWithFx;
+    return PadState::Playing;
+}
 
-    int numLayers = std::min(static_cast<int>(deck->layers.size()), kMaxLayers);
-    int numColumns = std::min(deck->numColumns, kMaxColumns);
+void MidiOutputHandler::updateFromDeck(const Composition& comp, int shownDeckIndex)
+{
+    if (!outputDevice_ || shownDeckIndex < 0 || shownDeckIndex >= static_cast<int>(comp.decks.size()))
+        return;
+    const Deck& deck = comp.decks[static_cast<size_t>(shownDeckIndex)];
+
+    int numLayers = std::min(deck.getNumRows(), kMaxLayers);
+    int numColumns = std::min(deck.numColumns, kMaxColumns);
 
     for (int li = 0; li < numLayers; ++li)
     {
-        const auto& layer = deck->layers[static_cast<size_t>(li)];
-
         for (int ci = 0; ci < numColumns; ++ci)
         {
-            PadState newState = PadState::Empty;
-
-            const Clip* clip = nullptr;
-            if (ci >= 0 && ci < static_cast<int>(layer.clips.size()) && layer.clips[static_cast<size_t>(ci)].has_value())
-                clip = &(*layer.clips[static_cast<size_t>(ci)]);
-            if (clip)
-            {
-                if (layer.runtime().activeClipColumn == ci)
-                {
-                    if (clip->playing)
-                    {
-                        // Check if clip has active effects
-                        bool hasFx = false;
-                        for (const auto& fx : clip->effects)
-                        {
-                            if (!fx.bypassed)
-                            {
-                                hasFx = true;
-                                break;
-                            }
-                        }
-                        newState = hasFx ? PadState::ActiveWithFx : PadState::Playing;
-                    }
-                    else
-                    {
-                        newState = PadState::Triggered;
-                    }
-                }
-                else
-                {
-                    newState = PadState::Loaded;
-                }
-            }
+            const PadState newState = padStateFor(comp, shownDeckIndex, li, ci);
 
             // Only send MIDI if state changed
             if (newState != padStates_[static_cast<size_t>(li)][static_cast<size_t>(ci)])

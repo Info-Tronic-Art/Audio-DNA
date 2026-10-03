@@ -7,14 +7,21 @@
 #   UIFR_APP     app bundle (default: <root>/build/AudioDNA_artefacts/Release/Audio-DNA.app); launched
 #                `open -g ... --args --test-mode` (never brought to the front, never an Output window)
 #   UIFR_ATTACH=1  do NOT launch or quit: the caller already started ONE Audio-DNA (--test-mode) and quits it after
-#                (e.g. the live-lock helper's start_app / quit_app). With --hook the caller must have launched the
+#                (e.g. the live-lock helper's start_app / quit_app). It attaches ONLY to the harness's own test-mode app
+#                (the bf10 attach rule, probe-milkdrop.sh; Harmony ruling R-N1): the one running Audio-DNA pid must
+#                equal UIFR_ATTACH_PID, else the pid the lock helper's start_app recorded (LOCK_LIB + LANE); that pid
+#                must own the 8080 listener and 8080 /api/health must answer. Otherwise: REFUSE, exit 2, no request
+#                sent. With --hook the caller must have launched the
 #                HOOK build with --env AUDIODNA_DEBUG_SHOW=<state> --env AUDIODNA_DEBUG_SNAP=<OUT>/<C6|C7 file name>.
 #   UIFR_PY      python with pyobjc Quartz (default: <root>/.venv, else the main checkout's .venv)
 #
 # Rows (exit 0 iff every row PASSes; the bars are the ruling's G3 strings, copied, never re-thresholded):
 #   V1-V4 GET /api/debug/clip_media, POST /api/debug/reveal_clip, POST /api/debug/inspect_clip on deck A (8 cells).
-#   R1-R10 GET /api/debug/deck_tabs, POST /api/debug/{tab_click,tab_dblclick,deck_rename,undo}, /api/switch_deck,
-#   /api/load_composition, GET /api/composition. Pre-change apps have none of the debug routes: every V / R row FAILs.
+#   R1-R11 GET /api/debug/deck_tabs, POST /api/debug/{tab_click,tab_dblclick,deck_rename,undo,duplicate_deck},
+#   /api/switch_deck, /api/load_composition, GET /api/composition. Pre-change apps have none of the debug routes: every
+#   V / R row FAILs. Lane bf9b (Harmony ruling H-6, s-rta-1003): a deck switch between same-shape decks no longer
+#   rebuilds the tab row -- R3 / R4a / R9a read "builds +0" (RED on a pre-bf9b app: +1); R11 is the positive control
+#   (Duplicate Deck rebuilds it: +1).
 # The composition is written at run time into OUT (absolute paths): deck "A" = 2 layers x 4 columns
 #   L0: C0 video_h264_64x64.mp4 | C1 video_prores_hq_64x64_2997.mov | C2 video_hapq_64x64_60.mov |
 #       C3 video_hevc_main10_64x64_23976.mp4 (its CLIP NAME is long: C14)
@@ -36,8 +43,8 @@
 #   decodes. The V / R rows are skipped in this mode.
 #
 # Screen-safe: open -g only, --test-mode, window-only captures, no synthetic OS input, never an Output window.
-# Quits ONLY the Audio-DNA pid this script launched (osascript quit, then SIGTERM to THAT pid after 30 s); refuses to
-# start when any Audio-DNA runs (it may be Boris's). PROBE RIG GATE: refuses (exit 64) unless
+# Quits ONLY the Audio-DNA pid this script launched (quit_ours, .harmony/probe-quit-ours.sh: osascript quit, then a
+# kill of THAT pid after 30 s); refuses to start when any Audio-DNA runs (it may be Boris's). PROBE RIG GATE: refuses (exit 64) unless
 # /tmp/audiodna-live.lock/owner exists and, when AUDIODNA_LOCK_OWNER is set, its first field matches.
 set -u
 LOCK_OWNER_FILE=/tmp/audiodna-live.lock/owner
@@ -77,14 +84,27 @@ SNAP=""
 [ "$HOOK" = "cell-menu" ] && SNAP="$OUT/C6-cell-menu.png"
 [ "$HOOK" = "cell-tooltip" ] && SNAP="$OUT/C7-cell-tooltip.png"
 
-OURPID=""
+. "$ROOT/.harmony/probe-quit-ours.sh"   # refuse_foreign_start / record_ourpid / quit_ours: quit ONLY the app this run launched
 if [ "$ATTACH" = "1" ]; then
   [ -n "$(adna_pids)" ] || { echo "REFUSE: UIFR_ATTACH=1 but no Audio-DNA is running"; exit 64; }
   [ "$(adna_pids | wc -l | tr -d ' ')" = "1" ] || { echo "REFUSE: more than one Audio-DNA running"; exit 64; }
-  echo "attach: Audio-DNA pid $(adna_pids | tr -d ' \n') (started and quit by the caller)"
+  # An Audio-DNA no harness started is Boris's: the R rows rename decks and load a composition over 7070 / 8080.
+  RUNPID="$(adna_pids | tr -d ' \n')"
+  WANTPID="${UIFR_ATTACH_PID:-}"
+  if [ -z "$WANTPID" ] && [ -n "${LOCK_LIB:-}" ]; then   # the helper names start_app's pid record OURPID
+    WANTPID="$(LANE="${LANE:-${LOCK_LANE:-}}"; . "$LOCK_LIB" >/dev/null 2>&1 && cat "$OURPID" 2>/dev/null | tr -d ' \n')"
+  fi
+  L8080="$(lsof -nP -t -iTCP:8080 -sTCP:LISTEN 2>/dev/null | sort -u | tr -d ' \n')"
+  if [ -z "$WANTPID" ] || [ "$RUNPID" != "$WANTPID" ] || [ "$L8080" != "$RUNPID" ] \
+     || [ -z "$(curl -s --max-time 2 -H 'Connection: close' http://localhost:8080/api/health)" ]; then
+    echo "REFUSE: the running Audio-DNA is not a test-mode app this run started (it may be Boris's)"
+    echo "        running pid ${RUNPID:-none}; expected ${WANTPID:-none} (UIFR_ATTACH_PID, else LOCK_LIB + LANE's start_app record); 8080 listener ${L8080:-none}"
+    exit 2
+  fi
+  echo "attach: Audio-DNA pid $RUNPID (started and quit by the caller)"
 else
   [ -d "$APP" ] || { echo "REFUSE: no app at $APP (set UIFR_APP)"; exit 64; }
-  [ -n "$(adna_pids)" ] && { echo "REFUSE: an Audio-DNA is already running (pid $(adna_pids | tr '\n' ' ')) -- it may be Boris's; not touching it"; exit 64; }
+  refuse_foreign_start || exit 64
   for p in 7070 8080; do lsof -nP -iTCP:$p -sTCP:LISTEN >/dev/null 2>&1 && { echo "REFUSE: port $p already has a listener"; exit 64; }; done
   : > "$OUT/app-out.log"; : > "$OUT/app-err.log"   # open --stdout / --stderr APPEND: truncate first
   ENVS=()
@@ -92,20 +112,9 @@ else
   echo "launch: $APP ${ENVS[*]:-} --test-mode"
   # ${ENVS[@]+...}: macOS /bin/bash 3.2 treats an EMPTY array as unbound under set -u (the default standalone path)
   open -g --stdout "$OUT/app-out.log" --stderr "$OUT/app-err.log" ${ENVS[@]+"${ENVS[@]}"} "$APP" --args --test-mode
+  record_ourpid; echo "app pid: ${OURPID:-none}"
   for _ in $(seq 1 60); do [ -n "$(curl -s --max-time 1 -H 'Connection: close' "$A/api/health")" ] && break; sleep 1; done
-  OURPID="$(adna_pids | tr -d ' \n')"
-  echo "app pid: ${OURPID:-none}"
 fi
-quit_ours() {
-  [ -z "$OURPID" ] && return 0
-  local run; run="$(adna_pids | tr -d ' \n')"
-  [ -z "$run" ] && { echo "app running after quit: no"; return 0; }
-  [ "$run" = "$OURPID" ] || { echo "REFUSE quit: the running Audio-DNA ($run) is not the one this probe started ($OURPID)"; return 1; }
-  osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
-  local _; for _ in $(seq 1 30); do [ -z "$(adna_pids)" ] && break; sleep 1; done
-  [ -n "$(adna_pids)" ] && { echo "app still running after 30 s -- SIGTERM to pid $OURPID"; kill "$OURPID" 2>/dev/null; sleep 3; }
-  echo "app running after quit: $([ -n "$(adna_pids)" ] && echo YES || echo no)"
-}
 
 "$PY" - "$OUT" "$FX" "$SHOTS" "$HOOK" "$SNAP" <<'PYEOF'
 import json, os, shutil, subprocess, sys, time, urllib.error, urllib.request
@@ -313,12 +322,17 @@ row("R1 3 tabs A / B / C, active 0, editor closed, tooltips, undo.size < 90",
 bb = t.get("tab_row_builds"); post("/api/debug/tab_click", {"deck": 0}); t = tabs()
 row("R2 tab_click 0 (showing) -> builds +0, active 0", isinstance(bb, int) and t.get("tab_row_builds") == bb and t.get("active") == 0,
     "builds %s -> %s active %s" % (bb, t.get("tab_row_builds"), t.get("active")))
+# bf9b (Harmony ruling H-6, s-rta-1003): Boris -- "when I switch between decks, do not change the clips playing in the
+# layers or how they are playing". A switch between same-shape decks is showDeck -> refresh: the tab row is NOT rebuilt
+# (builds +0; it was +1 before bf9b). Every other clause of the row is unchanged. R11 proves the counter is alive.
 bb = t.get("tab_row_builds"); post("/api/debug/tab_click", {"deck": 2}); t = tabs()
-row("R3 tab_click 2 -> builds +1, active 2", isinstance(bb, int) and t.get("tab_row_builds") == bb + 1 and t.get("active") == 2,
+row("R3 tab_click 2 -> builds +0 (same-shape decks), active 2", isinstance(bb, int) and t.get("tab_row_builds") == bb and t.get("active") == 2,
     "builds %s -> %s active %s" % (bb, t.get("tab_row_builds"), t.get("active")))
 bb = t.get("tab_row_builds"); post("/api/debug/tab_dblclick", {"deck": 1}); t = tabs()
-row("R4a tab_dblclick 1 (not showing) -> active 1, builds +1, editor closed",
-    isinstance(bb, int) and t.get("active") == 1 and t.get("tab_row_builds") == bb + 1 and k(t, "editor", "open") is False,
+# bf9b (H-6): Boris -- "when I switch between decks, do not change the clips playing in the layers or how they are
+# playing": the switch does not rebuild the tab row (builds +0).
+row("R4a tab_dblclick 1 (not showing) -> active 1, builds +0 (same-shape decks), editor closed",
+    isinstance(bb, int) and t.get("active") == 1 and t.get("tab_row_builds") == bb and k(t, "editor", "open") is False,
     "builds %s -> %s active %s editor %s" % (bb, t.get("tab_row_builds"), t.get("active"), t.get("editor")))
 bb = t.get("tab_row_builds"); post("/api/debug/tab_dblclick", {"deck": 1}); t = tabs(); e = t.get("editor") or {}; t1 = k(t, "tabs", 1) or {}
 row("R4b tab_dblclick 1 (showing) -> builds +0, box open on B over its tab",
@@ -361,9 +375,11 @@ for _ in range(30):
     if t.get("active") == 2: break
     time.sleep(0.1)
 e = t.get("editor") or {}
-row("R9a /api/switch_deck 2 while the box is open on A -> box stays on A over its tab, builds +1",
+# bf9b (H-6): Boris -- "when I switch between decks, do not change the clips playing in the layers or how they are
+# playing": the switch does not rebuild the tab row (builds +0); the box stays on its deck over its tab.
+row("R9a /api/switch_deck 2 while the box is open on A -> box stays on A over its tab, builds +0 (same-shape decks)",
     e.get("open") is True and len(ids) == 3 and e.get("deck_id") == ids[0] and e.get("x") == k(t, "tabs", 0, "x") and isinstance(bb, int)
-    and t.get("tab_row_builds") == bb + 1 and t.get("active") == 2 and e.get("text") == "Q",
+    and t.get("tab_row_builds") == bb and t.get("active") == 2 and e.get("text") == "Q",
     "editor %s builds %s -> %s active %s" % (e, bb, t.get("tab_row_builds"), t.get("active")))
 post("/api/debug/deck_rename", {"op": "enter"}); n_ = names()
 row("R9b enter -> decks[0] 'Q', decks[2] unchanged", n_ is not None and n_[0:1] == ["Q"] and n_[2:3] == n2, "names %r (decks[2] before %r)" % (n_, n2))
@@ -375,6 +391,20 @@ row("R10 box open on A, then load_composition (same file) -> {\"ok\":true}, box 
     opened is True and r.get("ok") is True and k(t, "editor", "open") is False and n_ is not None and n_[0:1] == ["A"]
     and isinstance(f0, int) and t.get("focus_home_count") == f0 + 1,
     "opened %s load %s editor %s names %r focus %s -> %s" % (opened, r, t.get("editor"), n_, f0, t.get("focus_home_count")))
+# R11 (bf9b, H-6 positive control): the tab_row_builds counter is alive -- an action that legitimately rebuilds the tab
+# row (Duplicate Deck: one more tab) reads +1. Then the composition is loaded again, so the captures see 3 decks.
+t = tabs(); bb = t.get("tab_row_builds"); nt = len(t.get("tabs") or [])
+rd = post("/api/debug/duplicate_deck", {"deck": 0})
+for _ in range(50):
+    t = tabs()
+    if len(t.get("tabs") or []) == nt + 1: break
+    time.sleep(0.1)
+time.sleep(0.3); t = tabs()
+row("R11 CONTROL duplicate_deck 0 -> %d tabs, builds +1 (the counter is alive)" % (nt + 1),
+    isinstance(bb, int) and len(t.get("tabs") or []) == nt + 1 and t.get("tab_row_builds") == bb + 1,
+    "duplicate_deck %s tabs %d -> %d builds %s -> %s active %s" % (rd, nt, len(t.get("tabs") or []), bb, t.get("tab_row_builds"), t.get("active")))
+r, settled = load(COMP)
+print("  R11 restore: load %s settled %s decks %r" % (r.get("ok"), settled, names()), flush=True)
 
 # ---------------------------------------------------------------- G4 captures (--shots) ------------------------------
 if SHOTS:
@@ -419,5 +449,5 @@ print("\n%d PASS / %d FAIL   (artifacts in %s)" % (PASS, FAIL, OUT))
 sys.exit(0 if FAIL == 0 else 1)
 PYEOF
 RC=$?
-[ "$ATTACH" = "1" ] || quit_ours
+[ "$ATTACH" = "1" ] || { quit_ours; echo "app running after quit: $([ -n "$(adna_pids)" ] && echo YES || echo no)"; }
 exit $RC

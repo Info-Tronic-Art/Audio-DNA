@@ -67,6 +67,10 @@ struct PerfState
         bool autopilotEnabled = false;
         std::map<int, float> effectParams;       // per-layer effect manual values, non-default
         std::map<int, ClipRuntime> clips;         // column -> non-default clip state
+        // PerfState v2 (lane bf9b): on a SHARED layer (PerfState::layers), the deck its active clip came from at
+        // capture -- index and name (D2 position / name re-target) -- -1 / "" when none or a removed deck.
+        int activeDeck = -1;
+        std::string activeDeckName;
 
         juce::var toVar() const;
         static LayerRuntime fromVar(const juce::var& v);
@@ -85,7 +89,12 @@ struct PerfState
     int quantizeMode = 0;
     float bpm = 0.0f;
     std::string audioAction;      // "play" | "pause" | "stop" | "" (never set)
+    // v1: everything per deck. v2 (lane bf9b): the decks carry only their CLIP runtime (LayerRuntime::clips per
+    // row), and `layers` -- written as "layers" -- holds the shared layers' tuple / flags / opacity / layer effects
+    // and where each active clip came from. A take without "layers" is a v1 take (restored from its captured
+    // active deck: the only deck that was visible when it was recorded, plan-bf9b F9).
     std::map<int, DeckRuntime> decks;
+    std::map<int, LayerRuntime> layers;
 
     juce::var toVar() const;
     static PerfState fromVar(const juce::var& v);

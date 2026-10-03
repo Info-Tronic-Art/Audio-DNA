@@ -16,7 +16,8 @@
 #                /api/health must answer. Otherwise: REFUSE, exit 2, no request sent (/api/health is asked only once
 #                the pid and the listener match). Selftest: .harmony/probe-milkdrop-selftest.sh (no app, no request).
 #   neither: standalone, cloned from probe-canvas.sh: open -g ... --args --test-mode, then a graceful quit of ONLY
-#                the pid this script launched (refuses to quit any other Audio-DNA).
+#                the pid this script launched (record_ourpid / quit_ours, .harmony/probe-quit-ours.sh: any other
+#                Audio-DNA is named and left alone).
 # Screen-safe: open -g, never an Output window (set_output_tap opens none), no synthetic input, window-only captures
 # (m6, by Quartz window id), no full-screen capture. REFUSES if Audio-DNA is already running (except ATTACH).
 #
@@ -42,6 +43,7 @@ adna_pids() { ps -eo pid=,ucomm= | awk '$2=="Audio-DNA"{print $1}'; }
 adna_running() { [ -n "$(adna_pids)" ]; }
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 MAIN="$(cd "$(git -C "$ROOT" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)/.." 2>/dev/null && pwd)"
+. "$ROOT/.harmony/probe-quit-ours.sh"   # refuse_foreign_start / record_ourpid / quit_ours (the standalone launch): quit ONLY the app this run launched
 [ -n "${MILKDROP_APP:-}" ] && [ -n "${VIDEO_APP:-}" ] && [ "$MILKDROP_APP" != "$VIDEO_APP" ] && { echo "REFUSE: MILKDROP_APP and VIDEO_APP name different apps (under probe-vupload-ab.sh both arms would run MILKDROP_APP)"; exit 64; }
 APP="${MILKDROP_APP:-${VIDEO_APP:-$ROOT/build/AudioDNA_artefacts/Release/Audio-DNA.app}}"
 PY="${MILKDROP_PY:-}"
@@ -70,7 +72,7 @@ if [ "$ATTACH" = 1 ]; then
   fi
 else
   [ -d "$APP" ] || { echo "REFUSE: no app at $APP (set MILKDROP_APP)"; exit 64; }
-  adna_running && { echo "REFUSE: Audio-DNA already running (pid $(adna_pids | tr '\n' ' '))-- never touch it"; exit 64; }
+  refuse_foreign_start || exit 64
   for PORT in 7070 8080; do
     lsof -nP -iTCP:$PORT -sTCP:LISTEN >/dev/null 2>&1 && { echo "REFUSE: port $PORT already has a listener"; exit 64; }
   done
@@ -86,8 +88,9 @@ elif [ -n "${LOCK_LIB:-}" ]; then
   if start_app "$APP" "$OUT" test; then UP=1; LOG="$OUT/app-err.log"; else echo "FAIL  start_app refused"; exit 64; fi
 else
   open -g --stdout "$OUT/out.log" --stderr "$OUT/err.log" "$APP" --args --test-mode
+  record_ourpid; echo "ours: pid ${OURPID:-none}"
   UP=0; for _ in $(seq 1 60); do [ -n "$(curl -s --max-time 1 -H 'Connection: close' http://localhost:8080/api/health)" ] && { UP=1; break; }; sleep 1; done
-  sleep 2; OURPID="$(adna_pids | tr -d ' \n')"; LOG="$OUT/err.log"
+  sleep 2; LOG="$OUT/err.log"
 fi
 RC=1
 L7070="$(lsof -nP -iTCP:7070 -sTCP:LISTEN 2>/dev/null | awk 'NR>1{print $1}' | head -1)"
@@ -103,12 +106,7 @@ fi
 if [ "$ATTACH" != 1 ]; then
   if [ -n "${LOCK_LIB:-}" ]; then quit_app || RC=1
   else
-    RUN="$(adna_pids | tr -d ' \n')"
-    if [ -n "$RUN" ] && [ "$RUN" = "$OURPID" ]; then
-      osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
-      for _ in $(seq 1 30); do adna_running || break; sleep 1; done
-      [ "$(adna_pids | tr -d ' \n')" = "$OURPID" ] && { kill "$OURPID" 2>/dev/null; sleep 2; }
-    elif [ -n "$RUN" ]; then echo "REFUSE quit: running Audio-DNA pid $RUN is not the pid this probe launched ($OURPID)"; RC=1; fi
+    quit_ours || RC=1   # ONLY the pid recorded at the launch; any other Audio-DNA is named and left alone
   fi
   if adna_running; then echo "FAIL  app still running"; RC=1; else echo "PASS  app terminated"; fi
 fi

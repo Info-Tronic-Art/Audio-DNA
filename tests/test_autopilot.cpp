@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
-#include "model/Deck.h"
+#include "model/Composition.h"
+#include "ShowFixture.h"
 #include "model/Autopilot.h"
 #include "analysis/FeatureSnapshot.h"
 #include <cmath>
@@ -24,20 +25,19 @@ namespace
     // One beat = phase ramps high then wraps low WITH the unwrapped count moving on, as BPMTracker publishes it
     // (FeatureSnapshot::totalBeatCount += 1 per phase wrap; Pitfall 42's injection rule). Mirrors the inline
     // pattern used in tests/test_compositor.cpp.
-    void advanceOneBeat(Autopilot& autopilot, Deck& deck, FeatureSnapshot& snap)
+    void advanceOneBeat(Autopilot& autopilot, Composition& show, FeatureSnapshot& snap)
     {
         snap.beatPhase = 0.99f;
-        autopilot.processFrame(deck, snap);
+        autopilot.processFrame(show, snap);
         snap.beatPhase = 0.01f;
         snap.totalBeatCount++;
-        autopilot.processFrame(deck, snap);
+        autopilot.processFrame(show, snap);
     }
 }
 
 TEST_CASE("End-of-Video mode: non-playable clip falls through to beat advancement", "[autopilot]")
 {
-    Deck deck;
-    deck.initDefault();
+    Composition show = ShowFixture::makeShow(1, 3, 12, false);   // lane bf9b: one deck box, 3 shared layers
 
     for (int c = 0; c < 3; ++c)
     {
@@ -47,17 +47,17 @@ TEST_CASE("End-of-Video mode: non-playable clip falls through to beat advancemen
         clip.sourceType = "perlin_noise";
         clip.autopilotAction = Clip::AutopilotAction::PlayNext;
         clip.autopilotDuration = Clip::AutopilotDuration::Beat4;
-        deck.setClip(0, c, clip);
+        show.decks[0].setClip(0, c, clip);
     }
 
-    auto* layer = deck.getLayer(0);
+    auto* layer = show.getLayer(0);
     layer->autopilotEnabled = true;
     layer->autopilotEndOfVideo = true;   // EoV mode — the frozen leg
-    layer->triggerClip(0);               // first trigger auto-sets clip->playing = true
+    show.fire(0, 0, 0);               // first trigger auto-sets clip->playing = true
 
-    REQUIRE(layer->getActiveClip() != nullptr);
-    REQUIRE_FALSE(layer->getActiveClip()->isPlayable());
-    REQUIRE(layer->getActiveClip()->playing);
+    REQUIRE(show.playingClip(0) != nullptr);
+    REQUIRE_FALSE(show.playingClip(0)->isPlayable());
+    REQUIRE(show.playingClip(0)->playing);
 
     Autopilot autopilot;
     FeatureSnapshot snap;
@@ -65,7 +65,7 @@ TEST_CASE("End-of-Video mode: non-playable clip falls through to beat advancemen
     SECTION("Does not advance before 4 beats (not frozen forever either)")
     {
         for (int beat = 0; beat < 3; ++beat)
-            advanceOneBeat(autopilot, deck, snap);
+            advanceOneBeat(autopilot, show, snap);
         REQUIRE(layer->runtime().activeClipColumn == 0);
     }
 
@@ -73,10 +73,10 @@ TEST_CASE("End-of-Video mode: non-playable clip falls through to beat advancemen
     {
         // Confirm the EoV frame-based loop cannot advance this clip (source
         // playhead never reaches the out-point threshold — it has no playhead).
-        REQUIRE(layer->getActiveClip()->playheadPosition == 0.0);
+        REQUIRE(show.playingClip(0)->playheadPosition == 0.0);
 
         for (int beat = 0; beat < 4; ++beat)
-            advanceOneBeat(autopilot, deck, snap);
+            advanceOneBeat(autopilot, show, snap);
 
         REQUIRE(layer->runtime().activeClipColumn == 1); // advanced, not stuck on column 0
     }
@@ -84,8 +84,7 @@ TEST_CASE("End-of-Video mode: non-playable clip falls through to beat advancemen
 
 TEST_CASE("End-of-Video mode: playable (Video) clip threshold behavior unchanged", "[autopilot]")
 {
-    Deck deck;
-    deck.initDefault();
+    Composition show = ShowFixture::makeShow(1, 3, 12, false);   // lane bf9b: one deck box, 3 shared layers
 
     for (int c = 0; c < 2; ++c)
     {
@@ -93,15 +92,15 @@ TEST_CASE("End-of-Video mode: playable (Video) clip threshold behavior unchanged
         clip.name = "video_" + std::to_string(c);
         clip.mediaType = Clip::MediaType::Video;
         clip.autopilotAction = Clip::AutopilotAction::PlayNext;
-        deck.setClip(0, c, clip);
+        show.decks[0].setClip(0, c, clip);
     }
 
-    auto* layer = deck.getLayer(0);
+    auto* layer = show.getLayer(0);
     layer->autopilotEnabled = true;
     layer->autopilotEndOfVideo = true;
-    layer->triggerClip(0);
+    show.fire(0, 0, 0);
 
-    auto* clip = layer->getActiveClip();
+    auto* clip = show.playingClip(0);
     REQUIRE(clip != nullptr);
     REQUIRE(clip->isPlayable());
     REQUIRE(clip->playing);
@@ -112,22 +111,21 @@ TEST_CASE("End-of-Video mode: playable (Video) clip threshold behavior unchanged
     SECTION("Does not advance while playhead is below the out-point threshold")
     {
         clip->playheadPosition = 0.5;
-        autopilot.processFrame(deck, snap); // EoV is checked every frame, no beat cross needed
+        autopilot.processFrame(show, snap); // EoV is checked every frame, no beat cross needed
         REQUIRE(layer->runtime().activeClipColumn == 0);
     }
 
     SECTION("Advances once playhead reaches the out-point threshold")
     {
         clip->playheadPosition = 0.995; // outPoint defaults to 1.0, threshold is 0.99
-        autopilot.processFrame(deck, snap);
+        autopilot.processFrame(show, snap);
         REQUIRE(layer->runtime().activeClipColumn == 1);
     }
 }
 
 TEST_CASE("On-Beat mode: advancement is gated on clip->playing (source parity)", "[autopilot]")
 {
-    Deck deck;
-    deck.initDefault();
+    Composition show = ShowFixture::makeShow(1, 3, 12, false);   // lane bf9b: one deck box, 3 shared layers
 
     for (int c = 0; c < 2; ++c)
     {
@@ -137,10 +135,10 @@ TEST_CASE("On-Beat mode: advancement is gated on clip->playing (source parity)",
         clip.sourceType = "perlin_noise";
         clip.autopilotAction = Clip::AutopilotAction::PlayNext;
         clip.autopilotDuration = Clip::AutopilotDuration::Beat1;
-        deck.setClip(0, c, clip);
+        show.decks[0].setClip(0, c, clip);
     }
 
-    auto* layer = deck.getLayer(0);
+    auto* layer = show.getLayer(0);
     layer->autopilotEnabled = true;
     layer->autopilotEndOfVideo = false; // On-Beat mode
 
@@ -152,14 +150,15 @@ TEST_CASE("On-Beat mode: advancement is gated on clip->playing (source parity)",
         {
             LayerRuntimeSnapshot rt = layer->runtime();
             rt.activeClipColumn = 0;
+            rt.activeDeckId = show.decks[0].id;
             layer->setRuntime(rt);
         }
-        auto* clip = layer->getClipAt(0);
+        auto* clip = show.decks[0].getClip(0, 0);
         REQUIRE(clip != nullptr);
         clip->playing = true; // matches the clip.playing = true; set at the 4
                                // MainComponent.cpp source-creation sites
 
-        advanceOneBeat(autopilot, deck, snap);
+        advanceOneBeat(autopilot, show, snap);
         REQUIRE(layer->runtime().activeClipColumn == 1);
     }
 
@@ -168,22 +167,22 @@ TEST_CASE("On-Beat mode: advancement is gated on clip->playing (source parity)",
         {
             LayerRuntimeSnapshot rt = layer->runtime();
             rt.activeClipColumn = 0;
+            rt.activeDeckId = show.decks[0].id;
             layer->setRuntime(rt);
         }
-        auto* clip = layer->getClipAt(0);
+        auto* clip = show.decks[0].getClip(0, 0);
         REQUIRE(clip != nullptr);
         clip->playing = false; // the bug: sources were born playing=false
 
         for (int beat = 0; beat < 4; ++beat)
-            advanceOneBeat(autopilot, deck, snap);
+            advanceOneBeat(autopilot, show, snap);
         REQUIRE(layer->runtime().activeClipColumn == 0); // frozen
     }
 }
 
 TEST_CASE("advanceClip column selection skips empty columns", "[autopilot]")
 {
-    Deck deck;
-    deck.initDefault();
+    Composition show = ShowFixture::makeShow(1, 3, 12, false);   // lane bf9b: one deck box, 3 shared layers
 
     // Occupy columns 0, 2, 4; leave 1 and 3 empty (never assigned — genuinely
     // unoccupied, distinct from the clearCell() regression covered elsewhere).
@@ -195,28 +194,28 @@ TEST_CASE("advanceClip column selection skips empty columns", "[autopilot]")
         clip.playing = true;
         clip.autopilotAction = Clip::AutopilotAction::PlayNext;
         clip.autopilotDuration = Clip::AutopilotDuration::Beat1;
-        deck.setClip(0, c, clip);
+        show.decks[0].setClip(0, c, clip);
     }
 
-    auto* layer = deck.getLayer(0);
+    auto* layer = show.getLayer(0);
     layer->autopilotEnabled = true;
-    layer->triggerClip(0);
-    REQUIRE(layer->getClipAt(1) == nullptr);
-    REQUIRE(layer->getClipAt(3) == nullptr);
+    show.fire(0, 0, 0);
+    REQUIRE(show.decks[0].getClip(0, 1) == nullptr);
+    REQUIRE(show.decks[0].getClip(0, 3) == nullptr);
 
     Autopilot autopilot;
     FeatureSnapshot snap;
 
     SECTION("PlayNext skips column 1 (empty) and lands on column 2")
     {
-        advanceOneBeat(autopilot, deck, snap);
+        advanceOneBeat(autopilot, show, snap);
         REQUIRE(layer->runtime().activeClipColumn == 2);
     }
 
     SECTION("PlayNext wraps past the end back to column 0")
     {
-        layer->triggerClip(4); // last occupied column
-        advanceOneBeat(autopilot, deck, snap);
+        show.fire(0, 0, 4); // last occupied column
+        advanceOneBeat(autopilot, show, snap);
         REQUIRE(layer->runtime().activeClipColumn == 0); // wraps, skipping empty tail columns
     }
 }
@@ -239,10 +238,11 @@ namespace
         return s;
     }
 
-    // Layer 0 on autopilot Beat4 / PlayNext over three columns (test_deck_clock.cpp (f)'s setup).
-    void setUpBeat4Deck(Deck& deck)
+    // Layer 0 on autopilot Beat4 / PlayNext over three columns (the retired test_deck_clock.cpp (f)'s setup); lane bf9b:
+    // one deck box under the shared layers.
+    Composition beat4Show()
     {
-        deck.initDefault();
+        Composition show = ShowFixture::makeShow(1, 3, 12, false);
         for (int c = 0; c < 3; ++c)
         {
             Clip clip;
@@ -250,54 +250,55 @@ namespace
             clip.mediaType = Clip::MediaType::Image;
             clip.autopilotAction = Clip::AutopilotAction::PlayNext;
             clip.autopilotDuration = Clip::AutopilotDuration::Beat4;
-            deck.setClip(0, c, clip);
+            show.decks[0].setClip(0, c, clip);
         }
-        deck.getLayer(0)->autopilotEnabled = true;
-        deck.getLayer(0)->triggerClip(0);   // first trigger sets clip->playing
+        show.getLayer(0)->autopilotEnabled = true;
+        show.fire(0, 0, 0);   // first trigger sets clip->playing
+        return show;
     }
 
     // Ticks k = 0 .. kEnd (inclusive) at 1/30 beat each.
-    void runTicks(Autopilot& ap, Deck& deck, int kEnd)
+    void runTicks(Autopilot& ap, Composition& show, int kEnd)
     {
         for (int k = 0; k <= kEnd; ++k)
-            ap.processFrame(deck, beatSnap(k / 30.0));
+            ap.processFrame(show, beatSnap(k / 30.0));
     }
 }
 
 TEST_CASE("F3 stall: a 1.1-beat GL stall loses no beat (3.4 -> 4.5)", "[autopilot][stall]")
 {
-    Deck deck; setUpBeat4Deck(deck);
+    Composition show = beat4Show();
     Autopilot ap;
-    runTicks(ap, deck, 102);                                    // b = 3.4: three beats played
-    REQUIRE(deck.getLayer(0)->getActiveClip()->beatsPlayed == 3);
-    REQUIRE(deck.getLayer(0)->runtime().activeClipColumn == 0);
-    ap.processFrame(deck, beatSnap(135 / 30.0));                // one tick at b = 4.5: phase 0.4 -> 0.5, count 3 -> 4
-    CHECK(deck.getLayer(0)->runtime().activeClipColumn == 1);
+    runTicks(ap, show, 102);                                    // b = 3.4: three beats played
+    REQUIRE(show.playingClip(0)->beatsPlayed == 3);
+    REQUIRE(show.getLayer(0)->runtime().activeClipColumn == 0);
+    ap.processFrame(show, beatSnap(135 / 30.0));                // one tick at b = 4.5: phase 0.4 -> 0.5, count 3 -> 4
+    CHECK(show.getLayer(0)->runtime().activeClipColumn == 1);
 }
 
 TEST_CASE("F3 stall: a 0.7-beat stall that begins at phase 0.5 and contains the wrap (3.5 -> 4.2)", "[autopilot][stall]")
 {
-    Deck deck; setUpBeat4Deck(deck);
+    Composition show = beat4Show();
     Autopilot ap;
-    runTicks(ap, deck, 105);                                    // b = 3.5
-    REQUIRE(deck.getLayer(0)->getActiveClip()->beatsPlayed == 3);
-    ap.processFrame(deck, beatSnap(126 / 30.0));                // b = 4.2: 0.2 < 0.5 - 0.5 is false for the wrap reader
-    CHECK(deck.getLayer(0)->runtime().activeClipColumn == 1);
+    runTicks(ap, show, 105);                                    // b = 3.5
+    REQUIRE(show.playingClip(0)->beatsPlayed == 3);
+    ap.processFrame(show, beatSnap(126 / 30.0));                // b = 4.2: 0.2 < 0.5 - 0.5 is false for the wrap reader
+    CHECK(show.getLayer(0)->runtime().activeClipColumn == 1);
 }
 
 TEST_CASE("F3 stall: a 2.3-beat stall adds two beats (3.4 -> 5.7)", "[autopilot][stall]")
 {
-    Deck deck; setUpBeat4Deck(deck);
+    Composition show = beat4Show();
     Autopilot ap;
-    runTicks(ap, deck, 102);                                    // b = 3.4
-    REQUIRE(deck.getLayer(0)->getActiveClip()->beatsPlayed == 3);
-    ap.processFrame(deck, beatSnap(171 / 30.0));                // b = 5.7: count 3 -> 5, the wrap reader sees nothing
-    CHECK(deck.getLayer(0)->runtime().activeClipColumn == 1);             // beatsPlayed 5 >= 4: one advance
+    runTicks(ap, show, 102);                                    // b = 3.4
+    REQUIRE(show.playingClip(0)->beatsPlayed == 3);
+    ap.processFrame(show, beatSnap(171 / 30.0));                // b = 5.7: count 3 -> 5, the wrap reader sees nothing
+    CHECK(show.getLayer(0)->runtime().activeClipColumn == 1);             // beatsPlayed 5 >= 4: one advance
 }
 
 TEST_CASE("F3 pin: without a stall the count reader advances on exactly the ticks the wrap reader did", "[autopilot][stall]")
 {
-    Deck deck; setUpBeat4Deck(deck);
+    Composition show = beat4Show();
     Autopilot ap;
 
     // Expected advance ticks from the OLD detector on the same stream: every 4th wrap crossing.
@@ -314,14 +315,14 @@ TEST_CASE("F3 pin: without a stall the count reader advances on exactly the tick
     REQUIRE(expected.size() == 4);
 
     std::vector<int> observed;
-    int col = deck.getLayer(0)->runtime().activeClipColumn;
+    int col = show.getLayer(0)->runtime().activeClipColumn;
     for (int k = 0; k <= 16 * 30; ++k)
     {
-        ap.processFrame(deck, beatSnap(k / 30.0));
-        if (deck.getLayer(0)->runtime().activeClipColumn != col)
+        ap.processFrame(show, beatSnap(k / 30.0));
+        if (show.getLayer(0)->runtime().activeClipColumn != col)
         {
             observed.push_back(k);
-            col = deck.getLayer(0)->runtime().activeClipColumn;
+            col = show.getLayer(0)->runtime().activeClipColumn;
         }
     }
     CHECK(observed == expected);
@@ -329,44 +330,44 @@ TEST_CASE("F3 pin: without a stall the count reader advances on exactly the tick
 
 TEST_CASE("F3 pin: realign semantics match the wrap reader (BPMTracker hard realign)", "[autopilot][stall]")
 {
-    Deck deck; setUpBeat4Deck(deck);
+    Composition show = beat4Show();
     Autopilot ap;
 
     SECTION("a realign from the second half of a beat counts one beat (count +1, phase -> 0)")
     {
-        runTicks(ap, deck, 111);                                // b = 3.7
-        REQUIRE(deck.getLayer(0)->getActiveClip()->beatsPlayed == 3);
+        runTicks(ap, show, 111);                                // b = 3.7
+        REQUIRE(show.playingClip(0)->beatsPlayed == 3);
         FeatureSnapshot s = beatSnap(111 / 30.0);
         s.beatPhase = 0.0f; s.totalBeatCount += 1;
-        ap.processFrame(deck, s);
-        CHECK(deck.getLayer(0)->runtime().activeClipColumn == 1);
+        ap.processFrame(show, s);
+        CHECK(show.getLayer(0)->runtime().activeClipColumn == 1);
     }
 
     SECTION("a realign from the first half counts nothing (count +0, phase -> 0)")
     {
-        runTicks(ap, deck, 99);                                 // b = 3.3
-        REQUIRE(deck.getLayer(0)->getActiveClip()->beatsPlayed == 3);
+        runTicks(ap, show, 99);                                 // b = 3.3
+        REQUIRE(show.playingClip(0)->beatsPlayed == 3);
         FeatureSnapshot s = beatSnap(99 / 30.0);
         s.beatPhase = 0.0f;
-        ap.processFrame(deck, s);
-        CHECK(deck.getLayer(0)->runtime().activeClipColumn == 0);
-        CHECK(deck.getLayer(0)->getActiveClip()->beatsPlayed == 3);
+        ap.processFrame(show, s);
+        CHECK(show.getLayer(0)->runtime().activeClipColumn == 0);
+        CHECK(show.playingClip(0)->beatsPlayed == 3);
     }
 }
 
 TEST_CASE("F3 pin: a writer reset (count back to 0) is a baseline, not a crossing", "[autopilot][stall]")
 {
-    Deck deck; setUpBeat4Deck(deck);
+    Composition show = beat4Show();
     Autopilot ap;
-    runTicks(ap, deck, 102);                                    // b = 3.4, count 3
-    REQUIRE(deck.getLayer(0)->getActiveClip()->beatsPlayed == 3);
+    runTicks(ap, show, 102);                                    // b = 3.4, count 3
+    REQUIRE(show.playingClip(0)->beatsPlayed == 3);
     FeatureSnapshot cleared;                                    // test-mode /api/reset publishes a cleared snapshot
     cleared.clear();
-    ap.processFrame(deck, cleared);
-    CHECK(deck.getLayer(0)->runtime().activeClipColumn == 0);
-    CHECK(deck.getLayer(0)->getActiveClip()->beatsPlayed == 3);
-    runTicks(ap, deck, 30);                                     // the stream restarts at b = 0 and wraps once at b = 1
-    CHECK(deck.getLayer(0)->runtime().activeClipColumn == 1);
+    ap.processFrame(show, cleared);
+    CHECK(show.getLayer(0)->runtime().activeClipColumn == 0);
+    CHECK(show.playingClip(0)->beatsPlayed == 3);
+    runTicks(ap, show, 30);                                     // the stream restarts at b = 0 and wraps once at b = 1
+    CHECK(show.getLayer(0)->runtime().activeClipColumn == 1);
 }
 
 TEST_CASE("F3 law: no beat-crossing reader detects a phase wrap any more", "[autopilot][law]")

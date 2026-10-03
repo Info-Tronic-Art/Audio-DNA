@@ -1,4 +1,5 @@
 #!/bin/bash
+echo "ARCHIVED RECORD (R-N1, s-rta-1003): this script quits Audio-DNA by name -- never run or source it; use .harmony/probe-quit-ours.sh" >&2; exit 64
 # Tempo witness (take.json 1.5 s after Record: tempoMap start anchor bpm 120) + verify item (d) (clockBeat deltas on
 # /api/routine/status are hop-quantised: multiples of 512*120/(60*48000) = 0.021333 beat at 120 BPM).
 # $1 = app bundle, $2 = out dir. Caller holds the live lock. open -g only; graceful quit.

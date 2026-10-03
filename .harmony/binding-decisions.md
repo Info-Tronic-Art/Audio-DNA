@@ -604,6 +604,13 @@ build it; "audio controls the video", all tempo-locked, current UI will be scrap
   autopilot) belong to the shared layer, one set for all decks (old shows: the first deck's layer settings win); every
   deck shows the show's layer rows; the deck-to-deck transition fade is removed (a deck switch has nothing to fade); the
   layer strip shows each layer's playing clip and the deck it came from; Persistent removed; ignore-column stays.
+  Built (bf9b, s-rta-1002b; merged into main in s-rta-1003; ruling-bf9b + ruling-bf9b-merge): Composition::layers +
+  Deck::rows + ClipRef (deck id, column) in the tuple; a deck switch changes only the grid; the column header lit only on
+  the firing deck; the TopBar Fade removed; old shows -> the first deck's settings (one app-log line, nothing on screen).
+  NOT on screen, by Boris's rulings of 2026-10-03 (sections below): no strip badge, no tab dot, no load notice, no Undo
+  Remove button, no Remove Deck sentence. Defaults taken: Q1 a deleted deck's playing clip keeps playing until replaced;
+  Q2 a loaded deck with more rows adds layers; Q3 withdrawn (genre deck auto-switch inert); Q4 Undo skips deck switches
+  (ruling-bf9b amendment 10 flipped the plan's default); Q5 a column fire empties a layer whose cell is empty.
 
 ## 2026-10-03 (s-rta-1003) — Boris's answers to the Oct 2 page + new feedback BF11-BF30 (full message verbatim: .harmony/boris-feedback-backlog.md "Boris feedback of 2026-10-03"; recorded 2026-10-03 13:32:39)
 - Column re-fire — Boris: "Firing a column that is already playing should restart its videos" -> a column fire restarts the

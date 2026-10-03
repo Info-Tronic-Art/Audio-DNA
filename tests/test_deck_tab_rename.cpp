@@ -435,7 +435,8 @@ TEST_CASE("DeckView rename (f): a rebuild keeps the box on its deck, on top; the
     CHECK(ed->getBounds() == expectedBox(r.dv, "C"));
     CHECK(r.dv.getChildComponent(r.dv.getNumChildComponents() - 1) == ed);
 
-    REQUIRE(r.comp.removeDeck(2));
+    CHECK_FALSE(r.comp.retireOrEraseDeck(2));              // erased, not retired: no layer plays deck C (lane bf9b)
+    REQUIRE(r.comp.decks.size() == 2);
     r.dv.rebuildGrid();
     CHECK_FALSE(r.dv.isRenaming());
     CHECK_FALSE(ed->isVisible());

@@ -1,0 +1,75 @@
+launch: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app  --test-mode
+app pid: 38978
+composition: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a868a537-8200-4641-a63f-f3029b3cf7ee/scratchpad/bf9b-merge-M3/ui/h6-lane/probe-ui-files-rename.json
+  load probe-ui-files-rename.json -> {'ok': True}; settle True (0.2 s) load={"opens_pending": 0, "staged": 0, "queued": 0}
+PASS  S0 load_composition {"ok":true} + settle (opens_pending / staged / queued == 0)  | {"ok": true}
+  decks ['A', 'B', 'C'] active 0
+PASS  V1 L0C0 line 'H.264 High, 64 x 64, 30 frames per second'  | line 'H.264 High, 64 x 64, 30 frames per second' lines ['H.264 High', '64 x 64, 30 frames per second'] missing False file_backed True video {'codec': 'H.264 High', 'width': 64, 'height': 64, 'fps': 30.0} retries 0
+PASS  V1 L0C1 line 'ProRes 422 HQ, 64 x 64, 29.97 frames per second'  | line 'ProRes 422 HQ, 64 x 64, 29.97 frames per second' lines ['ProRes 422 HQ', '64 x 64, 29.97 frames per second'] missing False file_backed True video {'codec': 'ProRes 422 HQ', 'width': 64, 'height': 64, 'fps': 29.97002997002997} retries 0
+PASS  V1 L0C2 line 'HAP Q, 64 x 64, 60 frames per second'  | line 'HAP Q, 64 x 64, 60 frames per second' lines ['HAP Q', '64 x 64, 60 frames per second'] missing False file_backed True video {'codec': 'HAP Q', 'width': 64, 'height': 64, 'fps': 60.0} retries 0
+PASS  V1 L0C3 line 'HEVC Main 10, 64 x 64, 23.976 frames per second'  | line 'HEVC Main 10, 64 x 64, 23.976 frames per second' lines ['HEVC Main 10', '64 x 64, 23.976 frames per second'] missing False file_backed True video {'codec': 'HEVC Main 10', 'width': 64, 'height': 64, 'fps': 23.976023976023978} retries 0
+PASS  V1 L1C0 line 'PNG image'  | line 'PNG image' lines ['PNG image'] missing False file_backed True video None retries 0
+PASS  V1 L1C1 line 'Image sequence, 3 images'  | line 'Image sequence, 3 images' lines ['Image sequence, 3 images'] missing False file_backed True video None retries 0
+PASS  V1 L1C2 line 'File missing'  | line 'File missing' lines ['File missing'] missing True file_backed True video None retries 0
+PASS  V1 L1C3 line ''  | line '' lines [] missing False file_backed False video None retries 0
+PASS  V2 L0C0 tooltip  | 'video_h264_64x64.mp4\nH.264 High, 64 x 64, 30 frames per second\nRight-click: Show in Finder'
+PASS  V2 L1C1 tooltip first line  | 'Image sequence — 3 images at 2.5 images per second\nRight-click: Show in Finder'
+PASS  V2 L1C3 tooltip empty  | ''
+PASS  V2 menus L0C0 / L1C2 / L1C3  | ['Show in Finder'] ['Show in Finder'] []
+PASS  V3 reveal L0C0 -> the fixture's path, count +1  | '/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b/tests/fixtures/video_h264_64x64.mp4' count 0 -> 1
+PASS  V3 reveal L1C3 (source) -> count +0  | count 1 -> 1
+PASS  V3 reveal L1C2 (missing) -> its path, count +1  | '/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a868a537-8200-4641-a63f-f3029b3cf7ee/scratchpad/bf9b-merge-M3/ui/h6-lane/media/missing_clip.mp4' count 2
+PASS  V4 inspect L0C0  | {"inspector_shows": true, "inspector_lines": ["H.264 High", "64 x 64, 30 frames per second"], "inspector_button_visible": true}
+PASS  V4 inspect L1C3 (source)  | {"inspector_shows": true, "inspector_lines": [], "inspector_button_visible": false}
+PASS  V4 inspect L1C3 (source) shows the clip  | inspector_shows True
+PASS  V4 inspect L0C1  | {"inspector_shows": true, "inspector_lines": ["ProRes 422 HQ", "64 x 64, 29.97 frames per second"], "inspector_button_visible": true} retries 0
+PASS  V4 inspect L0C2  | {"inspector_shows": true, "inspector_lines": ["HAP Q", "64 x 64, 60 frames per second"], "inspector_button_visible": true} retries 0
+PASS  V4 inspect L0C3  | {"inspector_shows": true, "inspector_lines": ["HEVC Main 10", "64 x 64, 23.976 frames per second"], "inspector_button_visible": true} retries 0
+PASS  V4 inspect L1C0  | {"inspector_shows": true, "inspector_lines": ["PNG image"], "inspector_button_visible": true} retries 0
+PASS  V4 inspect L1C1  | {"inspector_shows": true, "inspector_lines": ["Image sequence, 3 images"], "inspector_button_visible": true} retries 0
+PASS  V4 inspect L1C2  | {"inspector_shows": true, "inspector_lines": ["File missing"], "inspector_button_visible": true} retries 0
+  deck_tabs: {"ok": true, "active": 0, "row_width": 1720, "tab_row_builds": 2, "focus_home_count": 0, "undo": {"top": "", "redo_top": "", "index": 0, "size": 0}, "editor": {"open": false, "deck_id": -1, "deck_index": -1, "text": "", "x": 0, "y": 0, "w": 0, "h": 0}}
+PASS  R1 3 tabs A / B / C, active 0, editor closed, tooltips, undo.size < 90  | names ['A', 'B', 'C'] active 0 tooltips ['Not in the library yet - Save Deck As... adds it\nDouble-click: rename\nRight-click: Save / Rename / Duplicate / Remove', 'Not in the library yet - Save Deck As... adds it\nRight-click: Save / Rename / Duplicate / Remove', 'Not in the library yet - Save Deck As... adds it\nRight-click: Save / Rename / Duplicate / Remove'] undo {'top': '', 'redo_top': '', 'index': 0, 'size': 0}
+PASS  R2 tab_click 0 (showing) -> builds +0, active 0  | builds 2 -> 2 active 0
+PASS  R3 tab_click 2 -> builds +0 (same-shape decks), active 2  | builds 2 -> 2 active 2
+PASS  R4a tab_dblclick 1 (not showing) -> active 1, builds +0 (same-shape decks), editor closed  | builds 2 -> 2 active 1 editor {'open': False, 'deck_id': -1, 'deck_index': -1, 'text': '', 'x': 0, 'y': 0, 'w': 0, 'h': 0}
+PASS  R4b tab_dblclick 1 (showing) -> builds +0, box open on B over its tab  | builds 2 -> 2 editor {'open': True, 'deck_id': 2, 'deck_index': 1, 'text': 'B', 'x': 102, 'y': 236, 'w': 100, 'h': 24} tab1 {'x': 102, 'y': 236, 'w': 100, 'h': 24} row 1720
+PASS  R5 type '  Intro  ' + enter -> decks[1] 'Intro', one 'Rename Deck' step, focus home +1  | names ['A', 'Intro', 'C'] label 'Intro' undo {'top': '', 'redo_top': '', 'index': 0, 'size': 0} -> {'top': 'Rename Deck', 'redo_top': '', 'index': 1, 'size': 1} focus 0 -> 1
+PASS  R6 undo -> 'B'; redo -> 'Intro', undo.top 'Rename Deck'  | after undo ['A', 'B', 'C'] after redo ['A', 'Intro', 'C'] undo {'top': 'Rename Deck', 'redo_top': '', 'index': 1, 'size': 1}
+PASS  R7 escape / empty + enter / unchanged + enter -> 'Intro' each, undo index and size unchanged, focus home +3  | names ['Intro', 'Intro', 'Intro'] undo {'top': 'Rename Deck', 'redo_top': '', 'index': 1, 'size': 1} -> {'top': 'Rename Deck', 'redo_top': '', 'index': 1, 'size': 1} focus 1 -> 4
+PASS  R8 outside_click keeps 'Y' (one 'Rename Deck' step, focus home +1)  | names ['A', 'Y', 'C'] undo {'top': 'Rename Deck', 'redo_top': '', 'index': 1, 'size': 1} -> {'top': 'Rename Deck', 'redo_top': '', 'index': 2, 'size': 2} focus 4 -> 5
+PASS  R8 focus_lost keeps 'Z' (one 'Rename Deck' step, focus home +1)  | names ['A', 'Z', 'C'] undo {'top': 'Rename Deck', 'redo_top': '', 'index': 2, 'size': 2} -> {'top': 'Rename Deck', 'redo_top': '', 'index': 3, 'size': 3} focus 5 -> 6
+PASS  R8 tab keeps 'T' (one 'Rename Deck' step, focus home +1)  | names ['A', 'T', 'C'] undo {'top': 'Rename Deck', 'redo_top': '', 'index': 3, 'size': 3} -> {'top': 'Rename Deck', 'redo_top': '', 'index': 4, 'size': 4} focus 6 -> 7
+PASS  R9a /api/switch_deck 2 while the box is open on A -> box stays on A over its tab, builds +0 (same-shape decks)  | editor {'open': True, 'deck_id': 1, 'deck_index': 0, 'text': 'Q', 'x': 0, 'y': 236, 'w': 100, 'h': 24} builds 4 -> 4 active 2
+PASS  R9b enter -> decks[0] 'Q', decks[2] unchanged  | names ['Q', 'T', 'C'] (decks[2] before ['C'])
+  load probe-ui-files-rename.json -> {'ok': True}; settle True (0.0 s) load={"opens_pending": 0, "staged": 0, "queued": 0}
+PASS  R10 box open on A, then load_composition (same file) -> {"ok":true}, box closed, decks[0] 'A', focus home +1  | opened True load {'ok': True} editor {'open': False, 'deck_id': -1, 'deck_index': -1, 'text': 'Q', 'x': 0, 'y': 236, 'w': 100, 'h': 24} names ['A', 'B', 'C'] focus 8 -> 9
+PASS  R11 CONTROL duplicate_deck 0 -> 4 tabs, builds +1 (the counter is alive)  | duplicate_deck {'ok': True} tabs 3 -> 4 builds 5 -> 6 active 3
+  load probe-ui-files-rename.json -> {'ok': True}; settle True (0.1 s) load={"opens_pending": 0, "staged": 0, "queued": 0}
+  R11 restore: load True settled True decks ['A', 'B', 'C']
+== captures (window-only, Quartz window id)
+PASS  C1-tab-row-default decoded  | C1-tab-row-default.png 3456 x 2158, 152 distinct sampled colours
+PASS  NB2 box on the showing tab: x == tab x, w == tab w (100), h == 24  | editor {'open': True, 'deck_id': 1, 'deck_index': 0, 'text': 'A', 'x': 0, 'y': 236, 'w': 100, 'h': 24} tab {'x': 0, 'y': 236, 'w': 100, 'h': 24}
+PASS  C2-rename-box-open decoded  | C2-rename-box-open.png 3456 x 2158, 152 distinct sampled colours
+PASS  C3-typed-Intro decoded  | C3-typed-Intro.png 3456 x 2158, 151 distinct sampled colours
+PASS  C4-renamed-tab decoded  | C4-renamed-tab.png 3456 x 2158, 152 distinct sampled colours
+  C8-inspector-h264: inspector_shows True lines ['H.264 High', '64 x 64, 30 frames per second'] button True
+PASS  C8-inspector-h264 decoded  | C8-inspector-h264.png 3456 x 2158, 158 distinct sampled colours
+  C9-inspector-hapq: inspector_shows True lines ['HAP Q', '64 x 64, 60 frames per second'] button True
+PASS  C9-inspector-hapq decoded  | C9-inspector-hapq.png 3456 x 2158, 158 distinct sampled colours
+  C10-inspector-missing: inspector_shows True lines ['File missing'] button True
+PASS  C10-inspector-missing decoded  | C10-inspector-missing.png 3456 x 2158, 161 distinct sampled colours
+  C11-inspector-png: inspector_shows True lines ['PNG image'] button True
+PASS  C11-inspector-png decoded  | C11-inspector-png.png 3456 x 2158, 190 distinct sampled colours
+  C12-inspector-sequence: inspector_shows True lines ['Image sequence, 3 images'] button True
+PASS  C12-inspector-sequence decoded  | C12-inspector-sequence.png 3456 x 2158, 186 distinct sampled colours
+  C13-inspector-source: inspector_shows True lines [] button False
+PASS  C13-inspector-source decoded  | C13-inspector-source.png 3456 x 2158, 283 distinct sampled colours
+  C14-inspector-long-name: inspector_shows True lines ['HEVC Main 10', '64 x 64, 23.976 frames per second'] button True
+PASS  C14-inspector-long-name decoded  | C14-inspector-long-name.png 3456 x 2158, 269 distinct sampled colours
+  load probe-ui-files-rename-c5.json -> {'ok': True}; settle True (0.0 s) load={"opens_pending": 0, "staged": 0, "queued": 0}
+PASS  NB1 27 decks (row 1720 px, last tab 60 px): box w 100, inside the row, on the last tab's y, h 24  | editor {'open': True, 'deck_id': 27, 'deck_index': 26, 'text': 'Deck 27', 'x': 1612, 'y': 140, 'w': 100, 'h': 24} last tab {'x': 1612, 'y': 140, 'w': 60, 'h': 24} row 1720
+PASS  C5-rename-box-last-60px-tab decoded  | C5-rename-box-last-60px-tab.png 3456 x 2158, 82 distinct sampled colours
+
+54 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a868a537-8200-4641-a63f-f3029b3cf7ee/scratchpad/bf9b-merge-M3/ui/h6-lane)
+app running after quit: no

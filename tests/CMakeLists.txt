@@ -121,9 +121,10 @@ catch_discover_tests(test_scratch_pool)
 
 # --- test_layer_state_key (s-rta-0926b render R2: a layer's temporal buffer /
 # frame ring / feedback state is keyed by deck AND layer id -- layer ids repeat
-# across decks). Tests the REAL key function (render/LayerStateKey.h, pure, no
-# GL) against decks built by the real Deck::initDefault; the GL call sites are
-# covered live by .harmony/probe-render-state.sh.
+# across decks, so history must not cross a deck switch). Tests the REAL key
+# function (render/LayerStateKey.h, pure, no GL) against decks built by the real
+# Deck::initDefault. The live per-deck call-site rows r2_* were retired with
+# Persistent (bf9 Stage P); successor: bf9b gate K1t.
 add_executable(test_layer_state_key
     test_layer_state_key.cpp
     ${SRC_DIR}/model/Clip.cpp
@@ -1367,39 +1368,37 @@ endif()
 apply_sanitizers(test_render_geometry)
 catch_discover_tests(test_render_geometry)
 
-# --- test_deck_clock (s-rta-0926b plan4 item 2: decks that are not on screen
-# keep time -- DeckClock::tick / LayerClock::advanceCrossfade, pure headers in
-# src/render/; B2 adds AutopilotBank, src/model/AutopilotBank.h). Built like
-# test_compositor: real Clip / Layer / Autopilot sources, juce_core +
-# juce_graphics, no GL.
-add_executable(test_deck_clock
-    test_deck_clock.cpp
+# --- test_layer_clock (LayerClock::advanceCrossfade, the one crossfade clock --
+# a pure header in src/render/; lane bf9b moved case (e) here from the retired
+# test_layer_clock: DeckClock and AutopilotBank were deleted). Real Clip / Layer
+# sources, juce_core + juce_graphics, no GL.
+add_executable(test_layer_clock
+    test_layer_clock.cpp
     ${SRC_DIR}/model/Clip.cpp
     ${SRC_DIR}/model/Layer.cpp
     ${SRC_DIR}/connect/ConnSerialization.cpp
-    ${SRC_DIR}/model/Autopilot.cpp
 )
-target_include_directories(test_deck_clock PRIVATE ${SRC_DIR})
-target_link_libraries(test_deck_clock PRIVATE
+target_include_directories(test_layer_clock PRIVATE ${SRC_DIR})
+target_link_libraries(test_layer_clock PRIVATE
     Catch2::Catch2WithMain
     juce::juce_core
     juce::juce_graphics
 )
-target_compile_definitions(test_deck_clock PRIVATE
+target_compile_definitions(test_layer_clock PRIVATE
     _USE_MATH_DEFINES
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
     JUCE_DISPLAY_SPLASH_SCREEN=0
 )
 if(NOT MSVC)
-    target_compile_options(test_deck_clock PRIVATE
+    target_compile_options(test_layer_clock PRIVATE
         -Wno-old-style-cast
         -Wno-conversion
         -Wno-sign-conversion
     )
 endif()
-apply_sanitizers(test_deck_clock)
-catch_discover_tests(test_deck_clock)
+apply_sanitizers(test_layer_clock)
+catch_discover_tests(test_layer_clock)
 
 # --- test_conn_picker (s-rta-0923 lane 3, Lane C0 scaffold: the picker ->
 # ConnSource translation, headless -- .harmony/specs/s-rta-0923-lane3-plan.md
@@ -1883,7 +1882,7 @@ apply_sanitizers(test_tab_bar_layout)
 catch_discover_tests(test_tab_bar_layout)
 
 # --- test_deck_tab_row (s-rta-0926b plan6 §6.1: the deck tab row's geometry --
-# tabs, the "+" button, the Remove-Deck undo hint -- and its two menus). Pure
+# tabs, the "+" button -- and its two menus). Pure
 # header src/ui/DeckTabRow.h -- no JUCE; DeckView places its buttons from it.
 add_executable(test_deck_tab_row test_deck_tab_row.cpp)
 target_include_directories(test_deck_tab_row PRIVATE ${SRC_DIR})
@@ -2242,13 +2241,13 @@ endif()
 apply_sanitizers(test_effect_stack_binding)
 catch_discover_tests(test_effect_stack_binding)
 
-# --- test_layer_inspector_persistent_toggle (s-rta-0926b uitoggle): the Persistent toggle's
-# enable rule widens to canBePersistent(type) || layer->persistent, so a stale flag on a
-# non-persistable type can be cleared but not re-set. Same headless-widgets harness and link
-# closure as test_effect_stack_binding above, plus LayerInspector.cpp/MacroPanel.cpp/Knob.cpp
-# for the inspector under test.
-add_executable(test_layer_inspector_persistent_toggle
-    test_layer_inspector_persistent_toggle.cpp
+# --- test_layer_inspector_layer_row (bf9 Stage P, s-rta-1002b; ruling-bf9 amendment 11): the Layer tab's Layer
+# section with Persistent removed -- no Persistent toggle, Ignore Column Trigger unchanged for every layer type and
+# laid out on the full row under Master. Replaces test_layer_inspector_persistent_toggle (s-rta-0926b uitoggle). Same
+# headless-widgets harness and link closure as test_effect_stack_binding above, plus LayerInspector.cpp/MacroPanel.cpp/
+# Knob.cpp for the inspector under test.
+add_executable(test_layer_inspector_layer_row
+    test_layer_inspector_layer_row.cpp
     ${SRC_DIR}/ui/LayerInspector.cpp
     ${SRC_DIR}/ui/MacroPanel.cpp
     ${SRC_DIR}/ui/Knob.cpp
@@ -2270,27 +2269,27 @@ add_executable(test_layer_inspector_persistent_toggle
     ${SRC_DIR}/model/Layer.cpp
     ${SRC_DIR}/connect/ConnSerialization.cpp
 )
-target_include_directories(test_layer_inspector_persistent_toggle PRIVATE ${SRC_DIR})
-target_link_libraries(test_layer_inspector_persistent_toggle PRIVATE
+target_include_directories(test_layer_inspector_layer_row PRIVATE ${SRC_DIR})
+target_link_libraries(test_layer_inspector_layer_row PRIVATE
     Catch2::Catch2WithMain
     juce::juce_gui_basics
     juce::juce_opengl
 )
-target_compile_definitions(test_layer_inspector_persistent_toggle PRIVATE
+target_compile_definitions(test_layer_inspector_layer_row PRIVATE
     _USE_MATH_DEFINES
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
     JUCE_DISPLAY_SPLASH_SCREEN=0
 )
 if(NOT MSVC)
-    target_compile_options(test_layer_inspector_persistent_toggle PRIVATE
+    target_compile_options(test_layer_inspector_layer_row PRIVATE
         -Wno-old-style-cast
         -Wno-conversion
         -Wno-sign-conversion
     )
 endif()
-apply_sanitizers(test_layer_inspector_persistent_toggle)
-catch_discover_tests(test_layer_inspector_persistent_toggle)
+apply_sanitizers(test_layer_inspector_layer_row)
+catch_discover_tests(test_layer_inspector_layer_row)
 
 # --- tool_uitoggle_snapshot (s-rta-0926b uitoggle SHOTS): a ctest-EXCLUDED headless snapshot
 # tool -- deliberately never registered with catch_discover_tests, same posture as
@@ -3130,7 +3129,7 @@ apply_sanitizers(test_overlay_watch)
 catch_discover_tests(test_overlay_watch)
 
 # --- test_clip_inspector_paint_key (s-rta-0928b idlepaint, plan-idlepaint.md 3.1 test 4): ClipInspector::refresh() (10 Hz)
-# repaints only when a painted input changed (ClipInspector::paintKeyNow). The test_layer_inspector_persistent_toggle
+# repaints only when a painted input changed (ClipInspector::paintKeyNow). The test_layer_inspector_layer_row
 # headless-widgets harness and link closure, with ClipInspector.cpp for the inspector under test.
 add_executable(test_clip_inspector_paint_key
     test_clip_inspector_paint_key.cpp
@@ -3287,6 +3286,19 @@ set(ADNA_TSAN_TEST_PROPERTIES
     FAIL_REGULAR_EXPRESSION "WARNING: ThreadSanitizer"
 )
 
+# --- lane bf9b fix (s-rta-1003; ruling-bf9b-merge.md AM-5, gate B3b): the AddressSanitizer unit gate, the tsan set's
+# shape. A case tagged [asan] drives real code over storage that moved or died; in a -DADNA_SANITIZE=address build
+# (.harmony/probe-asan-unit.sh) one "ERROR: AddressSanitizer" fails it: ENVIRONMENT pins ASAN_OPTIONS (it overrides the
+# caller's shell) and FAIL_REGULAR_EXPRESSION catches a report whatever the exit code. The cases are registered under
+# the label by a SECOND catch_discover_tests of their binary (TEST_SPEC "[asan]", TEST_PREFIX "asan: "), only when
+# ADNA_SANITIZE holds "address": a normal build's test count does not change. `ctest -L asan` selects them.
+set(ADNA_ASAN_TEST_PROPERTIES
+    LABELS asan
+    TIMEOUT 300
+    ENVIRONMENT "ASAN_OPTIONS=abort_on_error=0:halt_on_error=1"
+    FAIL_REGULAR_EXPRESSION "ERROR: AddressSanitizer"
+)
+
 # --- test_layer_runtime_race (R1 / R2 / R4: the Layer trigger tuple + clip runtime fields, message thread vs GL
 # thread). Sources as test_autopilot + UndoManager.cpp; link set as test_undo_commands.
 add_executable(test_layer_runtime_race
@@ -3374,7 +3386,8 @@ apply_sanitizers(test_log_line_lint)
 catch_discover_tests(test_log_line_lint)
 
 # --- test_render_thread_lint (ruling amendment 8: case 1 no plain store to a clip's playing in Renderer.cpp, syncMedia
-# through ClipTransportSync; case 2 (T3) pins the per-layer tuple loads).
+# through ClipTransportSync; case 2 (T3) pins the per-layer tuple loads; case 3 (bf9 Stage P, ruling-bf9 amendment 9)
+# no Persistent-feature identifier left in src/).
 add_executable(test_render_thread_lint test_render_thread_lint.cpp)
 target_link_libraries(test_render_thread_lint PRIVATE Catch2::Catch2WithMain)
 target_compile_definitions(test_render_thread_lint PRIVATE AUDIODNA_SRC_DIR="${SRC_DIR}")
@@ -3421,6 +3434,137 @@ if(NOT MSVC)
 endif()
 apply_sanitizers(test_layer_runtime)
 catch_discover_tests(test_layer_runtime)
+
+# --- test_show_model (lane bf9b, plan-bf9b S2.12 + ruling-bf9b amendments 2(c), 4, 6, 7, 8, 9, 12, 20, 21, 22: decks are
+# boxes of clips over ONE shared layer stack -- the ClipRef trigger API, C1 playing(i), C2 walks, retired decks, the
+# switch fingerprint (T1, incl. a headless DeckView walk and a running routine), the deck / layer commands, autopilot,
+# routines pinned by deck id, pad lights, binding targets, old-file conversion (M1-M7)). Real sources: the model,
+# the commands, UndoService (withDeckDetached's headless branch: no renderer is ever set -- the Renderer members it
+# names are inline), Autopilot, the RoutineEngine set (as test_routine_engine), the DeckView set (as
+# test_deck_thumbnails), MidiOutputHandler (padStateFor), the LayerInspector set (as test_layer_inspector_layer_row:
+# the fix round's onLayerStackMoved case) plus ClipInspector.cpp (the fix stage's memory cases bind both inspectors).
+add_executable(test_show_model
+    test_show_model.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+    ${SRC_DIR}/model/Autopilot.cpp
+    ${SRC_DIR}/core/UndoManager.cpp
+    ${SRC_DIR}/core/UndoService.cpp
+    ${SRC_DIR}/midi/MidiOutputHandler.cpp
+    ${SRC_DIR}/effects/EffectLibrary.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+    ${SRC_DIR}/effects/EffectChain.cpp
+    ${SRC_DIR}/recording/TempoMap.cpp
+    ${SRC_DIR}/recording/PerfState.cpp
+    ${SRC_DIR}/recording/PerfStateCapture.cpp
+    ${SRC_DIR}/recording/Take.cpp
+    ${SRC_DIR}/recording/Program.cpp
+    ${SRC_DIR}/recording/RoutineSlice.cpp
+    ${SRC_DIR}/recording/Player.cpp
+    ${SRC_DIR}/recording/RecorderClock.cpp
+    ${SRC_DIR}/recording/RoutineEngine.cpp
+    ${SRC_DIR}/binding/BindingManager.cpp
+    ${SRC_DIR}/ui/MenuBarModel.cpp
+    ${SRC_DIR}/ui/DeckView.cpp
+    ${SRC_DIR}/ui/ClipCell.cpp
+    ${SRC_DIR}/ui/RoutinePad.cpp
+    ${SRC_DIR}/ui/LayerStrip.cpp
+    ${SRC_DIR}/ui/LookAndFeel.cpp
+    ${SRC_DIR}/ui/UniversalParamControl.cpp
+    ${SRC_DIR}/connect/ConnPicker.cpp
+    ${SRC_DIR}/connect/ManualWrite.cpp
+    ${SRC_DIR}/signal/SignalRegistry.cpp
+    ${SRC_DIR}/mapping/MappingEngine.cpp
+    ${SRC_DIR}/render/ShaderManager.cpp
+    ${SRC_DIR}/render/TextureManager.cpp
+    ${SRC_DIR}/render/FullscreenQuad.cpp
+    ${SRC_DIR}/render/LUTLoader.cpp
+    ${SRC_DIR}/ui/LayerInspector.cpp
+    ${SRC_DIR}/ui/ClipInspector.cpp
+    ${SRC_DIR}/ui/MacroPanel.cpp
+    ${SRC_DIR}/ui/Knob.cpp
+    ${SRC_DIR}/render/FeedbackProcessor.cpp
+    ${SRC_DIR}/ui/EffectStackView.cpp
+)
+target_include_directories(test_show_model PRIVATE ${SRC_DIR})
+target_link_libraries(test_show_model PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+    juce::juce_opengl
+    juce::juce_audio_devices
+)
+target_compile_definitions(test_show_model PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_show_model PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_show_model)
+catch_discover_tests(test_show_model)
+# The [asan] cases once more under the asan label (AM-5), in an address-sanitizer build only.
+if("address" IN_LIST ADNA_SANITIZE)
+    catch_discover_tests(test_show_model
+        TEST_SPEC "[asan]"
+        TEST_PREFIX "asan: "
+        PROPERTIES ${ADNA_ASAN_TEST_PROPERTIES})
+endif()
+
+# --- test_layer_strip_source_deck (lane bf9b S3, plan-bf9b S3.2, ruling-bf9b 16(e); restated by ruling-bf9b-merge
+# AM-11 / AM-12 -- the B7 MACHINE checks M-a, M-c, M-t, the BF14 pin, G1', G2, G3): a layer strip paints nothing that
+# depends on the deck its clip came from, the deck tabs paint nothing that depends on playing, the grid's lit cells and
+# column header on the shared stack, the showDeck snapshot walks. Headless JUCE widgets; the DeckView set (as
+# test_deck_thumbnails).
+add_executable(test_layer_strip_source_deck
+    test_layer_strip_source_deck.cpp
+    ${SRC_DIR}/ui/DeckView.cpp
+    ${SRC_DIR}/ui/ClipCell.cpp
+    ${SRC_DIR}/ui/RoutinePad.cpp
+    ${SRC_DIR}/ui/LayerStrip.cpp
+    ${SRC_DIR}/ui/LookAndFeel.cpp
+    ${SRC_DIR}/ui/UniversalParamControl.cpp
+    ${SRC_DIR}/connect/ConnPicker.cpp
+    ${SRC_DIR}/connect/ManualWrite.cpp
+    ${SRC_DIR}/signal/SignalRegistry.cpp
+    ${SRC_DIR}/mapping/MappingEngine.cpp
+    ${SRC_DIR}/effects/EffectChain.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+    ${SRC_DIR}/render/ShaderManager.cpp
+    ${SRC_DIR}/render/TextureManager.cpp
+    ${SRC_DIR}/render/FullscreenQuad.cpp
+    ${SRC_DIR}/render/LUTLoader.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+)
+target_include_directories(test_layer_strip_source_deck PRIVATE ${SRC_DIR})
+target_link_libraries(test_layer_strip_source_deck PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+    juce::juce_opengl
+)
+target_compile_definitions(test_layer_strip_source_deck PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_layer_strip_source_deck PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_layer_strip_source_deck)
+catch_discover_tests(test_layer_strip_source_deck)
 
 # --- test_shared_field_types (lane tsan, ruling amendment 11: compile-time type pins of the model fields another
 # thread reads; T2 pins the Layer tuple, T4 / T5 / T6 extend it).

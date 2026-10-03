@@ -251,6 +251,8 @@ private:
     // s-rta-0923 lane 3 plan section 4.2: bind the 6 scalar controls to
     // clip_->scalarConns/scalarLive (null-safe when clip_ is nullptr).
     void bindScalarControls();
+    // Lane bf9b fix (AM-1): drops the 6 scalar bindings WITHOUT reading them -- setClip's first call.
+    void forgetScalarBindings();
 
     static constexpr int kSectionHeaderHeight = 20;
     static constexpr int kSectionGap = 8;

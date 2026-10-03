@@ -8,11 +8,15 @@
 #include "core/DeckCommands.h"
 #include "core/MediaReconnect.h"
 #include "core/CompositionLoad.h"
+#include "binding/BindingTarget.h"
+#include "core/LogLine.h"
 #include "recording/PerfStateCapture.h"
 #include "recording/RoutineSlice.h"
 #include "model/AppSettings.h"
 #include "ui/UiPaintCounters.h"
+#include "ui/InspectorRepoint.h"   // lane bf9b fix stage: the stack-move / fenced-edit hooks' functions
 #include <algorithm>
+#include <cstdlib>
 
 static uint32_t s_nextClipId = 1000;
 
@@ -24,6 +28,11 @@ static uint32_t s_nextClipId = 1000;
 // processPendingTrigger relies on to fire a queued trigger.
 namespace
 {
+    // Lane bf9b (ruling-bf9b amendment 7(a)): the refusal when the show has used every deck id (ids are never reused
+    // in a session; a save + reopen renumbers them).
+    constexpr const char* kDeckIdsUsedText =
+        "This show has used all its deck numbers. Save it and open it again to add more decks.";
+
     Clip::BeatSnapMode quantizeModeToForcedSnap(Composition::QuantizeMode mode,
                                                  const FeatureSnapshot& snap)
     {
@@ -115,15 +124,11 @@ namespace
         p.control = "scalar";
         p.scalar = key.toStdString();
         if (deckIdx >= 0 && deckIdx < static_cast<int>(comp.decks.size()))
+            p.deckName = comp.decks[static_cast<size_t>(deckIdx)].name;
+        if (const Layer* layer = comp.getLayer(layerIdx))   // bf9b R1: the SHARED layer
         {
-            auto& deck = comp.decks[static_cast<size_t>(deckIdx)];
-            p.deckName = deck.name;
-            if (layerIdx >= 0 && layerIdx < static_cast<int>(deck.layers.size()))
-            {
-                auto& layer = deck.layers[static_cast<size_t>(layerIdx)];
-                p.layerId = layer.id;
-                p.layerName = layer.name;
-            }
+            p.layerId = layer->id;
+            p.layerName = layer->name;
         }
         return p;
     }
@@ -134,15 +139,8 @@ namespace
         p.scope = ControlPath::Scope::Clip;
         p.col = col;
         if (deckIdx >= 0 && deckIdx < static_cast<int>(comp.decks.size()))
-        {
-            auto& deck = comp.decks[static_cast<size_t>(deckIdx)];
-            if (layerIdx >= 0 && layerIdx < static_cast<int>(deck.layers.size()))
-            {
-                auto& layer = deck.layers[static_cast<size_t>(layerIdx)];
-                if (col >= 0 && col < static_cast<int>(layer.clips.size()) && layer.clips[static_cast<size_t>(col)].has_value())
-                    p.clipName = layer.clips[static_cast<size_t>(col)]->name;
-            }
-        }
+            if (const Clip* clip = comp.decks[static_cast<size_t>(deckIdx)].getClip(layerIdx, col))   // bf9b R3
+                p.clipName = clip->name;
         return p;
     }
 
@@ -161,19 +159,9 @@ namespace
         p.param = paramIdx;
         p.paramKey = paramKey.toStdString();
         if (deckIdx >= 0 && deckIdx < static_cast<int>(comp.decks.size()))
-        {
-            auto& deck = comp.decks[static_cast<size_t>(deckIdx)];
-            if (layerIdx >= 0 && layerIdx < static_cast<int>(deck.layers.size()))
-            {
-                auto& layer = deck.layers[static_cast<size_t>(layerIdx)];
-                if (col >= 0 && col < static_cast<int>(layer.clips.size()) && layer.clips[static_cast<size_t>(col)].has_value())
-                {
-                    auto& clip = *layer.clips[static_cast<size_t>(col)];
-                    if (fxIdx >= 0 && fxIdx < static_cast<int>(clip.effects.size()))
-                        p.fxName = clip.effects[static_cast<size_t>(fxIdx)].effectName;
-                }
-            }
-        }
+            if (const Clip* clip = comp.decks[static_cast<size_t>(deckIdx)].getClip(layerIdx, col))   // bf9b R3
+                if (fxIdx >= 0 && fxIdx < static_cast<int>(clip->effects.size()))
+                    p.fxName = clip->effects[static_cast<size_t>(fxIdx)].effectName;
         return p;
     }
 
@@ -199,11 +187,14 @@ namespace
 
     // s-rta-0926 (routines-1a carried concern (a)): a trigger that switches a layer to a clip that
     // was never triggered and is paused auto-plays it when it lands (Layer::triggerClipImmediate's
-    // first-activation rule -- at once, or at the quantized drain). Read BEFORE the trigger.
-    bool triggerWillAutoPlay(Layer& layer, int column)
+    // first-activation rule -- at once, or at the quantized drain). Read BEFORE the trigger. Lane bf9b: the target
+    // is a ClipRef in shared layer `layerIdx`'s row (the same column from another deck is another clip).
+    bool triggerWillAutoPlay(const Composition& comp, int layerIdx, ClipRef ref)
     {
-        const Clip* clip = layer.getClipAt(column);
-        return clip != nullptr && column != layer.runtime().activeClipColumn && !clip->hasBeenTriggered && !clip->playing;
+        const Layer* layer = comp.getLayer(layerIdx);
+        const Clip* clip = comp.clipAt(ref, layerIdx);
+        return layer != nullptr && clip != nullptr && ref != layer->runtime().activeRef() && !clip->hasBeenTriggered
+            && !clip->playing;
     }
 }
 
@@ -613,29 +604,21 @@ MainComponent::MainComponent(bool testMode, int testPort)
     // Global transport (TopBar Play/Pause/Stop). There is no single global
     // transport flag in the model; per-layer transport (LayerStrip) drives each
     // layer's active clip. The honest global mapping is therefore: apply
-    // play/pause/stop to every layer's active clip on the ACTIVE deck. Stop =
-    // pause + rewind to the clip's in-point (distinct from Pause, which holds).
+    // play/pause/stop to every SHARED layer's playing clip (lane bf9b R5: what plays, whatever deck the grid shows),
+    // each in the deck it came from. Stop = pause + rewind to the clip's in-point (distinct from Pause, which holds).
     // s-rta-0923/0924 step 3 (plan section 3.3 B3): routed through
     // applyClipPlaying, one point per layer, sharing a `group` id.
     topBar_->onPlay = [this] {
-        if (auto* deck = composition_.getActiveDeck())
-        {
-            const uint64_t group = recorderHost_.nextGroupId();
-            for (int l = 0; l < deck->getNumLayers(); ++l)
-                if (auto* layer = deck->getLayer(l))
-                    if (const int col = layer->runtime().activeClipColumn; layer->getClipAt(col))
-                        applyClipPlaying(l, col, "play", Origin::Human, group);
-        }
+        const uint64_t group = recorderHost_.nextGroupId();
+        for (int l = 0; l < composition_.getNumLayers(); ++l)
+            if (const auto pl = composition_.playing(l); pl.clip != nullptr && pl.deckIndex >= 0)
+                applyClipPlaying(l, pl.ref.column, "play", Origin::Human, group, pl.deckIndex);
     };
     topBar_->onPause = [this] {
-        if (auto* deck = composition_.getActiveDeck())
-        {
-            const uint64_t group = recorderHost_.nextGroupId();
-            for (int l = 0; l < deck->getNumLayers(); ++l)
-                if (auto* layer = deck->getLayer(l))
-                    if (const int col = layer->runtime().activeClipColumn; layer->getClipAt(col))
-                        applyClipPlaying(l, col, "pause", Origin::Human, group);
-        }
+        const uint64_t group = recorderHost_.nextGroupId();
+        for (int l = 0; l < composition_.getNumLayers(); ++l)
+            if (const auto pl = composition_.playing(l); pl.clip != nullptr && pl.deckIndex >= 0)
+                applyClipPlaying(l, pl.ref.column, "pause", Origin::Human, group, pl.deckIndex);
     };
     topBar_->onStop = [this] {
         // s-rta-0926b (Boris 2026-09-26, "ok we can keep stop for routines only"): Stop stops every
@@ -674,29 +657,18 @@ MainComponent::MainComponent(bool testMode, int testPort)
     presence_.onChanged = [this] { if (deckView_) deckView_->refresh(); };
     presence_.start(composition_);
 
-    // P23: Genre change callback — auto-switch deck or load genre preset
+    // P23: Genre change callback. Lane bf9b (plan-bf9b F15, ruling-bf9b amendment 19): genre auto-switch is INERT --
+    // a deck switch no longer changes the picture, so a detected genre would only move the grid away from the box
+    // Boris is browsing. The assignments stay in the file; one logLine per session says so.
     previewPanel_.getRenderer().setOnGenreChanged([this](uint8_t genre, float confidence) {
         if (!composition_.autoPresetOnGenre) return;
 
-        // Auto-switch deck if genre has an assigned deck. Routed through
-        // handleDeckSwitch (2026-07-30 fix, completes d4f5d86's scope claim) so
-        // this gets the same refreshPreviewFromActiveClip reconcile every other
-        // switch path gets — without it, switching to an empty deck by genre
-        // left the previous deck's clip still rendering in preview. Safe from
-        // this callback: it already runs on the message thread (Renderer.cpp's
-        // genre-change detection marshals via juce::MessageManager::callAsync
-        // before invoking onGenreChanged_), and handleDeckSwitch itself pushes
-        // no undo command (see onDeckSwitched's comment above, which already
-        // names genre auto-switch as one of the non-user callers this bare
-        // primitive is meant for) — genre-auto stays non-undoable, per doctrine.
-        int deckIdx = composition_.genreDeckAssignment[genre];
-        if (deckIdx >= 0 && deckIdx < static_cast<int>(composition_.decks.size())
-            && deckIdx != composition_.activeDeckIndex)
+        const int deckIdx = composition_.genreDeckAssignment[genre];
+        if (deckIdx >= 0 && !genreSwitchInertLogged_)
         {
-            // s-rta-0923/0924 step 3 (critic N2/A4): this is an automatic
-            // (non-user) deck switch -- record it as Origin::Engine, not the
-            // default Human.
-            handleDeckSwitch(deckIdx, Origin::Engine);
+            genreSwitchInertLogged_ = true;
+            logLine("[P23] genre deck auto-switch is off: decks are boxes of clips, switching would only move the "
+                    "grid (the genre deck assignments stay in the file)");
         }
 
         std::cerr << "[P23] Genre changed to: " << GenreDetector::genreName(genre)
@@ -745,28 +717,23 @@ MainComponent::MainComponent(bool testMode, int testPort)
     };
     deckView_->onLayerSelected = [this](int layerIdx) {
         if (!inspectorPanel_) return;
-        auto* deck = composition_.getActiveDeck();
-        if (!deck) return;
-        if (auto* layer = deck->getLayer(layerIdx))
-            inspectorPanel_->inspectLayer(layer,
-                EffectScope::layer(composition_.activeDeckIndex, layerIdx));
+        if (auto* layer = composition_.getLayer(layerIdx))   // bf9b: the SHARED layer (R1)
+            inspectorPanel_->inspectLayer(layer, EffectScope::layer(-1, layerIdx));
     };
     deckView_->onLayerClearClip = [this](int layerIdx) {
-        // #13: X-button clear rerouted through a command. Runtime-only (clips row
+        // #13: X-button clear rerouted through a command. Runtime-only (clips rows
         // untouched), so NO GL fence. Mutate-then-push: clearActiveClip live, then
-        // wrap the runtime before/after (skip if it was a true no-op).
-        auto* deck = composition_.getActiveDeck();
-        if (!deck) return;
-        auto* layer = deck->getLayer(layerIdx);
+        // wrap the runtime before/after (skip if it was a true no-op). Lane bf9b: the SHARED layer, whatever deck its
+        // clip came from.
+        auto* layer = composition_.getLayer(layerIdx);
         if (!layer) return;
-        routineEngine_.stopOnLayer(composition_.activeDeckIndex, layerIdx);   // s-rta-0927: X clears the layer of routines too (not undoable, like Stop)
-        const LayerRuntimeTransition t = layer->clearActiveClip();   // the exact before / after pair
+        routineEngine_.stopOnLayer(layerIdx);   // s-rta-0927: X clears the layer of routines too (not undoable, like Stop)
+        const LayerRuntimeTransition t = layer->clearActiveClip(composition_.rowClips(layerIdx));   // the exact pair
         if (t.changed())
         {
             std::vector<std::unique_ptr<Command>> children;
             children.push_back(std::make_unique<ClearActiveClipCmd>(
-                makeLayerResolver(), composition_.activeDeckIndex, layerIdx,
-                t.before, t.after, "Clear Layer Clip"));
+                makeLayerResolver(), layerIdx, t.before, t.after, "Clear Layer Clip"));
             pushCommands(std::move(children), "Clear Layer Clip");
         }
         // A1 fix (2026-07-30): clearActiveClip() only resets the MODEL
@@ -775,8 +742,8 @@ MainComponent::MainComponent(bool testMode, int testPort)
         // compositor-empty fallback (activeSourceType_, set at trigger time,
         // was never cleared). Re-sync the renderer/preview state (NOT undo-
         // tracked — ephemeral render state, not model), which purges only
-        // when appropriate. See refreshPreviewFromActiveClip's ownership rule.
-        refreshPreviewFromActiveClip(*deck);
+        // when appropriate. See refreshPreviewFromShow's ownership rule.
+        refreshPreviewFromShow();
         if (deckView_) deckView_->refresh();
     };
     deckView_->onLayerBypass = [this](int layerIdx, bool bypassed) {
@@ -784,7 +751,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
         // button; just wrap the change for undo (before = !bypassed).
         std::vector<std::unique_ptr<Command>> children;
         children.push_back(std::make_unique<ToggleLayerFlagCmd>(
-            makeLayerResolver(), composition_.activeDeckIndex, layerIdx,
+            makeLayerResolver(), layerIdx,
             ToggleLayerFlagCmd::Flag::Bypassed, !bypassed, bypassed,
             bypassed ? "Bypass Layer" : "Unbypass Layer"));
         pushCommands(std::move(children), bypassed ? "Bypass Layer" : "Unbypass Layer");
@@ -793,7 +760,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
         // #15: same shape as bypass — LayerStrip toggled layer->solo live.
         std::vector<std::unique_ptr<Command>> children;
         children.push_back(std::make_unique<ToggleLayerFlagCmd>(
-            makeLayerResolver(), composition_.activeDeckIndex, layerIdx,
+            makeLayerResolver(), layerIdx,
             ToggleLayerFlagCmd::Flag::Solo, !solo, solo,
             solo ? "Solo Layer" : "Unsolo Layer"));
         pushCommands(std::move(children), solo ? "Solo Layer" : "Unsolo Layer");
@@ -831,8 +798,8 @@ MainComponent::MainComponent(bool testMode, int testPort)
             while (deck->numColumns < needed)
             {
                 deck->numColumns++;
-                for (auto& layer : deck->layers)
-                    layer.clips.resize(static_cast<size_t>(deck->numColumns));
+                for (auto& row : deck->rows)
+                    row.clips.resize(static_cast<size_t>(deck->numColumns));
             }
             // Place each video, collecting cell edits WITHOUT per-file history entries.
             for (const auto& p : prepared)
@@ -918,8 +885,8 @@ MainComponent::MainComponent(bool testMode, int testPort)
             while (deck->numColumns < needed)
             {
                 deck->numColumns++;
-                for (auto& layer : deck->layers)
-                    layer.clips.resize(static_cast<size_t>(deck->numColumns));
+                for (auto& row : deck->rows)
+                    row.clips.resize(static_cast<size_t>(deck->numColumns));
             }
             for (const auto& p : prepared)
                 if (auto edit = commitDrop(p))
@@ -950,7 +917,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
     deckView_->onEffectDropped = [this](int layerIdx, int col, const juce::String& effectName) {
         auto* deck = composition_.getActiveDeck();
         if (!deck) return;
-        auto* layer = deck->getLayer(layerIdx);
+        auto* layer = deck->getRow(layerIdx);   // bf9b R3: the shown deck's row (clip storage)
         if (!layer) return;
 
         // Support multi-FX drop: comma-separated names
@@ -1075,9 +1042,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
     // pattern but the mutation lives here since LayerStrip has no embedded
     // EffectStackView to do it locally.
     deckView_->onLayerEffectDropped = [this](int layerIdx, const juce::String& effectDesc) {
-        auto* deck = composition_.getActiveDeck();
-        if (!deck) return;
-        auto* layer = deck->getLayer(layerIdx);
+        auto* layer = composition_.getLayer(layerIdx);   // bf9b R1: the SHARED layer's FX stack
         if (!layer) return;
 
         // Support multi-select drop: comma-separated names (mirrors
@@ -1120,7 +1085,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
         std::vector<std::unique_ptr<Command>> children;
         children.push_back(std::make_unique<EffectStackCmd>(
             makeCompositionResolver(), makeDeckFence(),
-            EffectScope::layer(composition_.activeDeckIndex, layerIdx),
+            EffectScope::layer(-1, layerIdx),
             std::move(before), layer->layerEffects,
             makeEffectStackRefresh(), desc.toStdString()));
         pushCommands(std::move(children), desc);
@@ -1128,7 +1093,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
     deckView_->onSourceDropped = [this](int layerIdx, int col, const juce::String& sourceId) {
         auto* deck = composition_.getActiveDeck();
         if (!deck) return;
-        auto* layer = deck->getLayer(layerIdx);
+        auto* layer = deck->getRow(layerIdx);   // bf9b R3: the shown deck's row
         if (!layer) return;
 
         // Support multi-source drop: comma-separated IDs
@@ -1209,8 +1174,8 @@ MainComponent::MainComponent(bool testMode, int testPort)
         if (!deck) return;
         if (srcLayer == dstLayer && srcCol == dstCol) return;
 
-        auto* srcL = deck->getLayer(srcLayer);
-        auto* dstL = deck->getLayer(dstLayer);
+        auto* srcL = deck->getRow(srcLayer);   // bf9b R3: the shown deck's rows
+        auto* dstL = deck->getRow(dstLayer);
         if (!srcL || !dstL) return;
 
         // Snapshot both cells + the column count BEFORE any mutation (spec §2
@@ -1276,7 +1241,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
     deckView_->onMilkDropDropped = [this](int layerIdx, int col, const std::string& presetPath) {
         auto* deck = composition_.getActiveDeck();
         if (!deck) return;
-        auto* layer = deck->getLayer(layerIdx);
+        auto* layer = deck->getRow(layerIdx);   // bf9b R3: the shown deck's row
         if (!layer) return;
 
         std::optional<Clip> before = snapshotCell(layer, col);
@@ -1336,7 +1301,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
     deckView_->onMilkDropPlaylistDropped = [this](int layerIdx, int col, const std::vector<std::string>& presetPaths) {
         auto* deck = composition_.getActiveDeck();
         if (!deck) return;
-        auto* layer = deck->getLayer(layerIdx);
+        auto* layer = deck->getRow(layerIdx);   // bf9b R3: the shown deck's row
         if (!layer) return;
 
         std::optional<Clip> before = snapshotCell(layer, col);
@@ -1408,37 +1373,11 @@ MainComponent::MainComponent(bool testMode, int testPort)
         }
     };
 
+    // The deck-tab click. Lane bf9b S2c (ruling-bf9b amendment 10, Q4's default): a deck switch changes only which box
+    // the grid shows, so it is never an Undo step -- Cmd+Z undoes the last real change. The tab is exactly the switch
+    // REST, OSC, bindings and replay make (B4g, tests/test_render_thread_lint.cpp).
     deckView_->onDeckSwitched = [this](int deckIdx) {
-        // #24: USER-initiated deck switch (tab click) — the ONLY switch path that
-        // wraps an undo command. handleDeckSwitch is ALSO called by non-user paths
-        // (REST, OSC, MIDI/controller bindings, genre auto-switch) which must NOT
-        // push commands, so the wrap lives here at the user entry point, not inside
-        // handleDeckSwitch. Mutate-then-push: switch live, then record before/after
-        // (only if the active deck actually changed — a no-op switch pushes nothing).
-        const int before = composition_.activeDeckIndex;
-
-        // L5 Quantize follow-on: cancel (via the shared DeckCommands.h helper)
-        // whichever layers on the deck we're about to LEAVE have a pending
-        // quantized trigger, BEFORE calling handleDeckSwitch — capturing the
-        // return value is only needed here, the one path that pushes an undo
-        // command; handleDeckSwitch's own call to the same helper (below) then
-        // finds nothing left to cancel and is a harmless no-op for this path,
-        // exactly mirroring how handleClipTrigger captures rtBefore/rtAfter
-        // around the live mutation rather than having triggerClip report it.
-        std::vector<PendingTriggerSnapshot> cancelledOnLeave;
-        if (auto* leavingDeck = composition_.getActiveDeck())
-            cancelledOnLeave = cancelPendingTriggers(*leavingDeck);
-
         handleDeckSwitch(deckIdx);
-        const int after = composition_.activeDeckIndex;
-        if (before != after)
-        {
-            std::vector<std::unique_ptr<Command>> children;
-            children.push_back(std::make_unique<SwitchDeckCmd>(
-                makeCompositionResolver(), makeDeckActivateHook(),
-                before, after, "Switch Deck", std::move(cancelledOnLeave)));
-            pushCommands(std::move(children), "Switch Deck");
-        }
     };
 
     // plan6 §6.4: the deck tab row -- "+" (New Deck / Load Deck..., deckIndex -1) and a tab's right-click menu.
@@ -1453,12 +1392,6 @@ MainComponent::MainComponent(bool testMode, int testPort)
             case DeckTabRow::Action::Duplicate:  duplicateDeck(deckIndex); break;
             case DeckTabRow::Action::Remove:     removeDeck(deckIndex);    break;
         }
-    };
-    // The 10-s "Undo Remove" button is bound to THAT removal: if anything else is on top of the undo stack the click
-    // is a no-op and the button just hides (pushCommands hides it on any later command anyway).
-    deckView_->onUndoHint = [this] {
-        if (undoManager_.undoDescription() == "Remove Deck")
-            handleMenuCommand(AudioDNAMenuBar::kCompUndo);
     };
     // s-rta-1002b ui U3.3 (BF8): the tab's in-place rename box. Every close hands the keyboard back here, BEFORE the box
     // hides (ruling AM4): JUCE would otherwise park it on column trigger "1" and the next Return would fire that column.
@@ -1849,6 +1782,31 @@ MainComponent::MainComponent(bool testMode, int testPort)
     // coordinate and refresh the UI after undo/redo.
     undoService_.setCollaborators(&composition_, &previewPanel_.getRenderer(),
                                   deckView_.get());
+    // Lane bf9b (ruling-bf9b amendment 4(a)): a fenced edit reaps every retired deck no layer plays from any more;
+    // after the fence their media is disposed through the per-clip dispose path (its liveness scan walks every live
+    // and retired deck, so a clip id still live elsewhere is never closed).
+    undoService_.onDecksReaped = [this](std::vector<Deck>&& reaped) {
+        auto dispose = makeClipMediaDisposeHook();
+        for (const auto& deck : reaped)
+            for (const auto& row : deck.rows)
+                for (const auto& c : row.clips)
+                    if (c.has_value())
+                        dispose(*c);
+    };
+    // Lane bf9b fix round + fix stage (ruling-bf9b-merge AM-2): a fenced edit that moved or resized the shared layer
+    // stack clears a Clip inspector whose clip the model no longer owns and re-points the Layer inspector by the
+    // selected layer row (their raw pointers would dangle: the timers read them whatever tab is shown). Every other
+    // fenced edit runs the Clip inspector's check alone (adoption item 2: Clear Clips destroys clips without moving
+    // the stack). Both statements are one-line adapters over ui/InspectorRepoint.h, pinned by lint B4h.
+    undoService_.onLayerStackMoved = [this]() {
+        if (inspectorPanel_ != nullptr && deckView_ != nullptr)
+            repointInspectorsAfterStackMove(inspectorPanel_->getClipInspector(), inspectorPanel_->getLayerInspector(),
+                                            composition_, deckView_->getSelectedLayerIndex());
+    };
+    undoService_.onFencedEdit = [this]() {
+        if (inspectorPanel_ != nullptr)
+            clearClipInspectorIfUnowned(inspectorPanel_->getClipInspector(), composition_);
+    };
 
     // === v2: Binding System & MIDI (P9) ===
     bindingManager_.setActionCallback([this](const Binding& b, float val)
@@ -1981,13 +1939,35 @@ MainComponent::MainComponent(bool testMode, int testPort)
         // the ONE thing that differs: it bypasses handleClipTrigger's beat-snap/quantize queue,
         // because a restore is not a performance trigger.
         const bool immediate = (f.p.origin == Origin::Preamble);
+        // Lane bf9b (ruling-bf9b amendment 6): a Clip-scope event and an activeClip fire are pinned to their deck BY
+        // ID -- resolved here, so an Insert / Remove Deck since the press never lands one in another deck. A removed
+        // (or retired) deck: the event is skipped (false: the replay counts it) and said once per deck. Layer-scope
+        // events name the SHARED layer and ignore the deck.
+        auto pinnedDeck = [this, &f]() -> int {
+            const int idx = pinnedDeckIndex(composition_, f.target);
+            if (idx < 0 && f.target.deckId != ClipRef::kNoDeck
+                && std::find(skippedDeckIdsNotified_.begin(), skippedDeckIdsNotified_.end(), f.target.deckId)
+                       == skippedDeckIdsNotified_.end())
+            {
+                skippedDeckIdsNotified_.push_back(f.target.deckId);
+                const std::string msg = "A recorded clip change aims at a deck that was removed -- skipped.";
+                std::cerr << "[Replay] " << msg << std::endl;
+                if (browserPanel_)
+                    browserPanel_->getRecordPanel().setNotice(msg, recorderHost_.status());
+            }
+            return idx;
+        };
         if (control == "activeClip")
         {
             if (f.target.layer < 0) return false;
             if (f.p.v < 0)
-                applyClearActiveClip(f.target.layer, Origin::Replay, f.target.deck);
-            else
-                handleClipTrigger(f.target.layer, f.p.v, Origin::Replay, f.target.deck, immediate);
+            {
+                applyClearActiveClip(f.target.layer, Origin::Replay);
+                return true;
+            }
+            const int deck = pinnedDeck();
+            if (deck < 0) return false;
+            handleClipTrigger(f.target.layer, f.p.v, Origin::Replay, deck, immediate);
             return true;
         }
         if (control == "activeDeck")
@@ -2010,19 +1990,23 @@ MainComponent::MainComponent(bool testMode, int testPort)
              control == "bypass" || control == "autopilot"))
         {
             if (f.target.layer < 0) return false;
-            applyLayerFlag(f.target.layer, control, f.p.v != 0, Origin::Replay, f.target.deck);
+            applyLayerFlag(f.target.layer, control, f.p.v != 0, Origin::Replay);   // the shared layer (bf9b)
             return true;
         }
         if (control == "bypass" && f.key.scope == ControlPath::Scope::Clip && f.target.fx >= 0)
         {
             if (f.target.layer < 0 || f.target.col < 0) return false;
-            applyEffectBypass(f.target.layer, f.target.col, f.target.fx, f.p.v != 0, Origin::Replay, f.target.deck);
+            const int deck = pinnedDeck();
+            if (deck < 0) return false;
+            applyEffectBypass(f.target.layer, f.target.col, f.target.fx, f.p.v != 0, Origin::Replay, deck);
             return true;
         }
         if (control == "playing")
         {
             if (f.target.layer < 0 || f.target.col < 0) return false;
-            applyClipPlaying(f.target.layer, f.target.col, f.p.action, Origin::Replay, 0, f.target.deck);
+            const int deck = pinnedDeck();
+            if (deck < 0) return false;
+            applyClipPlaying(f.target.layer, f.target.col, f.p.action, Origin::Replay, 0, deck);
             return true;
         }
         if (control == "quantize")
@@ -2161,9 +2145,34 @@ MainComponent::MainComponent(bool testMode, int testPort)
     apiServer_->onDebugLoadDeck = [this](juce::File f) { appendDeckFromFile(f); };
     apiServer_->onDebugDuplicateDeck = [this](int deckIndex) { duplicateDeck(deckIndex); };
     apiServer_->onDebugCancelLoad = [this] { cancelStagedOpen(LoadTicket::Outcome::Superseded); };
+    // Lane bf9b (ruling-bf9b amendment 4(g)): the tab menu's Remove Deck, by REST (Undo: the ui lane's onDebugUndo).
+    apiServer_->onDebugRemoveDeck = [this](int deckIndex) { removeDeck(deckIndex); };
+    // Lane bf9b fix round: File > Save As... to a given file, no chooser (K7 / B5 "save + reload").
+    apiServer_->onDebugSaveComposition = [this](juce::File f) { saveCompositionTo(f); };
     apiServer_->onDebugUiText = [this] { return fileLabel_.getText(); };
     apiServer_->onDebugAudioNotice = [this] {   // s-rta-0929b btguard
         return audioDeviceNotice_.isVisible() ? audioDeviceNotice_.getText() : juce::String();
+    };
+    // Lane bf9b fix stage (ruling-bf9b-merge AM-6): what the inspectors are bound to, for the live ASan row.
+    apiServer_->onDebugInspectedLayer = [this] {
+        const Layer* l = inspectorPanel_ != nullptr ? inspectorPanel_->getLayerInspector().getLayer() : nullptr;
+        return l != nullptr ? juce::String(l->name) : juce::String();
+    };
+    apiServer_->onDebugInspectedClip = [this] {
+        const Clip* c = inspectorPanel_ != nullptr ? inspectorPanel_->getClipInspector().getClip() : nullptr;
+        return c != nullptr ? juce::String(c->name) : juce::String();
+    };
+    apiServer_->onDebugInspectorTab = [this] {
+        if (inspectorPanel_ == nullptr)
+            return juce::String();
+        switch (inspectorPanel_->getActiveTab())
+        {
+            case InspectorPanel::Tab::Clip:        return juce::String("Clip");
+            case InspectorPanel::Tab::Layer:       return juce::String("Layer");
+            case InspectorPanel::Tab::Composition: return juce::String("Composition");
+            case InspectorPanel::Tab::Signal:      return juce::String("Signal");
+        }
+        return juce::String();
     };
 #if AUDIODNA_TEST_SERVER
     apiServer_->setAudioDevicesProvider([this] { return audioEngine_.deviceStatusVar(); });   // s-rta-0929b btguard, before start()
@@ -2427,6 +2436,22 @@ MainComponent::MainComponent(bool testMode, int testPort)
     };
 #endif
     setSize(1280, 800);
+#if AUDIODNA_TEST_SERVER
+    // TEST-ONLY (test-server builds): visual gates of the Layer tab -- ADNA_INSPECT_LAYER=<n> selects layer n of the
+    // shown deck and opens the Layer tab once startup is done. Inert unless the variable is set.
+    if (const char* e = std::getenv("ADNA_INSPECT_LAYER"))
+    {
+        const int layerIdx = std::atoi(e);
+        juce::MessageManager::callAsync([safe = juce::Component::SafePointer<MainComponent>(this), layerIdx] {
+            if (safe == nullptr || safe->deckView_ == nullptr || safe->inspectorPanel_ == nullptr)
+                return;
+            safe->deckView_->selectLayer(layerIdx);   // the selected ROW too: the stack-move hook re-points by it
+            if (safe->deckView_->onLayerSelected)
+                safe->deckView_->onLayerSelected(layerIdx);
+            safe->inspectorPanel_->setActiveTab(InspectorPanel::Tab::Layer);
+        });
+    }
+#endif
 }
 
 void MainComponent::setTooltipsEnabled(bool enabled)
@@ -3088,8 +3113,7 @@ void MainComponent::refreshUiAfterModelSwap()
     // deck state — the OLD comp's procedural source or still image would keep
     // rendering underneath an empty new deck without this (loaded layers have
     // activeClipColumn == -1, so nothing is "active" until triggered).
-    if (auto* d = composition_.getActiveDeck())
-        refreshPreviewFromActiveClip(*d);
+    refreshPreviewFromShow();
 }
 
 void MainComponent::swapCompositionModel(const std::function<void()>& mutation)
@@ -3111,9 +3135,9 @@ void MainComponent::swapCompositionModel(const std::function<void()>& mutation)
     // then re-point the renderer at composition_.getActiveDeck() (the NEW
     // active deck). This is the same mechanism kCompNew already used for
     // initDefault() — closes the reallocation-under-read UAF class for a
-    // whole-composition swap too (Renderer::renderOpenGL()'s P21
-    // persistent-layer loop over composition_->decks is nested under the
-    // `deckActive` check, so nulling activeDeck_ fences it as well).
+    // whole-composition swap too (Renderer::renderOpenGL()'s show composite and
+    // show autopilot -- which read the shared layers and any deck's rows -- are
+    // nested under the `deckActive` check, so nulling activeDeck_ fences them as well).
     undoService_.withDeckDetached(mutation);
 
     // Close by SET DIFFERENCE, after the fence: correct for a full swap/New
@@ -3218,8 +3242,8 @@ Clip* MainComponent::findStagedClip(uint32_t clipId)
     if (!staged_)
         return nullptr;
     auto inDeck = [clipId](Deck& deck) -> Clip* {
-        for (auto& layer : deck.layers)
-            for (auto& cell : layer.clips)
+        for (auto& row : deck.rows)
+            for (auto& cell : row.clips)
                 if (cell.has_value() && cell->id == clipId)
                     return &*cell;
         return nullptr;
@@ -3246,8 +3270,8 @@ void MainComponent::beginStagedOpen(std::unique_ptr<StagedLoad> staged)
             LoadTiming::Scope t(loadTiming_, LoadTiming::Prep);
             presence::seed(deck);
         }
-        for (auto& layer : deck.layers)
-            for (auto& cell : layer.clips)
+        for (auto& row : deck.rows)
+            for (auto& cell : row.clips)
                 if (cell.has_value() && cell->isPlayable() && cell->mediaType == Clip::MediaType::Video
                     && !cell->mediaMissing)   // a missing file: no job (R8), as the old :3027 skip
                     jobs.push_back({ cell->id, cell->mediaFile });
@@ -3304,8 +3328,8 @@ void MainComponent::finishStagedLoad()
         // them at the first frame after the cut (R12: a cancelled batch never opened one).
         LoadTiming::Scope t(loadTiming_, LoadTiming::Seq);
         auto openSeqs = [&renderer, &s](Deck& deck) {
-            for (auto& layer : deck.layers)
-                for (auto& cell : layer.clips)
+            for (auto& row : deck.rows)
+                for (auto& cell : row.clips)
                     if (cell.has_value() && cell->isPlayable() && cell->mediaType == Clip::MediaType::ImageSequence
                         && !cell->sequenceFiles.empty())
                     {
@@ -3328,6 +3352,9 @@ void MainComponent::finishStagedLoad()
             LoadTiming::Scope t(loadTiming_, LoadTiming::Swap);
             swapCompositionModel([this, &s] { composition_ = std::move(s->comp); });
         }
+        // Lane bf9b (plan-bf9b S2.3, ruling-bf9b amendment 9): an old show was converted -- ONE note, logged once.
+        if (!composition_.migrationNote.empty())
+            logLine(composition_.migrationNote);
         // 7. LABEL
         LoadTiming::Scope t(loadTiming_, LoadTiming::Ui);
         setFileLabel(done);
@@ -3338,24 +3365,35 @@ void MainComponent::finishStagedLoad()
     {
         // 6. APPEND -- one undoable InsertDeckCmd (plan6 §5 A1-d), not a whole-model swap: an append retires no media
         //    (nothing to close), must not stop running routines, and must not wipe undo history. The command fences
-        //    the push_back (Composition::appendDeck reallocates `decks`, which the GL thread walks lock-free --
-        //    renderOpenGL()'s P21 persistent-layer loop), mints a fresh deck id, makes the deck active
-        //    (withDeckDetached re-points the renderer), and cancels any pending quantized trigger on the deck being
-        //    left (restored on undo). Undo disposes the appended deck's media; redo reopens it.
+        //    the push_back (Composition::appendDeck reallocates `decks`, whose rows the GL thread resolves refs into
+        //    lock-free), mints a fresh deck id, adds the shared layers a wider deck needs (F6), and makes the deck the
+        //    shown one (withDeckDetached re-points the renderer). Undo disposes the appended deck's media; redo reopens it.
         const bool dup = s->kind == stagedload::Kind::DeckDuplicate;
         const char* what = dup ? "Duplicate Deck" : "Load Deck";
+        if (!composition_.canMintDeckId())
+        {
+            // Lane bf9b (ruling-bf9b amendment 7(a)): deck ids are never reused in a session -- refuse, nothing added.
+            for (auto id : s->adopted.takeAll())
+                renderer.closeMediaForClip(id);
+            logLine("[Decks] " + std::string(kDeckIdsUsedText));
+            loadTiming_.end();
+            if (s->ticket)
+                s->ticket->finish(LoadTicket::Outcome::Failed);
+            s.reset();
+            pumpLoadQueue();
+            return;
+        }
         {
             LoadTiming::Scope t(loadTiming_, LoadTiming::Swap);
             std::vector<std::unique_ptr<Command>> children;
             children.push_back(std::make_unique<InsertDeckCmd>(
                 makeCompositionResolver(), makeDeckFence(), makeClipMediaHook(), makeClipMediaDisposeHook(),
-                std::move(s->deck), what));
+                std::move(s->deck), what, std::move(s->rowSettings)));
             pushCommands(std::move(children), what);
         }
         LoadTiming::Scope t(loadTiming_, LoadTiming::Ui);
         if (deckView_) deckView_->rebuildGrid();   // rebuilds the deck tabs too (setupDeckTabs)
-        if (auto* active = composition_.getActiveDeck())
-            refreshPreviewFromActiveClip(*active);
+        // (lane bf9b R7: showing the new deck changes only the grid -- no preview refresh)
         // 7. LABEL
         setFileLabel(done);
         if (!dup && browserPanel_)
@@ -3530,6 +3568,22 @@ void MainComponent::saveComposition()
     }
 }
 
+bool MainComponent::saveCompositionTo(const juce::File& saveFile)
+{
+    // Save As's success path (the chooser's and /api/debug/save_composition's).
+    if (!composition_.saveToFile(saveFile))
+        return false;
+    // saveToFile() is const and never sets filePath — only
+    // loadFromFile() does. Save As must set it here, or a later
+    // plain Save cannot find it.
+    composition_.filePath = saveFile;
+    composition_.name = saveFile.getFileNameWithoutExtension().toStdString();
+    setFileLabel("Saved: " + saveFile.getFileName());
+    if (browserPanel_)
+        browserPanel_->getCompDecksBrowser().refresh();
+    return true;
+}
+
 void MainComponent::saveCompositionAs()
 {
     auto dir = CompDecksBrowser::getCompositionsDir();
@@ -3552,18 +3606,7 @@ void MainComponent::saveCompositionAs()
         auto saveFile = file.hasFileExtension(".json") ? file
                             : file.withFileExtension("json");
 
-        if (composition_.saveToFile(saveFile))
-        {
-            // saveToFile() is const and never sets filePath — only
-            // loadFromFile() does. Save As must set it here, or a later
-            // plain Save cannot find it.
-            composition_.filePath = saveFile;
-            composition_.name = saveFile.getFileNameWithoutExtension().toStdString();
-            setFileLabel("Saved: " + saveFile.getFileName());
-            if (browserPanel_)
-                browserPanel_->getCompDecksBrowser().refresh();
-        }
-        else if (!testMode_)
+        if (!saveCompositionTo(saveFile) && !testMode_)
         {
             juce::AlertWindow::showMessageBoxAsync(
                 juce::MessageBoxIconType::WarningIcon,
@@ -3623,7 +3666,8 @@ void MainComponent::stageDeckAppend(const juce::File& file)
 
     const auto tPrep = LoadTiming::Clock::now();
     Deck incoming;
-    incoming.fromVar(parsed);
+    incoming.fromVar(parsed);   // the clips of every row (old and new deck files alike)
+    auto rowSettings = ShowMigration::legacyRowSettings(parsed);   // bf9b amendment 8: decided per row
 
     // 2. VALIDATE — refuse (no layers) or repair (numColumns/padding), on
     //    `incoming` only. Live state untouched either way.
@@ -3661,6 +3705,7 @@ void MainComponent::stageDeckAppend(const juce::File& file)
     auto s = std::make_unique<StagedLoad>();
     s->kind = stagedload::Kind::DeckAppend;
     s->deck = std::move(incoming);
+    s->rowSettings = std::move(rowSettings);
     s->name = file.getFileNameWithoutExtension();
     beginStagedOpen(std::move(s));
 }
@@ -3671,17 +3716,20 @@ void MainComponent::stageDeckAppend(const juce::File& file)
 void MainComponent::newDeck()
 {
     // #21: command-owns-the-mutation (push_back is non-idempotent). The
-    // fenced AddDeckCmd appends the deck (3 layers, fresh id), makes it active,
+    // fenced AddDeckCmd appends the deck (one empty row per shared layer, fresh id), makes it the shown deck,
     // and re-points the renderer (via withDeckDetached's re-resolve) —
-    // perform() runs it. The new deck is empty: reconcile the preview fallback
-    // like a switch to an empty deck.
+    // perform() runs it. Lane bf9b: showing the new (empty) deck changes only the grid -- nothing playing stops.
+    if (!composition_.canMintDeckId())
+    {
+        // Ruling-bf9b amendment 7(a): every deck id this session has been used -- refuse, nothing added.
+        logLine("[Decks] " + std::string(kDeckIdsUsedText));
+        return;
+    }
     std::vector<std::unique_ptr<Command>> children;
     children.push_back(std::make_unique<AddDeckCmd>(
         makeCompositionResolver(), makeDeckFence(), "Add Deck"));
     pushCommands(std::move(children), "Add Deck");
     if (deckView_) deckView_->rebuildGrid();
-    if (auto* active = composition_.getActiveDeck())
-        refreshPreviewFromActiveClip(*active);
 }
 
 void MainComponent::loadDeck()
@@ -3898,8 +3946,8 @@ void MainComponent::stageDeckDuplicate(int deckIndex)
 }
 
 // Remove ANY deck (a tab's menu names it; the Deck menu passes the active one).
-// No dialog — the tab row shows a 10-s "Undo Remove" button instead (plan6 R1),
-// and Composition > Undo works as for every deck command.
+// No dialog and nothing on screen says it happened: the tab is gone, and Cmd+Z
+// (the Composition menu's Undo item names the action) brings it back, as for every deck command.
 void MainComponent::removeDeck(int deckIndex)
 {
     if (composition_.decks.size() <= 1
@@ -3907,16 +3955,13 @@ void MainComponent::removeDeck(int deckIndex)
         return;   // a composition keeps at least one deck
 
     const bool activeChanges = (deckIndex == composition_.activeDeckIndex);
-    const juce::String name(composition_.decks[static_cast<size_t>(deckIndex)].name);
 
-    // Null both inspectors FIRST: the erased deck's Layer/Clip objects die, and
-    // an inspector can be showing one of them even when a BACKGROUND deck is
-    // removed (handleDeckSwitch never re-points the inspectors).
+    // Empty the Clip inspector FIRST: the erased deck's Clip objects die, an inspector can be showing one of them even
+    // when a BACKGROUND deck is removed (handleDeckSwitch never re-points the inspectors), and its effect scope names
+    // a deck INDEX the erase shifts. The Layer inspector and the selected layer row are left alone (lane bf9b fix
+    // stage 5): the layers are the show's, a deck is a box of clips -- removing one takes no layer away (lint B4k).
     if (inspectorPanel_)
-    {
         inspectorPanel_->getClipInspector().setClip(nullptr);
-        inspectorPanel_->getLayerInspector().setLayer(nullptr);
-    }
 
     // #22: command-owns-the-mutation. Snapshot the full Deck VALUE + the prior
     // active index; the fenced execute() erases and keeps the on-screen deck
@@ -3932,25 +3977,17 @@ void MainComponent::removeDeck(int deckIndex)
     if (deckView_)
     {
         if (activeChanges)
-        {
             deckView_->clearSelection();
-            deckView_->selectLayer(-1);
-        }
         deckView_->rebuildGrid();
         // After rebuildGrid (refreshUiAfterModelSwap's order): setActiveColumn
         // refreshes the strips, which must already point into the live model.
         if (activeChanges)
             deckView_->setActiveColumn(-1);
     }
-    if (activeChanges)
-        if (auto* active = composition_.getActiveDeck())
-            refreshPreviewFromActiveClip(*active);
+    // (lane bf9b: removing a deck changes nothing that plays -- a clip playing from it keeps playing from the retired
+    // deck, plan-bf9b F3 -- so no preview refresh)
     if (inspectorPanel_)
         inspectorPanel_->refresh();
-
-    if (deckView_)
-        deckView_->showUndoHint("Undo Remove \"" + name + "\"");
-    setFileLabel("Removed deck \"" + name + "\"");
 }
 
 bool MainComponent::keyPressed(const juce::KeyPress& key)
@@ -4320,7 +4357,7 @@ void MainComponent::timerCallback()
 
     // P22.10: Update MIDI output pad feedback (~6Hz)
     if (uiUpdateCounter_ == 0 && midiOutputHandler_.isOpen())
-        midiOutputHandler_.updateFromDeck(composition_.getActiveDeck());
+        midiOutputHandler_.updateFromDeck(composition_, composition_.activeDeckIndex);   // bf9b: shown-deck cells
 
     // Beat-synced randomization (runs at 30Hz for accurate beat detection)
     if (beatRandomToggle_.getToggleState())
@@ -4337,9 +4374,8 @@ void MainComponent::timerCallback()
         std::vector<juce::String> deckNames, layerNames;
         for (const auto& d : composition_.decks)
             deckNames.push_back(juce::String(d.name));
-        if (const auto* deck = composition_.getActiveDeck())
-            for (const auto& l : deck->layers)
-                layerNames.push_back(juce::String(l.name));
+        for (const auto& l : composition_.layers)   // bf9b: the shared layers (the same on every deck)
+            layerNames.push_back(juce::String(l.name));
         deckView_->setRoutineView(deriveRoutineDeckView(routineEngine_.status(), composition_.activeDeckIndex,
                                                         deckNames, layerNames));
     }
@@ -4753,11 +4789,14 @@ void MainComponent::setClipFitMode(int layerIdx, int column, int mode)
 void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin, int deckIndex, bool immediate)
 {
     // s-rta-0923/0924 step 3 (plan section 3.3 B2): deckIndex < 0 means "the
-    // active deck" (every pre-existing caller); a Replay dispatch passes the
-    // Fired's resolved target deck explicitly, which may not be the active
+    // shown deck" (every pre-existing caller); a Replay dispatch passes the
+    // Fired's resolved target deck explicitly, which may not be the shown
     // one. Bounds-checked; a non-Human origin failing to resolve is logged
     // (G5's silent early-out stays silent only on the Human path, where the
     // UI already refused the click).
+    // Lane bf9b (plan-bf9b S2.7): the cell (deck, row layerIndex, column) is resolved in its deck box and fired into
+    // the SHARED layer layerIndex -- every fire lands in the stack on screen, so the hasBeenTriggered / seek / C3 /
+    // preview steps below run for EVERY fire (the old "only when it is the shown deck" gate is gone).
     Deck* deck = nullptr;
     if (deckIndex < 0)
         deck = composition_.getActiveDeck();
@@ -4771,8 +4810,12 @@ void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin,
     }
     const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex.load() : deckIndex;
 
-    auto* layer = deck->getLayer(layerIndex);
+    auto* layer = composition_.getLayer(layerIndex);
     if (!layer) return;
+    const ClipRef ref{ deck->id, column };
+    if (!ref.valid())
+        return;   // ruling-bf9b amendment 2(c): a ref the tuple cannot hold is refused, never clamped
+    const RowClips rows = composition_.rowClips(layerIndex);
 
     // Undo capture (mutate-then-push, spec §2 row 1 / step 8). The trigger returns
     // the exact before / after pair of the layer's tuple (one compare-exchange,
@@ -4782,8 +4825,8 @@ void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin,
     // Layer::triggerClip directly from the GL thread), so autopilot triggers
     // create no commands.
     std::optional<bool> playBefore;
-    if (const Clip* tc = layer->getClipAt(column)) playBefore = tc->playing;
-    const bool autoPlays = triggerWillAutoPlay(*layer, column);   // captured below (concern (a))
+    if (const Clip* tc = deck->getClip(layerIndex, column)) playBefore = tc->playing;
+    const bool autoPlays = triggerWillAutoPlay(composition_, layerIndex, ref);   // captured below (concern (a))
 
     LayerRuntimeTransition t;
     if (immediate)
@@ -4791,11 +4834,11 @@ void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin,
         // s-rta-0925 (D4 preamble): the checkpoint-0 restore bypasses beat-snap/quantize entirely --
         // it is putting the model back the way it was at Record, not a performance trigger. Mirrors
         // Layer::triggerClip's own empty-cell branch since triggerClipImmediate
-        // alone would leave the active column pointing at an empty cell.
-        if (layer->getClipAt(column))
-            t = layer->triggerClipImmediate(column);
+        // alone would leave the active ref pointing at an empty cell.
+        if (deck->getClip(layerIndex, column))
+            t = layer->triggerClipImmediate(ref, rows);
         else
-            t = layer->clearActiveClip();
+            t = layer->clearActiveClip(rows);
     }
     else
     {
@@ -4804,25 +4847,20 @@ void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin,
         // locked yet — see quantizeModeToForcedSnap above.
         const FeatureSnapshot quantizeSnap = analysisThread_.getFeatureBus().read();
         const auto forcedSnap = quantizeModeToForcedSnap(composition_.quantizeMode, quantizeSnap);
-        t = layer->triggerClip(column, forcedSnap);
+        t = composition_.fire(layerIndex, resolvedDeckIndex, column, forcedSnap);
     }
 
     const LayerRuntimeSnapshot rtBefore = t.before;
     const LayerRuntimeSnapshot rtAfter = t.after;
     // Retrigger-restart (2026-07-30, Boris's recorded expectation): clicking the
-    // already-playing cell is the column-already-active case.
-    const bool wasRetrigger = (t.before.activeClipColumn == column);
+    // already-playing cell is the clip-already-active case (bf9b: the same REF -- the same column of another deck is a
+    // new clip, which crossfades).
+    const bool wasRetrigger = (t.before.activeRef() == ref);
     std::optional<bool> playAfter;
-    if (const Clip* tc = layer->getClipAt(column)) playAfter = tc->playing;
+    if (const Clip* tc = deck->getClip(layerIndex, column)) playAfter = tc->playing;
 
-    // Preview/deck-view refresh only when the targeted deck is the active
-    // one (plan section 3.3 B2) -- a Replay dispatch may target a deck the
-    // user isn't currently looking at; the model mutation above still ran
-    // regardless.
-    if (resolvedDeckIndex == composition_.activeDeckIndex)
-    {
     // Load the clip content into preview
-    if (auto* clip = layer->getClipAt(t.after.activeClipColumn))
+    if (auto* clip = composition_.clipAt(t.after.activeRef(), layerIndex))
     {
         // Mark as triggered (for future use)
         clip->hasBeenTriggered = true;
@@ -4852,7 +4890,7 @@ void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin,
         else if (wasRetrigger && clip->isPlayable())
         {
             // Retrigger-restart: Layer::triggerClipImmediate's retrigger branch
-            // (column == activeClipColumn) already resets the MODEL's
+            // (ref == the active ref) already resets the MODEL's
             // playheadPosition to inPoint, but the renderer overwrites
             // clip->playheadPosition FROM the player's actual position every
             // frame — so without also seeking the player itself, the model
@@ -4873,6 +4911,12 @@ void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin,
                 auto* seq = renderer.getImageSequence(clip->id);
                 if (seq) seq->seekTo(clip->inPoint);
             }
+        }
+        else if (t.after.activeRef() == ref && clip->isPlayable())
+        {
+            // C3 (bf6 contract, plan-bf9b F13): a NEWLY activated playable clip (not a retrigger, not queued) RESUMES
+            // where its player is -- the model playhead agrees with the picture at once.
+            syncActivatedPlayhead(*clip);
         }
 
         if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
@@ -4914,15 +4958,12 @@ void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin,
     }
     else
     {
-        // No active clip — clear preview
-        previewPanel_.getRenderer().clearActiveSource();
-        previewPanel_.clearImage();
-        setFileLabel("");
+        // No active clip on this layer — re-point the preview at whatever the shared stack still plays.
+        refreshPreviewFromShow();
     }
 
     if (deckView_)
         deckView_->refresh();
-    }
 
     // Push the trigger command unless it changed nothing (spec §3: retrigger of
     // the already-active cell early-outs into a playhead reset — no runtime and
@@ -4936,7 +4977,7 @@ void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin,
     {
         std::vector<std::unique_ptr<Command>> children;
         children.push_back(std::make_unique<TriggerClipCmd>(
-            makeLayerResolver(), resolvedDeckIndex, layerIndex, column,
+            makeCompositionResolver(), layerIndex, ref,
             rtBefore, rtAfter, playBefore, playAfter, "Trigger Clip"));
         pushCommands(std::move(children), "Trigger Clip");
     }
@@ -4955,6 +4996,25 @@ void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin,
         recorderHost_.capture(key, std::move(p));
         if (autoPlays)
             captureAutoPlay(resolvedDeckIndex, layerIndex, column, origin, 0);
+    }
+}
+
+// C3 (the bf6 contract, ruling-bf6 AM-6, plan-bf9b F13): a NEWLY activated playable clip -- a clip or column fire on
+// the message thread, not a retrigger and not a queued trigger -- whose player / sequence already exists gets the
+// model playhead of the position the player will play from, in the same call: a re-fired clip RESUMES (as the picture
+// always did) and the model stops reporting the in-point meanwhile.
+void MainComponent::syncActivatedPlayhead(Clip& clip)
+{
+    auto& renderer = previewPanel_.getRenderer();
+    if (clip.mediaType == Clip::MediaType::Video)
+    {
+        if (auto* player = renderer.getVideoPlayer(clip.id))
+            clip.playheadPosition = player->getPlayheadPosition();
+    }
+    else if (clip.mediaType == Clip::MediaType::ImageSequence)
+    {
+        if (auto* seq = renderer.getImageSequence(clip.id))
+            clip.playheadPosition = seq->getPlayheadPosition();
     }
 }
 
@@ -4989,23 +5049,26 @@ void MainComponent::handleColumnTrigger(int column, Origin origin, int deckIndex
         return;
     }
     const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex.load() : deckIndex;
+    const ClipRef ref{ deck->id, column };
+    if (!ref.valid())
+        return;   // ruling-bf9b amendment 2(c)
 
     // Undo capture (mutate-then-push, spec §2 row 2 / step 8): a column trigger
-    // is a composite of one TriggerClipCmd per NON-ignoring layer that actually
-    // changes — mirroring Deck::triggerColumn, which skips ignoreColumnTrigger
-    // layers. Each layer's before / after is the exact pair its trigger returned
-    // (Deck::triggerColumn's out vector); target-`playing` is read BEFORE.
-    const int numLayers = deck->getNumLayers();
+    // is a composite of one TriggerClipCmd per NON-ignoring SHARED layer that actually
+    // changes — mirroring Composition::triggerColumn, which skips ignoreColumnTrigger
+    // layers (lane bf9b: Ignore Column keeps a layer -- and a clip from another deck -- through a column fire). Each
+    // layer's before / after is the exact pair its trigger returned (the out vector); target-`playing` is read BEFORE.
+    const int numLayers = composition_.getNumLayers();
     std::vector<std::optional<bool>> playBefore(static_cast<size_t>(numLayers));
     std::vector<bool> considered(static_cast<size_t>(numLayers), false);
     std::vector<bool> autoPlays(static_cast<size_t>(numLayers), false);   // concern (a), see captureAutoPlay
     for (int l = 0; l < numLayers; ++l)
     {
-        auto* layer = deck->getLayer(l);
+        auto* layer = composition_.getLayer(l);
         if (!layer || layer->ignoreColumnTrigger) continue;  // excluded, as triggerColumn does
         considered[static_cast<size_t>(l)] = true;
-        autoPlays[static_cast<size_t>(l)] = triggerWillAutoPlay(*layer, column);
-        if (const Clip* tc = layer->getClipAt(column))
+        autoPlays[static_cast<size_t>(l)] = triggerWillAutoPlay(composition_, l, ref);
+        if (const Clip* tc = deck->getClip(l, column))
             playBefore[static_cast<size_t>(l)] = tc->playing;
     }
 
@@ -5014,7 +5077,7 @@ void MainComponent::handleColumnTrigger(int column, Origin origin, int deckIndex
     const FeatureSnapshot quantizeSnap = analysisThread_.getFeatureBus().read();
     const auto forcedSnap = quantizeModeToForcedSnap(composition_.quantizeMode, quantizeSnap);
     std::vector<std::optional<LayerRuntimeTransition>> transitions;
-    deck->triggerColumn(column, forcedSnap, &transitions);
+    composition_.triggerColumn(resolvedDeckIndex, column, forcedSnap, &transitions);
 
     // One child per considered layer whose runtime or target-`playing` changed;
     // pushCommands composites them into one slot (a single changed layer collapses
@@ -5028,16 +5091,19 @@ void MainComponent::handleColumnTrigger(int column, Origin origin, int deckIndex
     for (int l = 0; l < numLayers; ++l)
     {
         if (!considered[static_cast<size_t>(l)]) continue;
-        auto* layer = deck->getLayer(l);
-        if (!layer || static_cast<size_t>(l) >= transitions.size() || !transitions[static_cast<size_t>(l)]) continue;
+        if (static_cast<size_t>(l) >= transitions.size() || !transitions[static_cast<size_t>(l)]) continue;
         const LayerRuntimeTransition& t = *transitions[static_cast<size_t>(l)];
         std::optional<bool> playAfter;
-        if (const Clip* tc = layer->getClipAt(column))
+        if (const Clip* tc = deck->getClip(l, column))
             playAfter = tc->playing;
+        // C3 (F13): a NEWLY activated playable clip resumes where its player is (not a retrigger, not queued).
+        if (t.after.activeRef() == ref && !(t.before.activeRef() == ref))
+            if (Clip* activated = deck->getClip(l, column); activated != nullptr && activated->isPlayable())
+                syncActivatedPlayhead(*activated);
         const bool changed = t.changed() || playBefore[static_cast<size_t>(l)] != playAfter;
         if (changed && origin == Origin::Human)
             children.push_back(std::make_unique<TriggerClipCmd>(
-                makeLayerResolver(), resolvedDeckIndex, l, column,
+                makeCompositionResolver(), l, ref,
                 t.before, t.after,
                 playBefore[static_cast<size_t>(l)], playAfter, "Trigger Column"));
 
@@ -5058,55 +5124,18 @@ void MainComponent::handleColumnTrigger(int column, Origin origin, int deckIndex
     if (origin == Origin::Human)
         pushCommands(std::move(children), "Trigger Column");
 
-    // Preview/deck-view refresh only when the targeted deck is active (plan
-    // section 3.3 B2) -- see the identical rule in handleClipTrigger above.
-    if (resolvedDeckIndex == composition_.activeDeckIndex)
-    {
+    // Lane bf9b: the column fire lands in the stack on screen whatever deck it came from -- the UI refresh is
+    // unconditional; the column header remembers {deckId, column} (lit only on the deck it was fired from).
     if (deckView_)
-    {
-        deckView_->setActiveColumn(column);
-        deckView_->refresh();
-    }
+        deckView_->setActiveColumn(column, deck->id);   // refreshes the grid
 
-    // Load the bottom-most active clip's content into preview
-    bool foundActiveClip = false;
-    for (int i = 0; i < deck->getNumLayers(); ++i)
-    {
-        auto* layer = deck->getLayer(i);
-        if (!layer) continue;
-        if (auto* clip = layer->getActiveClip())
-        {
-            if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
-            {
-                previewPanel_.getRenderer().clearActiveSource();
-                previewPanel_.loadImage(clip->mediaFile);
-                setFileLabel(clip->mediaFile.getFileName());
-                foundActiveClip = true;
-                break;
-            }
-            else if (clip->mediaType == Clip::MediaType::Source && !clip->sourceType.empty())
-            {
-                previewPanel_.getRenderer().setActiveSource(clip->sourceType, clip->sourceParams);
-                previewPanel_.getRenderer().clearImage();
-                setFileLabel(juce::String(clip->sourceType));
-                foundActiveClip = true;
-                break;
-            }
-        }
-    }
-
-    if (!foundActiveClip)
-    {
-        previewPanel_.getRenderer().clearActiveSource();
-        previewPanel_.clearImage();
-        setFileLabel("");
-    }
-    }
+    // Load the bottom-most playing clip's content into preview
+    refreshPreviewFromShow();
 }
 
 // A1 fix (2026-07-30): the previewPanel_ renderer's fallback state
 // (activeSourceType_ / loaded image / fileLabel_) is
-// GLOBAL to the whole deck, but a layer's X-clear is PER-LAYER — naively
+// GLOBAL to the whole show, but a layer's X-clear is PER-LAYER — naively
 // purging that global state on any layer's clear could blank a DIFFERENT
 // layer's still-playing visual even though nothing about ITS clip changed.
 //
@@ -5115,21 +5144,19 @@ void MainComponent::handleColumnTrigger(int column, Origin origin, int deckIndex
 // (CompositorEngine::hasActiveLayers_ false — no visible, non-bypassed layer
 // has an active clip with media/effects); otherwise the compositor output
 // takes priority and the fallback state is not visually used at all. So
-// after a layer's clip is cleared, rescan every layer in the SAME deck (not
-// just the cleared one) for a still-active Image/Source clip and re-point
-// the preview at it — exactly mirroring handleColumnTrigger's post-trigger
-// preview refresh above (:3054-3092), which already performs this same
-// rescan-or-purge after every trigger. Only purge when NO layer anywhere in
-// the deck still owns active content, matching the exact condition under
-// which Renderer.cpp's fallback would otherwise render stale content.
-void MainComponent::refreshPreviewFromActiveClip(Deck& deck)
+// after a layer's clip is cleared, rescan every SHARED layer (not just the
+// cleared one) for a still-playing Image/Source clip and re-point the preview
+// at it — the same refresh handleColumnTrigger runs after every column fire.
+// Only purge when NO layer still owns active content, matching the exact
+// condition under which Renderer.cpp's fallback would otherwise render stale content.
+void MainComponent::refreshPreviewFromShow()
 {
+    // Lane bf9b: the SHARED stack's playing clips (any deck, Composition::playingClip), bottom first -- never a deck
+    // switch's business (R7).
     bool foundActiveClip = false;
-    for (int i = 0; i < deck.getNumLayers(); ++i)
+    for (int i = 0; i < composition_.getNumLayers(); ++i)
     {
-        auto* otherLayer = deck.getLayer(i);
-        if (!otherLayer) continue;
-        if (auto* clip = otherLayer->getActiveClip())
+        if (auto* clip = composition_.playingClip(i))
         {
             if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
             {
@@ -5162,8 +5189,15 @@ void MainComponent::refreshPreviewFromActiveClip(Deck& deck)
 
 ClipLayerResolver MainComponent::makeLayerResolver()
 {
-    return [this](int deckIndex, int layerIndex) {
-        return undoService_.resolveLayer(deckIndex, layerIndex);
+    return [this](int layerIndex) {
+        return undoService_.resolveLayer(layerIndex);   // lane bf9b: the SHARED layer
+    };
+}
+
+ClipRowResolver MainComponent::makeRowResolver()
+{
+    return [this](int deckIndex, int row) {
+        return undoService_.resolveRow(deckIndex, row);
     };
 }
 
@@ -5225,11 +5259,10 @@ ClipMediaDisposeHook MainComponent::makeClipMediaDisposeHook()
     // no longer be sufficient once an id can be live in more than one place.
     return [this](const Clip& clip) {
         if (!clip.isPlayable()) return;
-        for (auto& deck : composition_.decks)
-            for (auto& layer : deck.layers)
-                for (auto& cell : layer.clips)
-                    if (cell.has_value() && cell->id == clip.id)
-                        return;   // still live somewhere — do not close
+        bool live = false;   // lane bf9b: every deck box, retired ones included (Composition::forEachClip)
+        composition_.forEachClip([&](const Clip& cell, const ClipSite&) { live = live || cell.id == clip.id; });
+        if (live)
+            return;   // still live somewhere — do not close
         previewPanel_.getRenderer().closeMediaForClip(clip.id);
     };
 }
@@ -5252,15 +5285,6 @@ CompositionResolver MainComponent::makeCompositionResolver()
     return [this]() -> Composition* { return &composition_; };
 }
 
-DeckActivateHook MainComponent::makeDeckActivateHook()
-{
-    // SwitchDeckCmd re-points the renderer at the current active deck on
-    // execute/undo/redo — the same atomic handoff handleDeckSwitch performs live.
-    return [this]() {
-        previewPanel_.getRenderer().setActiveDeck(composition_.getActiveDeck());
-    };
-}
-
 std::function<void()> MainComponent::makeEffectStackRefresh()
 {
     // Fired by EffectStackCmd on execute/undo/redo — a lightweight notification
@@ -5279,10 +5303,10 @@ std::function<void()> MainComponent::makeEffectStackRefresh()
     };
 }
 
-std::optional<Clip> MainComponent::snapshotCell(Layer* layer, int column)
+std::optional<Clip> MainComponent::snapshotCell(ClipRow* row, int column)
 {
-    if (layer == nullptr) return std::nullopt;
-    if (Clip* clip = layer->getClipAt(column))
+    if (row == nullptr) return std::nullopt;
+    if (Clip* clip = row->getClipAt(column))
         return std::optional<Clip>(*clip);
     return std::nullopt;
 }
@@ -5290,7 +5314,7 @@ std::optional<Clip> MainComponent::snapshotCell(Layer* layer, int column)
 std::unique_ptr<Command> MainComponent::makeSetClipCmd(int deckIndex, const CellEdit& edit,
                                                        const juce::String& description)
 {
-    return std::make_unique<SetClipCmd>(makeLayerResolver(), makeDeckFence(), makeClipMediaHook(),
+    return std::make_unique<SetClipCmd>(makeRowResolver(), makeDeckFence(), makeClipMediaHook(),
                                         makeClipMediaDisposeHook(),
                                         deckIndex, edit.layerIndex, edit.column,
                                         edit.before, edit.after, description.toStdString());
@@ -5299,9 +5323,6 @@ std::unique_ptr<Command> MainComponent::makeSetClipCmd(int deckIndex, const Cell
 void MainComponent::pushCommands(std::vector<std::unique_ptr<Command>> children,
                                  const juce::String& compositeDescription)
 {
-    // plan6 §6.2: any later command (a clip placed, a tab switch, a trigger) retires the Remove-Deck undo hint --
-    // Undo would then no longer mean "un-remove".
-    if (deckView_) deckView_->hideUndoHint();
     if (children.empty())
         return;
     if (children.size() == 1)
@@ -5370,22 +5391,31 @@ void MainComponent::refreshAfterUndoRedo(bool affectsLayerOrder)
         inspectorPanel_->getClipInspector().setClip(fresh, clipScope);
 
         // Re-point the layer inspector BY COORDINATE too (risk #3): a layer
-        // add/remove/move undo can leave it holding a dangling Layer*. A stale
-        // index resolves to nullptr, which setLayer clears null-safely.
-        const int selLayer = deckView_->getSelectedLayerIndex();
-        Layer* freshLayer = (selLayer >= 0)
-            ? undoService_.resolveLayer(composition_.activeDeckIndex, selLayer)
-            : nullptr;
-        const EffectScope layerScope = (selLayer >= 0)
-            ? EffectScope::layer(composition_.activeDeckIndex, selLayer)
-            : EffectScope::none();
-        inspectorPanel_->getLayerInspector().setLayer(freshLayer, layerScope);
+        // add/remove/move undo can leave it holding a dangling Layer*.
+        repointLayerInspector();
 
         // Global effects live on the Composition, not a selected cell, so the two
         // re-points above don't reach them. Rebuild the composition inspector's
         // stack so a global effect add/remove/bypass undo/redo reflects too.
         inspectorPanel_->rebuildCompositionEffects();
     }
+}
+
+void MainComponent::repointLayerInspector()
+{
+    // By coordinate (the selected layer row): a stale index resolves to nullptr, which setLayer clears null-safely.
+    // refreshAfterUndoRedo's re-point. (After a fenced edit that moved or resized the shared stack the hook does the
+    // same through repointInspectorsAfterStackMove, ui/InspectorRepoint.h.)
+    if (inspectorPanel_ == nullptr || deckView_ == nullptr)
+        return;
+    const int selLayer = deckView_->getSelectedLayerIndex();
+    Layer* freshLayer = (selLayer >= 0)
+        ? undoService_.resolveLayer(selLayer)   // lane bf9b: the SHARED layer
+        : nullptr;
+    const EffectScope layerScope = (selLayer >= 0)
+        ? EffectScope::layer(-1, selLayer)
+        : EffectScope::none();
+    inspectorPanel_->getLayerInspector().setLayer(freshLayer, layerScope);
 }
 
 std::optional<MainComponent::PreparedDrop>
@@ -5443,7 +5473,7 @@ std::optional<MainComponent::CellEdit> MainComponent::commitDrop(const PreparedD
     if (!deck) return std::nullopt;
 
     // Capture before-state for undo (nullopt if the cell was empty).
-    std::optional<Clip> before = snapshotCell(deck->getLayer(prepared.layerIndex), prepared.column);
+    std::optional<Clip> before = snapshotCell(deck->getRow(prepared.layerIndex), prepared.column);
     deck->setClip(prepared.layerIndex, prepared.column, prepared.clip);
     return CellEdit{ prepared.layerIndex, prepared.column, before, std::optional<Clip>(prepared.clip) };
 }
@@ -5595,8 +5625,8 @@ void MainComponent::handleMultiFileDrop(int layerIndex, int column, const std::v
             while (deck->numColumns < needed)
             {
                 deck->numColumns++;
-                for (auto& layer : deck->layers)
-                    layer.clips.resize(static_cast<size_t>(deck->numColumns));
+                for (auto& row : deck->rows)
+                    row.clips.resize(static_cast<size_t>(deck->numColumns));
             }
             for (const auto& p : prepared)
                 if (auto edit = commitDrop(p))
@@ -5648,10 +5678,10 @@ void MainComponent::handleDeckSwitch(int deckIndex, Origin origin)
     }
 
     // s-rta-0923/0924 step 3 (plan section 3.3 B2): capture only on an
-    // ACTUAL change -- a same-deck no-op switch records nothing. handleDeckSwitch
-    // never pushes an undo command itself (deckView_->onDeckSwitched, the user
-    // entry point, does that) so there is nothing to gate on origin here beyond
-    // the capture call, which the host also filters (never Origin::Replay).
+    // ACTUAL change -- a same-deck no-op switch records nothing. A deck switch is
+    // never an Undo step (lane bf9b S2c, ruling-bf9b amendment 10), from any
+    // entry, so there is nothing to gate on origin here beyond the capture call,
+    // which the host also filters (never Origin::Replay).
     const bool actualChange = deckIndex != composition_.activeDeckIndex;
     if (actualChange && origin != Origin::Replay)
     {
@@ -5664,44 +5694,13 @@ void MainComponent::handleDeckSwitch(int deckIndex, Origin origin)
         recorderHost_.capture(key, std::move(p));
     }
 
-    // L5 Quantize fix: cancel any pending quantized trigger left waiting on the
-    // deck we're LEAVING, via the shared DeckCommands.h helper (also used by
-    // AddDeckCmd and appendDeckFromFile's deck-append — every deck-deactivation
-    // path shares this one implementation now). Autopilot::processFrame only
-    // drains the deck the renderer currently points at (Renderer.cpp's
-    // `deckActive` gate), so a pending trigger on a deactivated deck freezes
-    // rather than fires, then fires arbitrarily late whenever that deck is
-    // reactivated and a beat next crosses — a cell lighting up nobody asked
-    // for, mid-set. Lives here (not in the caller) so every switch path
-    // inherits it — user tab click, REST, OSC, MIDI/controller SwitchDeck
-    // bindings, and genre auto-switch alike; onDeckSwitched (the one path that
-    // needs the cancelled list for undo) already called this same helper
-    // itself, so this call is a harmless no-op for that path. Guarded on an
-    // ACTUAL deck change: deckIndex == activeDeckIndex is a same-deck no-op
-    // switch and must not disturb that deck's pending triggers.
-    if (deckIndex != composition_.activeDeckIndex)
-    {
-        if (auto* leavingDeck = composition_.getActiveDeck())
-            cancelPendingTriggers(*leavingDeck);
-    }
-
+    // Lane bf9b (rulebook R7, plan-bf9b F11 / F16): a deck switch does EXACTLY this -- the index, the renderer's
+    // fence token, the grid's cells (DeckView::showDeck), and the take capture above. Nothing that plays changes:
+    // no queued trigger is cancelled, no preview refresh, no strip is rebuilt.
     composition_.activeDeckIndex = deckIndex;
-
-    // Update renderer's active deck pointer
-    auto* deck = composition_.getActiveDeck();
-    previewPanel_.getRenderer().setActiveDeck(deck);
-
-    // setActiveDeck only repoints the compositor's deck pointer — the
-    // renderer's fallback preview state (activeSourceType_ / loaded image)
-    // is global and untouched by it, so an empty newly-active deck kept
-    // showing the previous deck's clip (see refreshPreviewFromActiveClip's
-    // ownership rule above: reconcile the fallback after any switch that can
-    // change what the active deck actually has to show).
-    if (deck)
-        refreshPreviewFromActiveClip(*deck);
-
+    previewPanel_.getRenderer().setActiveDeck(composition_.getActiveDeck());
     if (deckView_)
-        deckView_->rebuildGrid();
+        deckView_->showDeck();
 }
 
 // s-rta-0923/0924 step 3 (Lane S3-B, plan section 3.3 B3, D6b): the five
@@ -5726,20 +5725,16 @@ Deck* MainComponent::deckForDispatch(int deckIndex, const char* who, Origin orig
 
 void MainComponent::applyClearActiveClip(int layerIndex, Origin origin, int deckIndex)
 {
-    auto* deck = deckForDispatch(deckIndex, "applyClearActiveClip", origin);
-    if (!deck) return;
-    auto* layer = deck->getLayer(layerIndex);
+    // Lane bf9b: the SHARED layer -- whatever deck its clip came from; deckIndex only labels the capture key.
+    auto* layer = composition_.getLayer(layerIndex);
     // One load for the early-out; a GL-thread transition landing before the clear can only make a clip active (a fade
     // tick, autopilot, a fired queued trigger -- never a clear), so the clear below is still the dispatched intent.
     if (!layer || layer->runtime().activeClipColumn < 0) return;
 
-    layer->clearActiveClip();
-    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex.load() : deckIndex;
-    if (resolvedDeckIndex == composition_.activeDeckIndex)
-    {
-        previewPanel_.getRenderer().setActiveDeck(composition_.getActiveDeck());
-        if (deckView_) deckView_->refresh();
-    }
+    layer->clearActiveClip(composition_.rowClips(layerIndex));
+    const int resolvedDeckIndex = (deckIndex >= 0 && deckIndex < static_cast<int>(composition_.decks.size()))
+                                      ? deckIndex : composition_.activeDeckIndex.load();
+    if (deckView_) deckView_->refresh();
 
     if (origin != Origin::Replay)
     {
@@ -6493,9 +6488,8 @@ void MainComponent::applyAudioTransport(const std::string& action, Origin origin
 
 void MainComponent::applyLayerFlag(int layerIndex, const std::string& flag, bool value, Origin origin, int deckIndex)
 {
-    auto* deck = deckForDispatch(deckIndex, "applyLayerFlag", origin);
-    if (!deck) return;
-    auto* layer = deck->getLayer(layerIndex);
+    // Lane bf9b (R1): a layer flag is a SHARED layer setting -- deckIndex only labels the capture key.
+    auto* layer = composition_.getLayer(layerIndex);
     if (!layer) return;
 
     if (flag == "visible") layer->visible = value;
@@ -6505,8 +6499,9 @@ void MainComponent::applyLayerFlag(int layerIndex, const std::string& flag, bool
     else if (flag == "autopilot") layer->autopilotEnabled = value;
     else return;
 
-    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex.load() : deckIndex;
-    if (resolvedDeckIndex == composition_.activeDeckIndex && deckView_) deckView_->refresh();
+    const int resolvedDeckIndex = (deckIndex >= 0 && deckIndex < static_cast<int>(composition_.decks.size()))
+                                      ? deckIndex : composition_.activeDeckIndex.load();
+    if (deckView_) deckView_->refresh();
 
     if (origin == Origin::Replay) return;
     ControlPath key = layerScalarPath(composition_, resolvedDeckIndex, layerIndex, "");
@@ -6522,9 +6517,7 @@ void MainComponent::applyEffectBypass(int layerIndex, int column, int fxIndex, b
 {
     auto* deck = deckForDispatch(deckIndex, "applyEffectBypass", origin);
     if (!deck) return;
-    auto* layer = deck->getLayer(layerIndex);
-    if (!layer) return;
-    auto* clip = layer->getClipAt(column);
+    auto* clip = deck->getClip(layerIndex, column);   // bf9b R3: the deck box's cell
     if (!clip || fxIndex < 0 || fxIndex >= static_cast<int>(clip->effects.size())) return;
 
     auto& slot = clip->effects[static_cast<size_t>(fxIndex)];
@@ -6549,9 +6542,7 @@ void MainComponent::applyClipPlaying(int layerIndex, int column, const std::stri
 {
     auto* deck = deckForDispatch(deckIndex, "applyClipPlaying", origin);
     if (!deck) return;
-    auto* layer = deck->getLayer(layerIndex);
-    if (!layer) return;
-    auto* clip = layer->getClipAt(column);
+    auto* clip = deck->getClip(layerIndex, column);   // bf9b R3: the deck box's cell
     if (!clip) return;
 
     if (action == "play") { clip->reverse = false; clip->playing = true; }
@@ -6565,7 +6556,7 @@ void MainComponent::applyClipPlaying(int layerIndex, int column, const std::stri
     else return;
 
     const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex.load() : deckIndex;
-    if (resolvedDeckIndex == composition_.activeDeckIndex && deckView_) deckView_->refresh();
+    if (deckView_) deckView_->refresh();   // bf9b: a clip of any deck may be the one a shared layer plays
 
     if (origin == Origin::Replay) return;
     ControlPath key = clipScalarPath(composition_, resolvedDeckIndex, layerIndex, column, "");
@@ -6673,40 +6664,30 @@ void MainComponent::handleMenuCommand(int commandId)
                         juce::String(composition_.name) + "_media");
                     destDir.createDirectory();
                     int copied = 0;
-                    // Iterate all decks/layers/clips
-                    for (auto& deck : composition_.decks)
+                    // Iterate every clip of every deck box (lane bf9b R5: Composition::forEachClip)
+                    composition_.forEachClip([&](Clip& clip, const ClipSite&)
                     {
-                        for (int l = 0; l < deck.getNumLayers(); ++l)
+                        if (clip.mediaFile != juce::File() && clip.mediaFile.existsAsFile())
                         {
-                            auto* layer = deck.getLayer(l);
-                            if (!layer) continue;
-                            for (auto& clipOpt : layer->clips)
+                            auto dest = destDir.getChildFile(clip.mediaFile.getFileName());
+                            if (!dest.existsAsFile())
                             {
-                                if (!clipOpt.has_value()) continue;
-                                auto& clip = clipOpt.value();
-                                if (clip.mediaFile != juce::File() && clip.mediaFile.existsAsFile())
-                                {
-                                    auto dest = destDir.getChildFile(clip.mediaFile.getFileName());
-                                    if (!dest.existsAsFile())
-                                    {
-                                        clip.mediaFile.copyFileTo(dest);
-                                        ++copied;
-                                    }
-                                    clip.mediaFile = dest; // Relink to collected copy
-                                }
-                                for (auto& sf : clip.sequenceFiles)
-                                {
-                                    if (sf.existsAsFile())
-                                    {
-                                        auto dest = destDir.getChildFile(sf.getFileName());
-                                        if (!dest.existsAsFile())
-                                            sf.copyFileTo(dest);
-                                        sf = dest;
-                                    }
-                                }
+                                clip.mediaFile.copyFileTo(dest);
+                                ++copied;
+                            }
+                            clip.mediaFile = dest; // Relink to collected copy
+                        }
+                        for (auto& sf : clip.sequenceFiles)
+                        {
+                            if (sf.existsAsFile())
+                            {
+                                auto dest = destDir.getChildFile(sf.getFileName());
+                                if (!dest.existsAsFile())
+                                    sf.copyFileTo(dest);
+                                sf = dest;
                             }
                         }
-                    }
+                    });
                     // Also save composition JSON
                     auto compFile = destDir.getParentDirectory().getChildFile(
                         juce::String(composition_.name) + ".json");
@@ -6729,41 +6710,32 @@ void MainComponent::handleMenuCommand(int commandId)
                     if (results.isEmpty()) return;
                     auto searchDir = results.getFirst();
                     int found = 0;
-                    for (auto& deck : composition_.decks)
+                    // Every clip of every deck box (lane bf9b R5: Composition::forEachClip)
+                    composition_.forEachClip([&](Clip& clip, const ClipSite&)
                     {
-                        for (int l = 0; l < deck.getNumLayers(); ++l)
+                        if (clip.mediaFile != juce::File() && !clip.mediaFile.existsAsFile())
                         {
-                            auto* layer = deck.getLayer(l);
-                            if (!layer) continue;
-                            for (auto& clipOpt : layer->clips)
+                            // Search for file by name in the search directory
+                            auto name = clip.mediaFile.getFileName();
+                            auto candidate = searchDir.getChildFile(name);
+                            if (candidate.existsAsFile())
                             {
-                                if (!clipOpt.has_value()) continue;
-                                auto& clip = clipOpt.value();
-                                if (clip.mediaFile != juce::File() && !clip.mediaFile.existsAsFile())
+                                clip.mediaFile = candidate;
+                                ++found;
+                            }
+                            else
+                            {
+                                // Deep search — check subdirectories
+                                auto matches = searchDir.findChildFiles(
+                                    juce::File::findFiles, true, name);
+                                if (!matches.isEmpty())
                                 {
-                                    // Search for file by name in the search directory
-                                    auto name = clip.mediaFile.getFileName();
-                                    auto candidate = searchDir.getChildFile(name);
-                                    if (candidate.existsAsFile())
-                                    {
-                                        clip.mediaFile = candidate;
-                                        ++found;
-                                    }
-                                    else
-                                    {
-                                        // Deep search — check subdirectories
-                                        auto matches = searchDir.findChildFiles(
-                                            juce::File::findFiles, true, name);
-                                        if (!matches.isEmpty())
-                                        {
-                                            clip.mediaFile = matches.getFirst();
-                                            ++found;
-                                        }
-                                    }
+                                    clip.mediaFile = matches.getFirst();
+                                    ++found;
                                 }
                             }
                         }
-                    }
+                    });
                     if (deckView_) deckView_->rebuildGrid();
                     DBG("Relocated " + juce::String(found) + " missing files");
                 });
@@ -6795,40 +6767,46 @@ void MainComponent::handleMenuCommand(int commandId)
             break;
         case C::kDeckClearClips:
             // Whole-deck clip clear = one composite of ClearLayerClipsCmd, one per
-            // layer that actually has content (already-empty layers are skipped, so
-            // clearing an empty deck pushes nothing).
+            // row that actually has content (already-empty rows are skipped, so
+            // clearing an empty deck pushes nothing). Lane bf9b: the SHOWN deck's rows; a shared layer's tuple is
+            // cleared only when it plays from that row of that deck (another deck's clip keeps playing).
             if (auto* deck = composition_.getActiveDeck())
             {
+                const int deckIdx = composition_.activeDeckIndex;
                 // GL fence (2026-07-28): clips.clear() below is a full-vector
                 // replace, the crash-proven reallocation class — ONE fence for
-                // the whole gesture (every layer), not per layer.
+                // the whole gesture (every row), not per row.
                 std::vector<std::unique_ptr<Command>> children;
                 undoService_.withDeckDetached([&]
                 {
-                    for (int l = 0; l < deck->getNumLayers(); ++l)
+                    for (int l = 0; l < deck->getNumRows(); ++l)
                     {
-                        auto* layer = deck->getLayer(l);
-                        if (layer == nullptr) continue;
-                        LayerClipsSnapshot before = captureLayerClips(*layer);
+                        auto* row = deck->getRow(l);
+                        auto* layer = composition_.getLayer(l);
+                        if (row == nullptr || layer == nullptr) continue;
+                        LayerClipsSnapshot before = captureLayerClips(composition_, deckIdx, l);
                         if (!layerClipsSnapshotHasContent(before)) continue;
-                        layer->clips.clear();
-                        layer->ensureColumns(deck->numColumns);
-                        layer->clearActiveClip();
-                        LayerClipsSnapshot after = captureLayerClips(*layer);
+                        row->clips.clear();
+                        row->ensureColumns(deck->numColumns);
+                        const LayerRuntimeTransition t = clearTupleForRow(*layer, deck->id);
+                        LayerClipsSnapshot after;
+                        after.clips = row->clips;
+                        if (before.runtime.has_value())
+                            after.runtime = t.after;
                         children.push_back(std::make_unique<ClearLayerClipsCmd>(
-                            makeLayerResolver(), makeDeckFence(), makeClipMediaHook(),
+                            makeCompositionResolver(), makeDeckFence(), makeClipMediaHook(),
                             makeClipMediaDisposeHook(),
-                            composition_.activeDeckIndex, l,
+                            deckIdx, l,
                             std::move(before), std::move(after), "Clear Layer Clips"));
                     }
                 });
                 pushCommands(std::move(children), "Clear Deck Clips");
-                // A1-companion fix (reviewer finding, 2026-07-30): clearActiveClip()
+                // A1-companion fix (reviewer finding, 2026-07-30): the tuple clear
                 // above never purged the renderer, so wiping the only active
                 // shader/projectM clip via "Clear Deck Clips" reproduced the
                 // stale-render symptom A1 fixed for the X-button clear. Same
-                // ownership rule (see refreshPreviewFromActiveClip's doc comment).
-                refreshPreviewFromActiveClip(*deck);
+                // ownership rule (see refreshPreviewFromShow's doc comment).
+                refreshPreviewFromShow();
                 if (deckView_) deckView_->rebuildGrid();
             }
             break;
@@ -6837,33 +6815,32 @@ void MainComponent::handleMenuCommand(int commandId)
         case C::kLayerNew:
         case C::kLayerInsertAbove:
         case C::kLayerInsertBelow:
-            // #16: all three menu items append a layer via Deck::addLayer (no
+            // #16: all three menu items append a SHARED layer (lane bf9b: with an empty row in every deck; no
             // insert-shift at HEAD). Command owns the fenced mutation (perform()
-            // runs it) — addLayer is non-idempotent, so no mutate-then-push here.
+            // runs it) — the add is non-idempotent, so no mutate-then-push here.
             if (composition_.getActiveDeck())
             {
                 std::vector<std::unique_ptr<Command>> children;
                 children.push_back(std::make_unique<AddLayerCmd>(
-                    makeDeckResolver(), makeDeckFence(),
-                    composition_.activeDeckIndex, "Add Layer"));
+                    makeCompositionResolver(), makeDeckFence(), "Add Layer"));
                 pushCommands(std::move(children), "Add Layer");
                 if (deckView_) deckView_->rebuildGrid();
             }
             break;
         case C::kLayerRemove:
-            // #17: removes the LAST layer (HEAD behavior). Snapshot the full Layer
-            // BEFORE building the command; the command owns the fenced erase.
-            if (auto* deck = composition_.getActiveDeck())
+            // #17: removes the LAST layer (HEAD behavior) -- lane bf9b: the SHARED layer and that row of every
+            // deck. Snapshot the full Layer BEFORE building the command; the command owns the fenced erase (and
+            // snapshots every deck's row itself).
+            if (composition_.getActiveDeck())
             {
-                if (deck->getNumLayers() > 1)
+                if (composition_.getNumLayers() > 1)
                 {
-                    const int removeIdx = deck->getNumLayers() - 1;
-                    Layer removed = *deck->getLayer(removeIdx);
+                    const int removeIdx = composition_.getNumLayers() - 1;
+                    Layer removed = *composition_.getLayer(removeIdx);
                     std::vector<std::unique_ptr<Command>> children;
                     children.push_back(std::make_unique<RemoveLayerCmd>(
-                        makeDeckResolver(), makeDeckFence(), makeClipMediaHook(),
-                        makeClipMediaDisposeHook(),
-                        composition_.activeDeckIndex, removeIdx,
+                        makeCompositionResolver(), makeDeckFence(), makeClipMediaHook(),
+                        makeClipMediaDisposeHook(), removeIdx,
                         std::move(removed), "Remove Layer"));
                     pushCommands(std::move(children), "Remove Layer");
                     if (deckView_) deckView_->rebuildGrid();
@@ -6877,34 +6854,42 @@ void MainComponent::handleMenuCommand(int commandId)
             int selLayer = deckView_ ? deckView_->getSelectedLayerIndex() : -1;
             if (selLayer >= 0)
             {
+                // Lane bf9b: the SHOWN deck's row of that layer; the shared tuple only when it plays from it.
                 if (auto* deck = composition_.getActiveDeck())
                 {
-                    if (auto* layer = deck->getLayer(selLayer))
+                    auto* row = deck->getRow(selLayer);
+                    auto* layer = composition_.getLayer(selLayer);
+                    if (row != nullptr && layer != nullptr)
                     {
-                        LayerClipsSnapshot before = captureLayerClips(*layer);
+                        const int deckIdx = composition_.activeDeckIndex;
+                        LayerClipsSnapshot before = captureLayerClips(composition_, deckIdx, selLayer);
                         if (layerClipsSnapshotHasContent(before))  // skip a no-op clear
                         {
                             // GL fence (2026-07-28): clips.clear() is a full-
                             // vector replace, the crash-proven reallocation class.
+                            LayerRuntimeTransition t;
                             undoService_.withDeckDetached([&]
                             {
-                                layer->clips.clear();
-                                layer->ensureColumns(deck->numColumns);
-                                layer->clearActiveClip();
+                                row->clips.clear();
+                                row->ensureColumns(deck->numColumns);
+                                t = clearTupleForRow(*layer, deck->id);
                             });
-                            LayerClipsSnapshot after = captureLayerClips(*layer);
+                            LayerClipsSnapshot after;
+                            after.clips = row->clips;
+                            if (before.runtime.has_value())
+                                after.runtime = t.after;
                             std::vector<std::unique_ptr<Command>> children;
                             children.push_back(std::make_unique<ClearLayerClipsCmd>(
-                                makeLayerResolver(), makeDeckFence(), makeClipMediaHook(),
+                                makeCompositionResolver(), makeDeckFence(), makeClipMediaHook(),
                                 makeClipMediaDisposeHook(),
-                                composition_.activeDeckIndex, selLayer,
+                                deckIdx, selLayer,
                                 std::move(before), std::move(after), "Clear Layer Clips"));
                             pushCommands(std::move(children), "Clear Layer Clips");
                             // A1-companion fix (reviewer finding, 2026-07-30): same gap
-                            // as Clear Deck Clips above — clearActiveClip() never
+                            // as Clear Deck Clips above — the tuple clear never
                             // purged the renderer, so "Clear Layer Clips" on the only
                             // active shader/projectM clip reproduced A1's symptom.
-                            refreshPreviewFromActiveClip(*deck);
+                            refreshPreviewFromShow();
                             if (deckView_) deckView_->rebuildGrid();
                         }
                     }
@@ -6920,21 +6905,18 @@ void MainComponent::handleMenuCommand(int commandId)
             int selLayer = deckView_ ? deckView_->getSelectedLayerIndex() : -1;
             if (selLayer >= 0)
             {
-                if (auto* deck = composition_.getActiveDeck())
+                if (auto* layer = composition_.getLayer(selLayer))   // bf9b R1: a SHARED layer setting
                 {
-                    if (auto* layer = deck->getLayer(selLayer))
-                    {
-                        const bool before = layer->folded;
-                        layer->folded = !layer->folded;
-                        const juce::String desc = layer->folded ? "Fold Layer" : "Unfold Layer";
-                        std::vector<std::unique_ptr<Command>> children;
-                        children.push_back(std::make_unique<ToggleLayerFlagCmd>(
-                            makeLayerResolver(), composition_.activeDeckIndex, selLayer,
-                            ToggleLayerFlagCmd::Flag::Folded, before, layer->folded,
-                            desc.toStdString()));
-                        pushCommands(std::move(children), desc);
-                        if (deckView_) deckView_->rebuildGrid();
-                    }
+                    const bool before = layer->folded;
+                    layer->folded = !layer->folded;
+                    const juce::String desc = layer->folded ? "Fold Layer" : "Unfold Layer";
+                    std::vector<std::unique_ptr<Command>> children;
+                    children.push_back(std::make_unique<ToggleLayerFlagCmd>(
+                        makeLayerResolver(), selLayer,
+                        ToggleLayerFlagCmd::Flag::Folded, before, layer->folded,
+                        desc.toStdString()));
+                    pushCommands(std::move(children), desc);
+                    if (deckView_) deckView_->rebuildGrid();
                 }
             }
             break;
@@ -6950,7 +6932,7 @@ void MainComponent::handleMenuCommand(int commandId)
                 {
                     std::vector<std::unique_ptr<Command>> children;
                     children.push_back(std::make_unique<MoveLayerCmd>(
-                        makeDeckResolver(), makeDeckFence(), composition_.activeDeckIndex,
+                        makeCompositionResolver(), makeDeckFence(),
                         selLayer, selLayer - 1, "Move Layer Up"));
                     pushCommands(std::move(children), "Move Layer Up");
                     // Reorder shifts layer indices with the layer count unchanged, so a
@@ -6967,13 +6949,13 @@ void MainComponent::handleMenuCommand(int commandId)
         {
             // P24.13 / #18: Move selected layer down.
             int selLayer = deckView_ ? deckView_->getSelectedLayerIndex() : -1;
-            if (auto* deck = composition_.getActiveDeck())
+            if (composition_.getActiveDeck())
             {
-                if (selLayer >= 0 && selLayer < deck->getNumLayers() - 1)
+                if (selLayer >= 0 && selLayer < composition_.getNumLayers() - 1)
                 {
                     std::vector<std::unique_ptr<Command>> children;
                     children.push_back(std::make_unique<MoveLayerCmd>(
-                        makeDeckResolver(), makeDeckFence(), composition_.activeDeckIndex,
+                        makeCompositionResolver(), makeDeckFence(),
                         selLayer, selLayer + 1, "Move Layer Down"));
                     pushCommands(std::move(children), "Move Layer Down");
                     // See kLayerMoveUp above: reorder shifts layer indices with the
@@ -7017,9 +6999,9 @@ void MainComponent::handleMenuCommand(int commandId)
                     const int col = deck->numColumns - 1;
                     const int before = deck->numColumns;
                     std::vector<std::optional<Clip>> removed;
-                    removed.reserve(deck->layers.size());
-                    for (auto& layer : deck->layers)
-                        removed.push_back(snapshotCell(&layer, col));
+                    removed.reserve(deck->rows.size());
+                    for (auto& row : deck->rows)
+                        removed.push_back(snapshotCell(&row, col));
                     // GL fence (2026-07-28): removeColumn erases a cell from
                     // every layer's clips vector — same reallocation class.
                     undoService_.withDeckDetached([deck, col] { deck->removeColumn(col); });
@@ -7061,23 +7043,23 @@ void MainComponent::handleMenuCommand(int commandId)
                     {
                         for (auto& cell : deckView_->getSelectedCells())
                         {
-                            auto* layer = deck->getLayer(cell.layer);
-                            std::optional<Clip> before = snapshotCell(layer, cell.column);
+                            std::optional<Clip> before = snapshotCell(deck->getRow(cell.layer), cell.column);
                             deck->clearCell(cell.layer, cell.column);
                             edits.push_back({ cell.layer, cell.column, before, std::nullopt });
 
-                            // activeClipColumn must never dangle on a now-empty
+                            // The active ref must never dangle on a now-empty
                             // cell. Wrap the runtime reset as its own undo child
                             // (ClearActiveClipCmd) so undo restores the layer's
                             // active-cell pointer alongside the clip content.
-                            if (layer != nullptr)
+                            if (auto* layer = composition_.getLayer(cell.layer))
                             {
-                                // Clears only if cell.column is the active one (one compare-exchange, no
-                                // separate check first); the exact before / after pair.
-                                const LayerRuntimeTransition t = layer->clearActiveClip(cell.column);
+                                // Clears only if (this deck, cell.column) is the active ref (one compare-exchange,
+                                // no separate check first); the exact before / after pair.
+                                const LayerRuntimeTransition t = layer->clearActiveClip(
+                                    composition_.rowClips(cell.layer), ClipRef{ deck->id, cell.column });
                                 if (t.changed())
                                     runtimeChildren.push_back(std::make_unique<ClearActiveClipCmd>(
-                                        makeLayerResolver(), deckIdx, cell.layer,
+                                        makeLayerResolver(), cell.layer,
                                         t.before, t.after, "Clear Clip"));
                             }
                         }
@@ -7093,9 +7075,9 @@ void MainComponent::handleMenuCommand(int commandId)
                     pushCommands(std::move(children), desc);
                     // A1-adjacent: clearing the ACTIVE cell can leave the
                     // renderer's global fallback state stale (see
-                    // refreshPreviewFromActiveClip's ownership rule).
+                    // refreshPreviewFromShow's ownership rule).
                     if (!runtimeChildren.empty())
-                        refreshPreviewFromActiveClip(*deck);
+                        refreshPreviewFromShow();
                     deckView_->rebuildGrid();
                 }
             }
@@ -7219,7 +7201,7 @@ void MainComponent::handleMenuCommand(int commandId)
                             bool after = !before;
                             clip->contentLocked = after;
                             children.push_back(std::make_unique<ToggleClipLockCmd>(
-                                makeLayerResolver(), deckIdx, cell.layer, cell.column,
+                                makeRowResolver(), deckIdx, cell.layer, cell.column,
                                 before, after, after ? "Lock Content" : "Unlock Content"));
                         }
                     }
@@ -7583,7 +7565,7 @@ void MainComponent::buildBindableTargets(std::vector<BindingOverlay::BindableTar
     auto* deck = composition_.getActiveDeck();
     if (!deck) return;
 
-    int numLayers = deck->getNumLayers();
+    int numLayers = composition_.getNumLayers();   // bf9b: the grid's rows = the shared layers
     int numCols = deck->numColumns;
 
     // Global actions at the top
@@ -7687,52 +7669,33 @@ void MainComponent::buildBindableTargets(std::vector<BindingOverlay::BindableTar
     }
 }
 
+// Lane bf9b (plan-bf9b S2.8): release exactly the refs a momentary press fired (Layer::releaseMomentary, one CAS per
+// layer) -- a deck switch between press and release can no longer strand a clip on. True when a tuple changed.
+bool MainComponent::releaseMomentaryRefs(uint32_t bindingId)
+{
+    auto it = momentaryRefs_.find(bindingId);
+    if (it == momentaryRefs_.end())
+        return false;
+    bool changed = false;
+    for (const auto& [layerIdx, ref] : it->second)
+        if (auto* layer = composition_.getLayer(layerIdx))
+            changed = layer->releaseMomentary(ref, composition_.rowClips(layerIdx)).changed() || changed;
+    momentaryRefs_.erase(it);
+    return changed;
+}
+
 void MainComponent::handleBindingAction(const Binding& binding, float value)
 {
-    // === Resolve target layer/column based on targeting mode ===
-    int resolvedLayer = binding.targetLayerIndex;
-    int resolvedColumn = binding.targetColumn;
-
-    if (binding.targetMode == Binding::TargetMode::Selected)
-    {
-        // Use whatever clip/layer is currently selected in the inspector
-        if (auto* deck = composition_.getActiveDeck())
-        {
-            // Find the selected clip — use the first layer's active clip
-            for (int li = 0; li < static_cast<int>(deck->layers.size()); ++li)
-            {
-                if (const int col = deck->layers[static_cast<size_t>(li)].runtime().activeClipColumn; col >= 0)
-                {
-                    resolvedLayer = li;
-                    resolvedColumn = col;
-                    break;
-                }
-            }
-        }
-    }
-    else if (binding.targetMode == Binding::TargetMode::ThisItem && binding.targetClipId > 0)
-    {
-        // Find the clip by ID across all layers/columns in the active deck
-        if (auto* deck = composition_.getActiveDeck())
-        {
-            bool found = false;
-            for (int li = 0; li < static_cast<int>(deck->layers.size()) && !found; ++li)
-            {
-                auto& layer = deck->layers[static_cast<size_t>(li)];
-                for (int ci = 0; ci < static_cast<int>(layer.clips.size()) && !found; ++ci)
-                {
-                    if (layer.clips[static_cast<size_t>(ci)].has_value() &&
-                        layer.clips[static_cast<size_t>(ci)]->id == binding.targetClipId)
-                    {
-                        resolvedLayer = li;
-                        resolvedColumn = ci;
-                        found = true;
-                    }
-                }
-            }
-        }
-    }
-    // ByPosition: use binding.targetLayerIndex / targetColumn directly (default)
+    // === Resolve target layer/column (and the deck box) based on targeting mode ===
+    // Lane bf9b (plan-bf9b S2.8, ruling-bf9b amendment 20): binding/BindingTarget.h -- the deck the cell is in (-1 = the
+    // shown deck, ByPosition's box); a layer is a SHARED layer; Selected on a layer playing a removed deck's clip is
+    // `retired` (nothing fires, T16).
+    const BindingTarget target = resolveBindingTarget(composition_, binding);
+    const int resolvedLayer = target.layer;
+    const int resolvedColumn = target.column;
+    const int resolvedDeck = target.deck;
+    const bool resolvedRetired = target.retired;
+    const int velocityDeck = target.velocityDeck(composition_);
 
     switch (binding.action)
     {
@@ -7742,27 +7705,29 @@ void MainComponent::handleBindingAction(const Binding& binding, float value)
             {
                 // Apply MIDI velocity to clip opacity if enabled. s-rta-0923
                 // lane 3 (plan section 3.6, site #7).
+                if (resolvedRetired)
+                    break;   // T16: the Selected layer plays a removed deck's clip -- no fire, tuple unchanged
                 if (binding.velocityToOpacity && binding.inputType == Binding::InputType::MidiNote)
                 {
-                    manualWrite(clipScalarPath(composition_, composition_.activeDeckIndex, resolvedLayer, resolvedColumn, "opacity"),
+                    // Amendment 20: the velocity lands on the clip that fires (its own deck for ThisItem / Selected).
+                    manualWrite(clipScalarPath(composition_, velocityDeck, resolvedLayer, resolvedColumn, "opacity"),
                                value, GripKind::Decaying, Origin::Human); // velocity already normalized 0-1
                 }
-                handleClipTrigger(resolvedLayer, resolvedColumn);
+                handleClipTrigger(resolvedLayer, resolvedColumn, Origin::Human, resolvedDeck);
+                // Momentary: the press records the ref it fired, so the release releases exactly that clip even
+                // after a deck switch (plan-bf9b S2.8).
+                if (binding.triggerMode == Binding::TriggerMode::Momentary
+                    && velocityDeck >= 0 && velocityDeck < static_cast<int>(composition_.decks.size()))
+                    momentaryRefs_[binding.id] = { { resolvedLayer,
+                        ClipRef{ composition_.decks[static_cast<size_t>(velocityDeck)].id, resolvedColumn } } };
             }
             else if (binding.triggerMode == Binding::TriggerMode::Momentary)
             {
                 // Momentary release: clear this layer if the pad's clip is active, or cancel its
                 // trigger if it is still queued (released before its beat: it never latches on).
                 // One compare-exchange (Layer::releaseMomentary), no separate check first.
-                if (auto* deck = composition_.getActiveDeck())
-                {
-                    auto* layer = deck->getLayer(resolvedLayer);
-                    if (layer && layer->releaseMomentary(resolvedColumn).changed())
-                    {
-                        previewPanel_.getRenderer().setActiveDeck(composition_.getActiveDeck());
-                        if (deckView_) deckView_->refresh();
-                    }
-                }
+                if (releaseMomentaryRefs(binding.id))
+                    if (deckView_) deckView_->refresh();
             }
             break;
         }
@@ -7777,28 +7742,33 @@ void MainComponent::handleBindingAction(const Binding& binding, float value)
                 {
                     if (auto* deck = composition_.getActiveDeck())
                     {
-                        for (int li = 0; li < static_cast<int>(deck->layers.size()); ++li)
+                        for (int li = 0; li < deck->getNumRows(); ++li)
                         {
-                            auto& layer = deck->layers[static_cast<size_t>(li)];
-                            if (layer.getClipAt(resolvedColumn))
+                            if (deck->getClip(li, resolvedColumn))
                                 manualWrite(clipScalarPath(composition_, composition_.activeDeckIndex, li, resolvedColumn, "opacity"),
                                            value, GripKind::Decaying, Origin::Human);
                         }
                     }
                 }
                 handleColumnTrigger(resolvedColumn);
+                // Momentary: the press records the ref it fired on every layer the column reached.
+                if (binding.triggerMode == Binding::TriggerMode::Momentary)
+                    if (auto* deck = composition_.getActiveDeck())
+                    {
+                        auto& refs = momentaryRefs_[binding.id];
+                        refs.clear();
+                        for (int li = 0; li < composition_.getNumLayers(); ++li)
+                            if (!composition_.layers[static_cast<size_t>(li)].ignoreColumnTrigger)
+                                refs.push_back({ li, ClipRef{ deck->id, resolvedColumn } });
+                    }
             }
             else if (binding.triggerMode == Binding::TriggerMode::Momentary)
             {
-                // Momentary release: clear every layer playing this column, and cancel the
-                // column's trigger on every layer where it is still queued (Layer::releaseMomentary).
-                if (auto* deck = composition_.getActiveDeck())
-                {
-                    for (auto& layer : deck->layers)
-                        layer.releaseMomentary(resolvedColumn);
-                    previewPanel_.getRenderer().setActiveDeck(composition_.getActiveDeck());
-                    if (deckView_) deckView_->refresh();
-                }
+                // Momentary release: clear every layer playing the pressed column's clip, and cancel its
+                // trigger on every layer where it is still queued (Layer::releaseMomentary) -- exactly the refs the
+                // press fired, whatever deck is shown now.
+                releaseMomentaryRefs(binding.id);
+                if (deckView_) deckView_->refresh();
             }
             break;
         }
@@ -7811,10 +7781,8 @@ void MainComponent::handleBindingAction(const Binding& binding, float value)
         {
             if (value > 0.0f)
             {
-                auto* deck = composition_.getActiveDeck();
-                if (deck)
                 {
-                    auto* layer = deck->getLayer(resolvedLayer);
+                    auto* layer = composition_.getLayer(resolvedLayer);   // bf9b R1: the SHARED layer
                     if (layer)
                     {
                         // s-rta-0923/0924 step 3 (plan section 3.3 B3): routed
@@ -7924,20 +7892,13 @@ void MainComponent::handleBindingAction(const Binding& binding, float value)
         {
             if (value > 0.0f)
             {
-                if (auto* deck = composition_.getActiveDeck())
-                {
-                    auto* layer = deck->getLayer(resolvedLayer);
-                    if (layer)
-                    {
-                        const int col = layer->runtime().activeClipColumn;
-                        auto* clip = layer->getClipAt(col);
-                        if (clip)
-                            // "resume" (not "play") on the pause->play leg: a live
-                            // pad toggle must not force a reversed clip forward.
-                            applyClipPlaying(resolvedLayer, col,
-                                             clip->playing ? "pause" : "resume", Origin::Human);
-                    }
-                }
+                // Lane bf9b (R4): the clip the SHARED layer plays, in the deck it came from.
+                const auto pl = composition_.playing(resolvedLayer);
+                if (pl.clip != nullptr && pl.deckIndex >= 0)
+                    // "resume" (not "play") on the pause->play leg: a live
+                    // pad toggle must not force a reversed clip forward.
+                    applyClipPlaying(resolvedLayer, pl.ref.column,
+                                     pl.clip->playing ? "pause" : "resume", Origin::Human, 0, pl.deckIndex);
             }
             break;
         }
@@ -7946,21 +7907,15 @@ void MainComponent::handleBindingAction(const Binding& binding, float value)
         {
             if (value > 0.0f)
             {
-                if (auto* deck = composition_.getActiveDeck())
+                // Lane bf9b (R4): the clip the SHARED layer plays, in the deck it came from.
+                const auto pl = composition_.playing(resolvedLayer);
+                auto* clip = pl.deckIndex >= 0 ? pl.clip : nullptr;
+                if (clip && binding.targetEffectIndex >= 0 &&
+                    binding.targetEffectIndex < static_cast<int>(clip->effects.size()))
                 {
-                    auto* layer = deck->getLayer(resolvedLayer);
-                    if (layer)
-                    {
-                        const int col = layer->runtime().activeClipColumn;
-                        auto* clip = layer->getClipAt(col);
-                        if (clip && binding.targetEffectIndex >= 0 &&
-                            binding.targetEffectIndex < static_cast<int>(clip->effects.size()))
-                        {
-                            auto& fx = clip->effects[static_cast<size_t>(binding.targetEffectIndex)];
-                            applyEffectBypass(resolvedLayer, col,
-                                              binding.targetEffectIndex, !fx.bypassed, Origin::Human);
-                        }
-                    }
+                    auto& fx = clip->effects[static_cast<size_t>(binding.targetEffectIndex)];
+                    applyEffectBypass(resolvedLayer, pl.ref.column,
+                                      binding.targetEffectIndex, !fx.bypassed, Origin::Human, pl.deckIndex);
                 }
             }
             break;

@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
-#include "model/Deck.h"
+#include "model/Composition.h"
+#include "ShowFixture.h"
 #include "model/Autopilot.h"
 #include "analysis/FeatureSnapshot.h"
 
@@ -12,8 +13,9 @@ using Catch::Matchers::WithinAbs;
 
 TEST_CASE("Deck layer compositing data model", "[compositor]")
 {
-    Deck deck;
-    deck.initDefault();
+    // Lane bf9b: the shared layer stack over one deck box (row N feeds layer N).
+    Composition show = ShowFixture::makeShow(1, 3, 12, false);
+    Deck& deck = show.decks[0];
 
     // Set up clips
     Clip clip1;
@@ -28,41 +30,42 @@ TEST_CASE("Deck layer compositing data model", "[compositor]")
 
     SECTION("Layer types are correct")
     {
-        REQUIRE(deck.getLayer(0)->type == Layer::Type::Opaque);
-        REQUIRE(deck.getLayer(1)->type == Layer::Type::Transparent);
+        REQUIRE(show.getLayer(0)->type == Layer::Type::Opaque);
+        REQUIRE(show.getLayer(1)->type == Layer::Type::Transparent);
     }
 
     SECTION("Active clips tracked correctly")
     {
-        deck.getLayer(0)->triggerClip(0);
-        deck.getLayer(1)->triggerClip(0);
+        show.fire(0, 0, 0);
+        show.fire(1, 0, 0);
 
-        REQUIRE(deck.getLayer(0)->getActiveClip()->name == "background");
-        REQUIRE(deck.getLayer(1)->getActiveClip()->name == "overlay");
+        REQUIRE(show.playingClip(0)->name == "background");
+        REQUIRE(show.playingClip(1)->name == "overlay");
     }
 
     SECTION("Layer visibility affects compositing")
     {
-        deck.getLayer(1)->visible = false;
-        deck.getLayer(0)->triggerClip(0);
-        deck.getLayer(1)->triggerClip(0);
+        show.getLayer(1)->visible = false;
+        show.fire(0, 0, 0);
+        show.fire(1, 0, 0);
 
         // Layer 1 clip is active but not visible
-        REQUIRE(deck.getLayer(1)->getActiveClip() != nullptr);
-        REQUIRE_FALSE(deck.getLayer(1)->visible);
+        REQUIRE(show.playingClip(1) != nullptr);
+        REQUIRE_FALSE(show.getLayer(1)->visible);
     }
 
     SECTION("Layer bypass")
     {
-        deck.getLayer(1)->bypassed = true;
-        REQUIRE(deck.getLayer(1)->bypassed);
+        show.getLayer(1)->bypassed = true;
+        REQUIRE(show.getLayer(1)->bypassed);
     }
 }
 
 TEST_CASE("Autopilot clip advancement", "[autopilot]")
 {
-    Deck deck;
-    deck.initDefault();
+    // Lane bf9b: the shared layer stack over one deck box (row N feeds layer N).
+    Composition show = ShowFixture::makeShow(1, 3, 12, false);
+    Deck& deck = show.decks[0];
 
     // Put clips in columns 0, 1, 2 on layer 0
     for (int c = 0; c < 3; ++c)
@@ -75,9 +78,9 @@ TEST_CASE("Autopilot clip advancement", "[autopilot]")
         deck.setClip(0, c, clip);
     }
 
-    auto* layer = deck.getLayer(0);
+    auto* layer = show.getLayer(0);
     layer->autopilotEnabled = true;
-    layer->triggerClip(0);
+    show.fire(0, 0, 0);
 
     Autopilot autopilot;
 
@@ -89,9 +92,9 @@ TEST_CASE("Autopilot clip advancement", "[autopilot]")
         {
             // Simulate beat crossing: phase wraps from ~1.0 to ~0.0
             snap.beatPhase = 0.99f;
-            autopilot.processFrame(deck, snap);
+            autopilot.processFrame(show, snap);
             snap.beatPhase = 0.01f; snap.totalBeatCount++;
-            autopilot.processFrame(deck, snap);
+            autopilot.processFrame(show, snap);
         }
         REQUIRE(layer->runtime().activeClipColumn == 0); // Still on first clip
     }
@@ -102,9 +105,9 @@ TEST_CASE("Autopilot clip advancement", "[autopilot]")
         for (int beat = 0; beat < 4; ++beat)
         {
             snap.beatPhase = 0.99f;
-            autopilot.processFrame(deck, snap);
+            autopilot.processFrame(show, snap);
             snap.beatPhase = 0.01f; snap.totalBeatCount++;
-            autopilot.processFrame(deck, snap);
+            autopilot.processFrame(show, snap);
         }
         // Should have advanced to column 1
         REQUIRE(layer->runtime().activeClipColumn == 1);
@@ -116,15 +119,15 @@ TEST_CASE("Autopilot clip advancement", "[autopilot]")
         // unoccupied to getClipAt so PlayNext's occupancy scan skips it,
         // landing on column 2 instead of the cleared column 1.
         deck.clearCell(0, 1);
-        REQUIRE(layer->getClipAt(1) == nullptr);
+        REQUIRE(deck.getClip(0, 1) == nullptr);
 
         FeatureSnapshot snap;
         for (int beat = 0; beat < 4; ++beat)
         {
             snap.beatPhase = 0.99f;
-            autopilot.processFrame(deck, snap);
+            autopilot.processFrame(show, snap);
             snap.beatPhase = 0.01f; snap.totalBeatCount++;
-            autopilot.processFrame(deck, snap);
+            autopilot.processFrame(show, snap);
         }
         REQUIRE(layer->runtime().activeClipColumn == 2); // column 1 skipped (cleared)
     }
@@ -230,30 +233,23 @@ TEST_CASE("Speed fold leaves BPM-synced clips tempo-locked (S167-L4b)", "[compos
     }
 }
 
-// S167-L4b DT-FIX: transition-progress (crossfade / deck-transition)
+// S167-L4b DT-FIX: transition-progress (the clip-to-clip crossfade)
 // frame-rate-independence pure-math coverage.
 //
-// The real step computations -- CompositorEngine::compositeDeck()'s
-// crossfade-progress advance (`float step = dt / speed;`,
-// src/render/CompositorEngine.cpp:781) and Renderer::renderOpenGL()'s
-// deck-transition advance (`deckTransitionProgress_ +=
-// deckTransitionSpeed_ * realDt;`, src/render/Renderer.cpp:605, with
-// deckTransitionSpeed_ set to `1.0f / transSpeed` at Renderer.cpp:642) --
-// live inside GL-heavy functions/files this GL-free test target cannot
-// link (see this file's header comment above and tests/CMakeLists.txt, a
-// FORBIDDEN file for this work packet). Both sites reduce to the same
-// one-line arithmetic: a progress-per-second rate (1/durationSeconds)
-// advanced by the real per-frame delta, so cumulative progress after T
-// real seconds is T/durationSeconds regardless of how many frames T was
-// split into. Mirrored here exactly, cited by file:line, rather than
-// pulling in the GL headers.
+// The real step computation -- the crossfade-progress advance
+// (`const float step = dt / speed;`, LayerClock::advanced in
+// src/render/LayerClock.h, ticked once per shared layer per frame by
+// CompositorEngine::compositeShow) -- runs inside a GL-heavy function this
+// GL-free test target cannot link (see this file's header comment above and
+// tests/CMakeLists.txt). It reduces to one line of arithmetic: a
+// progress-per-second rate (1/durationSeconds) advanced by the real
+// per-frame delta, so cumulative progress after T real seconds is
+// T/durationSeconds regardless of how many frames T was split into.
+// Mirrored here exactly rather than pulling in the GL headers.
 namespace {
-    // Mirrors the crossfade step at CompositorEngine.cpp:781 and the
-    // deck-transition step at Renderer.cpp:605/642 -- both reduce to this.
-    // `speed`/`transSpeed` in the real sites are misleadingly-named
-    // DURATIONS in seconds (see Layer::transitionSpeed's UI wiring in
-    // LayerInspector.cpp/LayerStrip.cpp and Composition::globalTransitionSpeed's
-    // "// seconds" comment in Composition.h), not rate multipliers.
+    // Mirrors the crossfade step in LayerClock::advanced. `speed` there is a
+    // misleadingly-named DURATION in seconds (see Layer::transitionSpeed's UI
+    // wiring in LayerInspector.cpp/LayerStrip.cpp), not a rate multiplier.
     float transitionProgressStep(float dt, float durationSeconds)
     {
         return dt / durationSeconds;
@@ -418,20 +414,4 @@ TEST_CASE("Layer keying and blend properties", "[layer]")
         REQUIRE_THAT(loaded.chromaKeyG, WithinAbs(1.0f, 0.001f));
         REQUIRE_THAT(loaded.chromaKeyTolerance, WithinAbs(0.3f, 0.001f));
     }
-}
-
-// s-rta-0926b R4-types: the ONE rule for which layer types can be persistent.
-// Drives the REAL Layer::canBePersistent -- CompositorEngine::
-// compositePersistentLayers skips every other type with it and LayerInspector
-// disables its Persistent toggle with it (the GL path is covered live by
-// .harmony/probe-render-state.sh rows r4_fxonly_*, r4_mask_skipped).
-TEST_CASE("Layer::canBePersistent: Opaque, Transparent and FX Only; never Mask or 3D (s-rta-0926b)",
-          "[layer][persistent]")
-{
-    REQUIRE(Layer::canBePersistent(Layer::Type::Opaque));
-    REQUIRE(Layer::canBePersistent(Layer::Type::Transparent));
-    REQUIRE(Layer::canBePersistent(Layer::Type::FXOnly));
-    REQUIRE_FALSE(Layer::canBePersistent(Layer::Type::Mask));
-    REQUIRE_FALSE(Layer::canBePersistent(Layer::Type::ThreeD));
-    static_assert(Layer::canBePersistent(Layer::Type::Opaque), "constexpr: usable at compile time");
 }

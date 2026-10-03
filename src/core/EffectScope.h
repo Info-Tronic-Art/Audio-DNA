@@ -4,8 +4,8 @@
 // / EffectStackCmd targets, by COORDINATES rather than a raw pointer. There are
 // exactly three effect-chain hosts in the app, one per scope kind:
 //   Global               -> Composition::globalEffects
-//   Layer(deck, layer)   -> Layer::layerEffects   at (deckIndex, layerIndex)
-//   Clip(deck,layer,col) -> Clip::effects         at (deckIndex, layerIndex, column)
+//   Layer(deck, layer)   -> Layer::layerEffects   of shared layer layerIndex (lane bf9b: deckIndex ignored)
+//   Clip(deck,layer,col) -> Clip::effects         at (deckIndex, row layerIndex, column)
 // Commands re-resolve the live vector through the Composition on every apply
 // (see core/EffectCommands.h resolveEffectVector), so nothing dangles across a
 // deck/layer vector reallocation. A None scope (the default) resolves to nullptr,

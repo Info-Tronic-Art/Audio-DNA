@@ -1566,7 +1566,7 @@ See Domain 4: Composition & Performance > Layer Controls > Layer Feedback for fu
   - Clip management [ALWAYS-VISIBLE] — Select All / Cut / Copy / Paste / Copy Effects / Paste Effects / Rename / Clear / Show in Finder / New Source / New Effect / Replace Content / Lock Content via Clip menu
   - Column trigger buttons [ALWAYS-VISIBLE] — numbered 1..K across top of grid, click fires all clips in column simultaneously (respects per-layer Ignore Column Trigger flag)
   - Deck tabs [ALWAYS-VISIBLE] — one tab per deck, click to switch active deck; active deck highlighted
-  - Active deck rendering [ALWAYS-VISIBLE] — only active deck renders; persistent layers from non-active decks also composite
+  - Active deck rendering [ALWAYS-VISIBLE] — only the active deck renders
   - Default grid: 3 layers x 12 columns per deck
 **Parameters:**
   - Composition.activeDeckIndex (int, 0..N-1)
@@ -1776,7 +1776,6 @@ See Domain 4: Composition & Performance > Layer Controls > Layer Feedback for fu
   - Solo (S button) [ALWAYS-VISIBLE] — render only this layer (olive when active)
   - Mute [PRESENTATION-HIDDEN] — audio mute for layer
   - Clear (X button) [ALWAYS-VISIBLE] — clear/stop active clip on this layer
-  - Persistent toggle [PROGRAMMING-ONLY] — keep rendering when deck is not active
   - Ignore Column Trigger [PROGRAMMING-ONLY] — layer won't respond to column triggers
   - Fold [MINIMAL-IN-PRESENTATION] — collapse layer row to save space
   - Content Lock [PROGRAMMING-ONLY] — prevent media replacement
@@ -1786,7 +1785,6 @@ See Domain 4: Composition & Performance > Layer Controls > Layer Feedback for fu
   - Layer.bypassed (bool)
   - Layer.solo (bool)
   - Layer.muted (bool)
-  - Layer.persistent (bool)
   - Layer.ignoreColumnTrigger (bool)
   - Layer.folded (bool)
 **Bindings:** Toggle Layer Bypass/Solo/Mute/Visible (keyboard/MIDI), Adjust Layer Opacity (MIDI CC)
@@ -2157,7 +2155,7 @@ Note: Crossfader code EXISTS in the Composition model (crossfaderPhase, crossfad
   - BPM edit field [MINIMAL-IN-PRESENTATION] — manual BPM entry (visible only in manual mode)
   - BPM multiplier buttons (/4, /2, x1, x2, x4) [ALWAYS-VISIBLE] — 5 buttons for tempo scaling
   - Quantize dropdown [ALWAYS-VISIBLE] — Off / Next Beat / Next Downbeat for clip launch timing
-  - Fade slider (0-5s) [ALWAYS-VISIBLE] — global transition speed between clips
+  - Fade slider (0-5s) — REMOVED (lane bf9b): it was the deck-to-deck fade (`globalTransitionSpeed`); a deck switch now changes only the grid
   - Master slider (0-1) [ALWAYS-VISIBLE] — master output brightness/opacity
   - Output dropdown [ALWAYS-VISIBLE] — select output display (Off / Fullscreen / Windowed)
   - FPS label [MINIMAL-IN-PRESENTATION] — real-time frame rate counter
@@ -2408,9 +2406,9 @@ Note: Crossfader code EXISTS in the Composition model (crossfaderPhase, crossfad
 **Level:** PRIMARY
 **Current UI:** NO UI — code only (Composition::toVar/fromVar, Deck::toVar/fromVar, Layer::toVar/fromVar, Clip::toVar/fromVar)
 **Sub-features:**
-  - Composition to JSON [ALWAYS-VISIBLE] — Composition.toVar() serializes name, activeDeckIndex, masterOpacity, globalTransitionSpeed, bpmMultiplier, quantizeMode, outputWidth/Height/Display, all decks, global effects
-  - Deck to JSON [ALWAYS-VISIBLE] — Deck.toVar() serializes name, id, numColumns, all layers
-  - Layer to JSON [ALWAYS-VISIBLE] — Layer.toVar() serializes name, id, type, all layer fields (opacity, blend mode, keying, transition, transform, feedback, autopilot, effects, clips)
+  - Composition to JSON [ALWAYS-VISIBLE] — Composition.toVar() serializes name, activeDeckIndex, masterOpacity, bpmMultiplier, quantizeMode, outputWidth/Height/Display, all decks, global effects
+  - Deck to JSON [ALWAYS-VISIBLE] — Deck.toVar() serializes name, id, numColumns, its rows of clips (key "layers", each {"clips": [...]}; lane bf9b)
+  - Layer to JSON [ALWAYS-VISIBLE] — Layer.toVar() serializes name, id, type, all layer fields (opacity, blend mode, keying, transition, transform, feedback, autopilot, effects); the shared layers are a top-level "layers" array (lane bf9b; clips live in the decks' rows)
   - Clip to JSON [ALWAYS-VISIBLE] — Clip.toVar() serializes name, id, mediaType, mediaFile, sourceType, sourceParams, effects, transport, in/out points, beat snap, cuepoints, autopilot, video properties, transform, MilkDrop playlist, content lock
   - JSON parse/write [ALWAYS-VISIBLE] — via JUCE var/DynamicObject + JSON::toString/parse
   - File I/O [ALWAYS-VISIBLE] — Composition.saveToFile / loadFromFile (replaceWithText / loadFileAsString)

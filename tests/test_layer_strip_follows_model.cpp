@@ -13,6 +13,8 @@
 #include "ui/LayerStrip.h"
 #include "ui/LookAndFeel.h"
 #include "connect/ManualWrite.h"
+#include "model/Composition.h"
+#include "ShowFixture.h"
 
 using Catch::Approx;
 
@@ -83,7 +85,7 @@ TEST_CASE("LayerStrip: the V and S faders carry component ids", "[layerstrip][fo
     juce::ScopedJuceInitialiser_GUI gui;
     Layer layer;
     LayerStrip strip;
-    strip.setLayer(&layer, 0);
+    strip.setLayer(&layer, 0, nullptr);   // lane bf9b: no show -- no playing clip
     strip.setSize(250, 96);
     REQUIRE(strip.findChildWithID("layerOpacity") != nullptr);
     REQUIRE(strip.findChildWithID("layerSpeed") != nullptr);
@@ -94,7 +96,7 @@ TEST_CASE("LayerStrip: the V fader follows layer opacity written after setLayer"
     juce::ScopedJuceInitialiser_GUI gui;
     Layer layer;
     LayerStrip strip;
-    strip.setLayer(&layer, 0);
+    strip.setLayer(&layer, 0, nullptr);   // lane bf9b: no show -- no playing clip
     strip.setSize(250, 96);
     auto* v = slider(strip, "layerOpacity");
     REQUIRE(v != nullptr);
@@ -113,7 +115,7 @@ TEST_CASE("LayerStrip: a connected opacity shows its effective value", "[layerst
     juce::ScopedJuceInitialiser_GUI gui;
     Layer layer;
     LayerStrip strip;
-    strip.setLayer(&layer, 0);
+    strip.setLayer(&layer, 0, nullptr);   // lane bf9b: no show -- no playing clip
     strip.setSize(250, 96);
     auto& conn = layer.scalarConns[static_cast<size_t>(LayerScalar::Opacity)];
     conn.source.kind = ConnSource::Kind::Signal;
@@ -131,7 +133,7 @@ TEST_CASE("LayerStrip: the V fill is cyan only while a lane-rank hand grips opac
     juce::ScopedJuceInitialiser_GUI gui;
     Layer layer;
     LayerStrip strip;
-    strip.setLayer(&layer, 0);
+    strip.setLayer(&layer, 0, nullptr);   // lane bf9b: no show -- no playing clip
     strip.setSize(250, 96);
     auto* v = slider(strip, "layerOpacity");
     REQUIRE(v != nullptr);
@@ -165,24 +167,26 @@ TEST_CASE("LayerStrip: the V fill is cyan only while a lane-rank hand grips opac
 TEST_CASE("LayerStrip: the S fader follows the active clip's speed", "[layerstrip][follow]")
 {
     juce::ScopedJuceInitialiser_GUI gui;
-    Layer layer;
-    layer.ensureColumns(2);
+    // Lane bf9b: the strip's shared layer plays deck 0's row-0 cell (Composition::playingClip).
+    Composition comp = ShowFixture::makeShow(1, 3, 2, false);
+    Layer& layer = comp.layers[0];
     Clip clip;
     clip.speed = 1.0f;
-    layer.clips[0] = clip;
+    comp.decks[0].setClip(0, 0, clip);
     {
         LayerRuntimeSnapshot rt = layer.runtime();
         rt.activeClipColumn = 0;
+        rt.activeDeckId = comp.decks[0].id;
         layer.setRuntime(rt);
     }
-    REQUIRE(layer.getActiveClip() != nullptr);
+    REQUIRE(comp.playingClip(0) != nullptr);
     LayerStrip strip;
-    strip.setLayer(&layer, 0);
+    strip.setLayer(&layer, 0, &comp);
     strip.setSize(250, 96);
     auto* s = slider(strip, "layerSpeed");
     REQUIRE(s != nullptr);
     CHECK(s->getValue() == Approx(0.25));
-    layer.getActiveClip()->speed = 2.0f;   // a routine can drive speed
+    comp.playingClip(0)->speed = 2.0f;   // a routine can drive speed
     strip.syncFromModel();
     CHECK(s->getValue() == Approx(0.5));
 }
@@ -192,7 +196,7 @@ TEST_CASE("LayerStrip: a routine band's x removes that routine; the rest of the 
     juce::ScopedJuceInitialiser_GUI gui;
     Layer layer;
     LayerStrip strip;
-    strip.setLayer(&layer, 2);
+    strip.setLayer(&layer, 2, nullptr);   // lane bf9b: no show -- no playing clip
     strip.setSize(250, 96);
     strip.setVisible(true);   // Pitfall 34
     strip.setRoutineBands({ band(1, "Build"), band(0, "Drop") });
@@ -231,7 +235,7 @@ TEST_CASE("LayerStrip: a playing band's name is painted in the routine cue hue, 
     juce::ScopedJuceInitialiser_GUI gui;
     Layer layer;
     LayerStrip strip;
-    strip.setLayer(&layer, 0);
+    strip.setLayer(&layer, 0, nullptr);   // lane bf9b: no show -- no playing clip
     strip.setSize(250, 96);
     strip.setVisible(true);   // Pitfall 34
     const auto nameArea = juce::Rectangle<int>(147, 0, 57, 16);   // band 0, left of its x (thumbnail x 144..220)
@@ -255,7 +259,7 @@ TEST_CASE("LayerStrip: the band x and the layer X carry tooltips that name the r
     juce::ScopedJuceInitialiser_GUI gui;
     Layer layer;
     LayerStrip strip;
-    strip.setLayer(&layer, 0);
+    strip.setLayer(&layer, 0, nullptr);   // lane bf9b: no show -- no playing clip
     strip.setSize(250, 96);
     strip.setVisible(true);   // Pitfall 34
 

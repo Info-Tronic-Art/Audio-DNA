@@ -66,7 +66,7 @@ TEST_CASE("R3 manual scalar writes vs eff() reads", "[tsan][manual_scalar]")
     for (const auto& p : paths)
         REQUIRE(resolveControl(comp, bank, p).has_value());
 
-    Layer& layer = comp.decks[0].layers[0];
+    Layer& layer = comp.layers[0];   // lane bf9b: the shared layer
     const Clip* clip = comp.decks[0].getClip(0, 0);
     REQUIRE(clip != nullptr);
 

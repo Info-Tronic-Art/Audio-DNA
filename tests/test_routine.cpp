@@ -327,7 +327,7 @@ TEST_CASE("sliceRoutine: rebases to routine beats, synthesizes straddling breakp
 {
     Composition comp = makeComposition();
     Clip clipB; clipB.name = "Clip B";
-    comp.decks[0].layers[0].clips[1] = clipB;
+    comp.decks[0].rows[0].clips[1] = clipB;
 
     Take take;
     setSteadyTempo(take);
@@ -451,7 +451,7 @@ TEST_CASE("sliceRoutine: rebases to routine beats, synthesizes straddling breakp
 TEST_CASE("sliceRoutine: restore falls back to checkpoint 0, then defaults; comp scalars are unknown", "[routine][slice]")
 {
     Composition comp = makeComposition();
-    comp.decks[0].layers[1].opacity = 0.4f;
+    comp.layers[1].opacity = 0.4f;
 
     const auto* ripple = library().getEffectDef("Ripple");
     REQUIRE(ripple != nullptr);
@@ -462,7 +462,7 @@ TEST_CASE("sliceRoutine: restore falls back to checkpoint 0, then defaults; comp
     for (const auto& p : ripple->params)
         slot.addParam(p.defaultValue);
     clipA.effects.push_back(slot);
-    comp.decks[0].layers[0].clips[0] = clipA;
+    comp.decks[0].rows[0].clips[0] = clipA;
 
     Take take;
     setSteadyTempo(take);

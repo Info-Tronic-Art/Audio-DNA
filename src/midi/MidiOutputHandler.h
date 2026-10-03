@@ -4,7 +4,7 @@
 #include <array>
 #include <atomic>
 
-struct Deck;
+struct Composition;
 
 // MidiOutputHandler: Sends MIDI note messages to hardware controllers
 // (Launchpad, APC40, etc.) to reflect clip state via pad colors.
@@ -19,7 +19,8 @@ struct Deck;
 // Velocity values target Launchpad X/Mini MK3. Other controllers
 // may interpret velocities differently.
 //
-// Called from MainComponent's timerCallback (~50ms) to poll deck state.
+// Called from MainComponent's timerCallback (~50ms) to poll the SHOWN deck's cells (lane bf9b: a pad shows its cell
+// as playing only when that cell is the active clip of its row's shared layer).
 class MidiOutputHandler
 {
 public:
@@ -39,9 +40,9 @@ public:
     juce::String getDeviceName() const;
     bool isOpen() const { return outputDevice_ != nullptr; }
 
-    // Update pad states from current deck. Call every ~50ms.
+    // Update pad states from the shown deck's cells. Call every ~50ms.
     // Sends MIDI only for cells whose state has changed.
-    void updateFromDeck(const Deck* deck);
+    void updateFromDeck(const Composition& comp, int shownDeckIndex);
 
     // Send a raw MIDI message (for custom controller protocols).
     void sendMessage(const juce::MidiMessage& msg);
@@ -58,6 +59,11 @@ public:
         Triggered = 3,
         ActiveWithFx = 4
     };
+
+    // The pad rule, pure (ruling-bf9b amendment 12, T14): the state of cell (row, col) of deck `shownDeck`. It lights
+    // (Playing / Triggered / ActiveWithFx) iff that cell is the ACTIVE ref of shared layer `row` -- a layer playing
+    // another deck's clip lights no pad of this deck, and a retired source lights nothing (it is never shown).
+    static PadState padStateFor(const Composition& comp, int shownDeck, int row, int col);
 
     // Velocity mapping for each state (Launchpad X/Mini MK3 defaults)
     static constexpr int kVelocityEmpty = 0;

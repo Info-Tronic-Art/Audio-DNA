@@ -93,10 +93,10 @@ routines reaching for the same control):
   Quantize, Rename..., Remove from layers, Delete routine...); a waiting pad has a thin teal frame, a
   playing one a thick frame, a teal sweep and "5/8" (pressed again: a drawn "back to the start" mark
   left of "5/8" until the restart lands; fix round); a red "!" marks a routine that could not restore
-  or play something (kept after the run until Stop / a composition load); a routine playing on another
-  deck dims and the corner names it. A settings edit made while a pad waits reaches that start, and one
+  or play something (kept after the run until Stop / a composition load); since lane bf9b every routine
+  plays on the shared layers, on screen, so no pad dims for "another deck" and the corner never names one. A settings edit made while a pad waits reaches that start, and one
   made while a pressed-again pad's restart waits reaches that restart (`RoutineEngine::resyncPending`, fix
-  rounds 1-2). Every layer a waiting/playing routine drives on the shown deck
+  rounds 1-2). Every shared layer a waiting/playing routine drives, whatever deck is shown,
   carries a band with its name (the routine cue, chartreuse `kRoutineCue`) over the top of the strip's
   picture (two at most, "+N"); the band's
   x takes the whole routine off, and the layer X takes every routine off that layer
@@ -108,6 +108,19 @@ routines reaching for the same control):
   Routine (its old pad row is gone). Live: `.harmony/probe-routine-display.sh`.
   **The UI pattern (moved verbatim from CLAUDE.md "UI Patterns", s-rta-0929 asyncload -- CLAUDE.md keeps a pointer):**
   **Routine pads and bands**: a routine pad's press is always Fire (restart while playing, no-op while waiting); there is no stop control -- a routine leaves by its band's x (the whole routine, every layer), the layer X (clears the layer of routines too), its own end, the pad menu's "Remove from layers", or Stop (routines only). "Delete routine" (pad menu, warning red via `addColouredItem` -- the app LookAndFeel honours an item colour -- behind a confirm) is the only path that erases one. Pads and bands are model-driven from `RoutineEngine::Status` via `deriveRoutineDeckView` (`src/ui/RoutineDeckView.h`) every 30 Hz tick, never from panel memory; a strip fader follows the model (`LayerStrip::syncFromModel`, Pitfall 41) and its V fill turns the routine cue while a routine's hand grips opacity; a bound `UniversalParamControl` shows its value (and slider) in the routine cue with ROUTINE in the hint slot while a routine's (lane-rank) hand holds it. The routine cue is `AudioDNALookAndFeel::kRoutineCue` (chartreuse, band names too) -- reserved: never the accent cyan every mapped knob wears, and never used for anything else; `docs/claude/recording.md` "Surfaces".
+- **Routines and takes on the shared layers (lane bf9b, s-rta-1002b)**: a routine's targets still resolve ONCE, at the
+  press (D2); a Clip-scope target (and an activeClip fire) is pinned to the deck shown at the press BY ID
+  (`ResolvedTarget::deckId`, set by `Program::compile` from `comp.decks[deck].id`), and the replay resolves it with
+  `Composition::findDeckIndexById` -- a later deck switch or an Insert Deck never retargets it, a removed deck's events
+  are skipped (said once) and never land in another deck; its fires land in the clip's row's shared layer. A Layer-scope
+  target names a SHARED layer (by position / name; any deck part is ignored). `RoutineEngine::stopOnLayer(layer)` stops
+  every running routine touching that shared layer, whatever deck it fired from; bands show on the shared layer whatever
+  deck is shown. An activeDeck lane or preamble point (a routine never records one; an old take may) moves only the grid.
+  PerfState v2 adds a shared `"layers"` map (each layer's runtime + flags, `activeDeck` / `activeDeckName` of the clip it
+  plays); per deck it keeps only clip runtime. An OLD take (no `"layers"`) restores the shared layers from its captured
+  ACTIVE deck only (the only deck visible when it was recorded). A layer playing a removed deck's clip records
+  activeClipColumn -1 (nothing a take can restore). Guards: `tests/test_show_model.cpp` T13 / M5; live:
+  `.harmony/probe-boxes.sh` `k7_old_take`.
 - **Deferred to slice 2+** (disclosed, not silent): nothing about a fired routine is recorded back
   into a take (no `routine` lane, no `via`-tagged children); no lane editor / range-select UI (a
   routine is saved by beat/bar numbers over REST in slice 1); no per-slot binding re-target table;

@@ -6,13 +6,10 @@
 // CompositorEngine -- its temporal buffer (u_prev_frame), its Screen Split /
 // Frame Stutter frame ring, and its feedback processor.
 //
-// Layer ids are per DECK (Deck::initDefault numbers every deck's layers
-// 0, 1, 2 ...), so keying that state by layer id alone let a persistent layer
-// from another deck share it with the active deck's layer of the same id
-// (measured: deck 1's persistent Freeze read deck 0's frames -- 33% of the
-// other deck's image in steady state; with Frame Stutter the persistent layer
-// showed the other deck's image outright). The key carries the deck id in the
-// high 32 bits.
+// The high 32 bits are the stack half. Lane bf9b (s-rta-1002b): the show has ONE
+// shared layer stack whose layer ids are unique per show, so every layer keys with
+// kShowStackKey -- no GL key carries a deck, and a deck switch can never hand one
+// layer's history to another (Pitfall 35).
 //
 // A layer has THREE state keys, one per effect chain that can run on it, and
 // each chain keeps its own state (s-rta-0926 xfade: a clip chain and a layer
@@ -26,11 +23,11 @@
 //                  clip outright with Frame Stutter). Sets kOutgoingChainBit.
 //   layerChain     the layer-effects chain. Sets kLayerChainBit.
 // Both bits live in the layer half. Real layer ids never reach bit 30 or 31
-// (Deck::nextLayerId_ starts at 100 and counts up), so the three keys of a
-// (deck, layer) never meet each other or another layer's keys.
+// (Composition's layer-id counter starts at 100 and counts up), so the three keys
+// of a layer never meet each other or another layer's keys.
 //
 // kGlobalEffects keys the composition-wide Global Effects chain; no real
-// (deck, layer) pair produces it (it would need deck id 0xFFFFFFFF and layer id
+// (stack, layer) pair produces it (it would need stack key 0xFFFFFFFF and layer id
 // 0x7FFFFFFF on the layer chain).
 //
 // Pure (no GL), so tests/test_layer_state_key.cpp drives it directly.
@@ -39,6 +36,8 @@ namespace LayerStateKey
     inline constexpr std::uint32_t kLayerChainBit = 0x80000000u;
     inline constexpr std::uint32_t kOutgoingChainBit = 0x40000000u;
     inline constexpr std::uint64_t kGlobalEffects = ~std::uint64_t{ 0 };
+    // The stack half of every shared layer's keys (lane bf9b).
+    inline constexpr std::uint32_t kShowStackKey = 0;
 
     // State of the layer's CLIP chain (the active clip's effects) and of the
     // layer's feedback processor.

@@ -93,8 +93,7 @@ namespace
     Composition makeComposition()
     {
         Composition c;
-        c.decks.resize(1);
-        c.decks[0].initDefault();
+        c.initDefault();   // lane bf9b: 3 shared layers + one deck of 3 rows (was one deck of 3 layers)
         c.activeDeckIndex = 0;
         return c;
     }
@@ -969,17 +968,19 @@ TEST_CASE("PerfStateCapture -- captures non-default state from a Composition and
 {
     Composition comp = makeComposition();
 
-    Layer& layer0 = comp.decks[0].layers[0];
+    // Lane bf9b: the layer is the SHARED layer, its clip a cell of deck 0's row 0, its active ref (deck 0, column 0).
+    Layer& layer0 = comp.layers[0];
     Clip clip; clip.name = "TestClip"; clip.playing = true;
-    layer0.clips[0] = clip;
+    comp.decks[0].rows[0].clips[0] = clip;
     {
         LayerRuntimeSnapshot rt = layer0.runtime();
         rt.activeClipColumn = 0;
+        rt.activeDeckId = comp.decks[0].id;
         layer0.setRuntime(rt);
     }
 
-    comp.decks[0].layers[1].opacity = 0.4f;
-    comp.decks[0].layers[2].bypassed = true;
+    comp.layers[1].opacity = 0.4f;
+    comp.layers[2].bypassed = true;
 
     const PerfState state = capturePerfState(comp, 128.0f, "play");
 
@@ -989,11 +990,14 @@ TEST_CASE("PerfStateCapture -- captures non-default state from a Composition and
     CHECK(round.activeDeckIndex == 0);
     CHECK(round.bpm == Approx(128.0f));
     CHECK(round.audioAction == "play");
+    // PerfState v2 (lane bf9b, plan-bf9b S2.9): the shared layers' settings in `layers`, each deck's clip runtime per
+    // row in `decks`.
+    REQUIRE(round.layers.count(1) == 1);
+    CHECK(round.layers.at(1).opacity == Approx(0.4f));
+    REQUIRE(round.layers.count(2) == 1);
+    CHECK(round.layers.at(2).bypassed);
+    REQUIRE(round.layers.count(0) == 1);
     REQUIRE(round.decks.count(0) == 1);
-    REQUIRE(round.decks.at(0).layers.count(1) == 1);
-    CHECK(round.decks.at(0).layers.at(1).opacity == Approx(0.4f));
-    REQUIRE(round.decks.at(0).layers.count(2) == 1);
-    CHECK(round.decks.at(0).layers.at(2).bypassed);
     REQUIRE(round.decks.at(0).layers.count(0) == 1);
     REQUIRE(round.decks.at(0).layers.at(0).clips.count(0) == 1);
     CHECK(round.decks.at(0).layers.at(0).clips.at(0).playing);

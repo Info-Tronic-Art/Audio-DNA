@@ -8,7 +8,7 @@
 #   (2) disk: each take's audio.unreliableFrom is null AND audio.json frames == audio.wav frames
 #   (3) stderr: no "[Recorder] asset ...: truncated" line in the app log
 # Rig rules exactly as probe-step3.sh: IPv4 127.0.0.1:7070, launch via `open` with stdout/stderr
-# logs, adna_pids/adna_running/adna_kill (ucomm-based; see PROBE RIG GATE), graceful osascript
+# logs, adna_pids/adna_running (ucomm-based; see PROBE RIG GATE), graceful osascript
 # quit, SCREEN-SAFETY (no endpoint
 # used here reaches the Output window). Ruling 28: the N takes/assets it creates are NOT deleted
 # (names finloop-<stamp>-<i>; the asset ids are printed at the end for Boris).
@@ -26,7 +26,7 @@
 # A clean run of this loop must not be read as clearing that ordering.
 # PROBE RIG GATE (probehygiene2, s-rta-0926b): refuses (exit 64) unless
 # /tmp/audiodna-live.lock/owner exists; if AUDIODNA_LOCK_OWNER is set, it must match the owner
-# file's first field. Every pgrep/pkill below is replaced by adna_pids/adna_running/adna_kill
+# file's first field. Every pgrep below is replaced by adna_pids/adna_running; every quit is quit_ours
 # (defined right after the lock gate), which filter on `ps -o ucomm=` -- the KERNEL's real
 # exec-time process name, set from the actual binary that was exec'd, NOT from argv[0] -- being
 # exactly "Audio-DNA". Verified both directions: (1) a build's linker/compiler command line whose
@@ -44,12 +44,12 @@ if [ -n "${AUDIODNA_LOCK_OWNER:-}" ]; then
   [ "$LOCK_OWNER" = "$AUDIODNA_LOCK_OWNER" ] || { echo "REFUSE: live lock owner '$LOCK_OWNER' != AUDIODNA_LOCK_OWNER '$AUDIODNA_LOCK_OWNER'"; exit 64; }
 fi
 # adna_pids: PIDs whose REAL kernel process name (ucomm, set at exec() time from the actual binary
-# run -- immune to argv[0] spoofing) is exactly "Audio-DNA". adna_running/adna_kill build on it.
+# run -- immune to argv[0] spoofing) is exactly "Audio-DNA". adna_running builds on it.
 adna_pids() { ps -eo pid=,ucomm= | awk '$2=="Audio-DNA"{print $1}'; }
 adna_running() { [ -n "$(adna_pids)" ]; }
-adna_kill() { local p; p="$(adna_pids)"; [ -n "$p" ] && kill $p 2>/dev/null; }
 N="${1:-40}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+. "$ROOT/.harmony/probe-quit-ours.sh"   # refuse_foreign_start / record_ourpid / quit_ours: quit ONLY the app this run launched
 BUILD_DIR="${FINLOOP_BUILD_DIR:-build-gate}"
 APPBUNDLE="$ROOT/$BUILD_DIR/AudioDNA_artefacts/Release/Audio-DNA.app"
 A='http://127.0.0.1:7070'
@@ -72,7 +72,7 @@ wait_field(){ # $1 field $2 expected(python truthiness word: true|false) $3 max 
   local i=0; while [ $i -lt "$3" ]; do v="$(perf_field "$1")"; case "$2:$v" in true:True|true:true|false:False|false:false) return 0;; esac; sleep 0.1; i=$((i+1)); done; return 1; }
 
 echo "$N" | grep -Eq '^[1-9][0-9]*$' || { echo "REFUSE: N must be a positive integer (got '$N')"; exit 64; }
-adna_running && { echo "REFUSE: an Audio-DNA instance is already running. Quit it, then re-run."; exit 64; }
+refuse_foreign_start || exit 64
 [ -d "$APPBUNDLE" ] || { echo "REFUSE: no built app at $APPBUNDLE (FINLOOP_BUILD_DIR overrides)"; exit 64; }
 if [ "$MODE" = "file" ] && [ ! -f "$CLICK_WAV" ]; then
     python3 "$ROOT/.harmony/gen-click-wav.py" "$CLICK_WAV" --interval 24000 >/dev/null || { echo "REFUSE: click WAV generation failed"; exit 64; }
@@ -80,6 +80,7 @@ fi
 
 : > "$ERRLOG"
 open -g --stdout /tmp/adna-finloop-out.log --stderr "$ERRLOG" "$APPBUNDLE"
+record_ourpid; echo "ours: pid ${OURPID:-none}"
 for _ in $(seq 1 60); do [ -n "$(curl -s --max-time 2 "$A/api/health" 2>/dev/null)" ] && break; sleep 1; done
 [ -n "$(curl -s --max-time 2 "$A/api/health" 2>/dev/null)" ] || { echo "FAIL: /api/health never answered (mic-permission prompt? screencapture -x and LOOK)"; exit 1; }
 ok "app launched, /api/health answered"
@@ -134,9 +135,7 @@ FIN_END="$(perf_field finalizeErrors)"
 TL="$(grep -c 'truncated (header' "$ERRLOG" 2>/dev/null)"; TL="${TL:-0}"
 [ "$TL" = "0" ] && ok "stderr: 0 '[Recorder] asset ...: truncated' lines (oracle 3)" || no "stderr: $TL truncated-asset line(s) in $ERRLOG (oracle 3)"
 
-osascript -e 'quit app "Audio-DNA"' >/dev/null 2>&1
-for _ in $(seq 1 30); do adna_running || break; sleep 1; done
-adna_running && { adna_kill; sleep 2; }
+quit_ours
 adna_running && no "APP STILL RUNNING after graceful quit + pkill" || ok "app terminated"
 echo; echo "$N cycles, $TRUNC truncations.  $PASS PASS / $FAIL FAIL"
 echo "assets created this run (Ruling 28, not deleted):$ASSETS"

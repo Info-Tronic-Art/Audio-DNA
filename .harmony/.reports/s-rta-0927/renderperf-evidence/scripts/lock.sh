@@ -1,4 +1,5 @@
 # source me: acquire_lock / release_lock / wait_quiet / adna / quit_app
+echo "ARCHIVED RECORD (R-N1, s-rta-1003): this script quits Audio-DNA by name -- never run or source it; use .harmony/probe-quit-ours.sh" >&2; return 64 2>/dev/null || exit 64
 export AUDIODNA_LOCK_OWNER=renderperf
 LOCKREL=/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/renderperf/.last-release
 acquire_lock(){

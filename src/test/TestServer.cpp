@@ -691,6 +691,18 @@ void TestServer::handleState(const httplib::Request&, httplib::Response& res)
     obj->setProperty("render_pending_fired", static_cast<juce::int64>(renderer_.getRenderPendingFired()));
     obj->setProperty("render_autopilot_advances", static_cast<juce::int64>(renderer_.getRenderAutopilotAdvances()));
     obj->setProperty("render_tuple_adopts", static_cast<juce::int64>(renderer_.getRenderTupleAdopts()));
+#ifdef AUDIODNA_HAS_PROJECTM
+    // s-rta-1003 bf9b (ruling-bf10 H2; probe-milkdrop m9b_deck_switch_live): ProjectMSource's cumulative call counts.
+    // A deck switch must move none of them.
+    {
+        const auto& ms = ProjectMSource::callStats();
+        auto* md = new juce::DynamicObject();
+        md->setProperty("load_preset", static_cast<juce::int64>(ms.loadPreset.load(std::memory_order_relaxed)));
+        md->setProperty("resize", static_cast<juce::int64>(ms.resize.load(std::memory_order_relaxed)));
+        md->setProperty("release_gl", static_cast<juce::int64>(ms.releaseGL.load(std::memory_order_relaxed)));
+        obj->setProperty("milkdrop", juce::var(md));
+    }
+#endif
     if (mediaStateProvider_)
         obj->setProperty("media", mediaStateProvider_());   // s-rta-0928b mediaopen: MediaPresence sweeps / flips
     if (loadWitnessProvider_)
@@ -1631,16 +1643,16 @@ void TestServer::handleGetCompositionParams(const httplib::Request&, httplib::Re
         auto& deck = composition_.decks[di];
         auto* deckObj = new juce::DynamicObject();
         juce::Array<juce::var> layerArray;
-        for (size_t li = 0; li < deck.layers.size(); ++li)
+        for (size_t li = 0; li < deck.rows.size(); ++li)
         {
-            auto& layer = deck.layers[li];
+            auto& row = deck.rows[li];   // lane bf9b: a deck's clip rows
             auto* layerObj = new juce::DynamicObject();
             juce::Array<juce::var> clipArray;
-            for (size_t ci = 0; ci < layer.clips.size(); ++ci)
+            for (size_t ci = 0; ci < row.clips.size(); ++ci)
             {
-                if (layer.clips[ci].has_value())
+                if (row.clips[ci].has_value())
                 {
-                    auto& clip = *layer.clips[ci];
+                    auto& clip = *row.clips[ci];
                     auto* clipObj = new juce::DynamicObject();
                     clipObj->setProperty("column", static_cast<int>(ci));
                     clipObj->setProperty("clipOpacity", static_cast<double>(clip.clipOpacity));

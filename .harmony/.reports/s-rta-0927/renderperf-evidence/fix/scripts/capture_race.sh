@@ -1,4 +1,5 @@
 #!/bin/bash
+echo "ARCHIVED RECORD (R-N1, s-rta-1003): this script quits Audio-DNA by name -- never run or source it; use .harmony/probe-quit-ours.sh" >&2; exit 64
 # capture_race.sh <app> <out-base>  -- launches <app> (test mode, open -g, the TEMPORARY collect-delay hook armed via
 # --env) and runs capture_race.py. Refuses without the live lock (owner must match AUDIODNA_LOCK_OWNER), if an
 # Audio-DNA is already running, or if 7070/8080 already have a listener. Graceful quit; pkill only after 30 s.

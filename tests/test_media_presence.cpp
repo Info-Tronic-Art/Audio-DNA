@@ -18,20 +18,22 @@ Clip mediaClip(uint32_t id, Clip::MediaType type, const juce::File& f)
     return c;
 }
 
-// One deck, one layer, columns = the given clips (nullopt = an empty cell).
+// One deck, one layer (lane bf9b: one shared layer + the deck's one row), columns = the given clips (nullopt = an empty
+// cell).
 Composition compOf(std::vector<std::optional<Clip>> cells)
 {
     Composition comp;
+    comp.layers.push_back(Layer{});
     Deck d;
-    Layer l;
-    l.clips = std::move(cells);
-    d.layers.push_back(std::move(l));
-    d.numColumns = static_cast<int>(d.layers[0].clips.size());
+    ClipRow row;
+    row.clips = std::move(cells);
+    d.rows.push_back(std::move(row));
+    d.numColumns = static_cast<int>(d.rows[0].clips.size());
     comp.decks.push_back(std::move(d));
     return comp;
 }
 
-Clip& cellAt(Composition& c, int col) { return *c.decks[0].layers[0].clips[static_cast<size_t>(col)]; }
+Clip& cellAt(Composition& c, int col) { return *c.decks[0].rows[0].clips[static_cast<size_t>(col)]; }
 } // namespace
 
 TEST_CASE("presence::mediaPaths lists Image and Video paths once each", "[mediaopen][presence]")

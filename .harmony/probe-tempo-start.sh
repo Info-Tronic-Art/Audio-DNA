@@ -40,7 +40,7 @@
 # composition file, records only audio:false takes and deletes exactly the takes it created
 # (tstart-<runid>-* under ~/Documents/Audio-DNA/Takes). Graceful osascript quit; kill only as the last resort.
 # PROBE RIG GATE: refuses (exit 64) unless /tmp/audiodna-live.lock/owner exists AND its first field
-# equals AUDIODNA_LOCK_OWNER. Every pgrep/pkill is adna_pids/adna_running/adna_kill (ucomm-based,
+# equals AUDIODNA_LOCK_OWNER. Every pgrep is adna_pids/adna_running, every quit is quit_ours (ucomm-based,
 # see probe-resync.sh's header for why).
 set -u
 LOCK_OWNER_FILE=/tmp/audiodna-live.lock/owner
@@ -50,10 +50,10 @@ LOCK_OWNER="$(cut -d' ' -f1 "$LOCK_OWNER_FILE" 2>/dev/null)"
 [ "$LOCK_OWNER" = "$AUDIODNA_LOCK_OWNER" ] || { echo "REFUSE: live lock owner '$LOCK_OWNER' != AUDIODNA_LOCK_OWNER '$AUDIODNA_LOCK_OWNER'"; exit 64; }
 adna_pids() { ps -eo pid=,ucomm= | awk '$2=="Audio-DNA"{print $1}'; }
 adna_running() { [ -n "$(adna_pids)" ]; }
-adna_kill() { local p; p="$(adna_pids)"; [ -n "$p" ] && kill $p 2>/dev/null; }
 
 OUT="${1:-/tmp/audiodna-tempo-start}"; mkdir -p "$OUT"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+. "$ROOT/.harmony/probe-quit-ours.sh"   # refuse_foreign_start / record_ourpid / quit_ours: quit ONLY the app this run launched
 BUILD_DIR="${TEMPOSTART_BUILD_DIR:-build-lane}"
 APPBUNDLE="${TEMPOSTART_APP:-$ROOT/$BUILD_DIR/AudioDNA_artefacts/Release/Audio-DNA.app}"
 VENV_PY="${TEMPOSTART_VENV_PY:-$ROOT/.venv/bin/python}"
@@ -70,21 +70,16 @@ no(){ echo "FAIL  $1"; FAIL=$((FAIL+1)); }
 launch() {  # $1 = log tag
     : > "$OUT/adna-out-$1.log"; : > "$OUT/adna-err-$1.log"
     open -g --stdout "$OUT/adna-out-$1.log" --stderr "$OUT/adna-err-$1.log" "$APPBUNDLE"
+    record_ourpid; echo "ours: pid ${OURPID:-none}"
     for _ in $(seq 1 60); do [ -n "$(curl -s --max-time 2 "$A/api/health" 2>/dev/null)" ] && return 0; sleep 1; done
     return 1
 }
 quit_adna() {
-    osascript -e 'quit app "Audio-DNA"' >/dev/null 2>&1
-    for _ in $(seq 1 30); do adna_running || break; sleep 1; done
-    if adna_running; then
-        echo "graceful osascript quit did not clear the process -- falling back to kill (last resort)"
-        adna_kill
-        for _ in $(seq 1 20); do adna_running || break; sleep 1; done
-    fi
+    quit_ours   # ONLY the pid launch() recorded (probe-quit-ours.sh)
 }
 cleanup_takes() { rm -rf "$TAKES_DIR"/tstart-"$RUNID"-*.adna-take 2>/dev/null; }
 
-adna_running && { echo "REFUSE: an Audio-DNA instance is already running. Quit it, then re-run."; exit 64; }
+refuse_foreign_start || exit 64
 [ -d "$APPBUNDLE" ] || { echo "REFUSE: no app at $APPBUNDLE (set TEMPOSTART_APP or TEMPOSTART_BUILD_DIR)"; exit 64; }
 echo "app under test: $APPBUNDLE"
 echo "run id $RUNID  cycles $CYCLES  stall ${STALL_MS} ms  witness runs $WITNESS_RUNS  $(date '+%F %T')"

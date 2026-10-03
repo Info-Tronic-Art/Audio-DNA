@@ -19,10 +19,10 @@ void UndoService::syncAfterModelChange(SyncScope scope)
             deckView_->rebuildGrid();
     }
 
-    // (Deck ADD/REMOVE/SWITCH re-point the renderer's active deck through their
-    // OWN command hooks — withDeckDetached re-resolves getActiveDeck() after the
-    // fenced mutation, SwitchDeckCmd via DeckActivateHook — never through this
-    // helper, so there is no active-deck re-point here.)
+    // (Deck ADD/REMOVE re-point the renderer's active deck through their OWN
+    // command hooks — withDeckDetached re-resolves getActiveDeck() after the
+    // fenced mutation — never through this helper, so there is no active-deck
+    // re-point here. A deck switch is no command: bf9b S2c.)
     //
     // Inspector re-pointing after a mutation is handled by refreshAfterUndoRedo
     // (EffectScope-aware setClip/setLayer) at the call sites that need it, not
@@ -55,14 +55,35 @@ void UndoService::withDeckDetached(const std::function<void()>& mutation)
         ~FenceResetGuard() { flag = false; }
     } fenceReset{ fenceActive_ };
 
+    // Lane bf9b (amendment 4(a)): the decks this edit reaps, handed to onDecksReaped once the fence has ended.
+    std::vector<Deck> reaped;
+    // Lane bf9b fix round: where the shared layer stack lives before the edit; a move or resize goes to
+    // onLayerStackMoved once the fence has ended (a Layer* into the old storage may dangle).
+    const Layer* stackBefore = composition_ != nullptr ? composition_->layers.data() : nullptr;
+    const size_t stackSizeBefore = composition_ != nullptr ? composition_->layers.size() : 0;
+    // Lane bf9b fix stage (adoption item 2): every other fenced edit goes to onFencedEdit -- it may have destroyed
+    // or moved clips without touching the stack (a Clip* held into a deck row may dangle).
+    auto handOver = [this, &reaped, stackBefore, stackSizeBefore] {
+        if (!reaped.empty() && onDecksReaped)
+            onDecksReaped(std::move(reaped));
+        if (composition_ != nullptr && onLayerStackMoved
+            && (composition_->layers.data() != stackBefore || composition_->layers.size() != stackSizeBefore))
+            onLayerStackMoved();
+        else if (onFencedEdit)
+            onFencedEdit();
+    };
+
     if (renderer_ == nullptr)
     {
         if (mutation)
             mutation();
+        if (composition_ != nullptr)
+            reaped = composition_->reapRetiredDecks();
+        handOver();
         return;   // fenceReset resets fenceActive_ on scope exit
     }
 
-    Deck* saved = renderer_->getActiveDeck();
+    Deck* saved = renderer_->getFenceToken();
     // s-rta-0928b mediaopen: no deck AND fenced, in ONE store (Renderer's FencedPtrSlot, adoption P3). The GL thread
     // counts a fenced deck-less frame (fence_hold_frames / fence_black_frames); restoreDeck's setActiveDeck below ends
     // the fence in the same single store that restores the deck.
@@ -83,18 +104,25 @@ void UndoService::withDeckDetached(const std::function<void()>& mutation)
             // address.
             renderer->setActiveDeck(composition != nullptr ? composition->getActiveDeck() : saved);
         }
-    } restoreDeck{ renderer_, composition_, saved };
+    };
 
-    // Fence: block until the GL thread finishes any in-flight frame reading the
-    // deck. With setComponentPaintingEnabled(false) the GL thread never takes
-    // the message-manager lock, so blocking here from the message thread cannot
-    // deadlock (validated empirically, Undo v1 build step 1).
-    renderer_->getContext().executeOnGLThread([](juce::OpenGLContext&) {}, true);
+    {
+        // The restore runs at the end of THIS scope (before the hand-over below): the reap happens inside the
+        // fence, its media disposal after it.
+        ActiveDeckRestoreGuard restoreDeck{ renderer_, composition_, saved };
 
-    if (mutation)
-        mutation();
+        // Fence: block until the GL thread finishes any in-flight frame reading the
+        // deck. With setComponentPaintingEnabled(false) the GL thread never takes
+        // the message-manager lock, so blocking here from the message thread cannot
+        // deadlock (validated empirically, Undo v1 build step 1).
+        renderer_->getContext().executeOnGLThread([](juce::OpenGLContext&) {}, true);
 
-    // restoreDeck + fenceReset run on scope exit below (destructors fire in
-    // reverse construction order; the two operations are independent so the
-    // order between them does not matter).
+        if (mutation)
+            mutation();
+        if (composition_ != nullptr)
+            reaped = composition_->reapRetiredDecks();
+    }
+    handOver();
+
+    // fenceReset runs on scope exit.
 }

@@ -53,8 +53,9 @@ namespace
     }
 
     // s-rta-0927 routine display: where a compiled routine plays -- its RESOLVED targets (a rebound-by-name
-    // lane sits on the layer it really drives, never ControlPath::layer). deck = the first target's deck;
-    // layers sorted and deduplicated; touchesComp = any composition-level target (layer -1).
+    // lane sits on the layer it really drives, never ControlPath::layer). deck = the first target's deck (a label;
+    // lane bf9b: the layers are the SHARED layers, whatever deck is shown); layers sorted and deduplicated;
+    // touchesComp = any composition-level target (layer -1).
     struct Footprint { int deck = -1; std::vector<int> layers; bool touchesComp = false; };
 
     Footprint footprint(const Program& prog)
@@ -729,7 +730,7 @@ std::string RoutineEngine::fire(const Composition& comp, int slot, RoutineSnap f
     r.slot = slot;
     r.uuid = routine->uuid;
     r.name = routine->name.empty() ? "Routine " + std::to_string(slot + 1) : routine->name;
-    r.program = compileRoutine(*routine, comp);   // targets resolved once, on the active deck (D2)
+    r.program = compileRoutine(*routine, comp);   // targets resolved once, on the shown deck (D2), pinned by id (bf9b)
     r.player = std::make_unique<Player>(r.program);
     r.sink = std::make_unique<SlotSink>(*this, slot);
     r.ownSnap = toSnap(routine->quantize);
@@ -804,12 +805,12 @@ void RoutineEngine::stopAll()
     publishStatus();
 }
 
-void RoutineEngine::stopOnLayer(int deck, int layer)
+void RoutineEngine::stopOnLayer(int layer)
 {
     ROUTINE_ENGINE_ASSERT_MESSAGE_THREAD();
     std::vector<int> slots;
     for (const auto& r : running_)
-        if (r.deck == deck && std::find(r.layers.begin(), r.layers.end(), layer) != r.layers.end())
+        if (std::find(r.layers.begin(), r.layers.end(), layer) != r.layers.end())   // bf9b: the SHARED layer, any deck
             slots.push_back(r.slot);
     for (int slot : slots)
         stop(slot);   // whole routine, every grip released; publishes

@@ -1,0 +1,4 @@
+7cf81cfdeb34f9f052e3b18dd7ddf336e39378a054645d01a2eeb9a963f37b90  src/ui/LayerInspector.cpp
+d11dc9d21a537fdc052d16ce4ac41c9705485b37db58e180cfae314db3497db3  src/ui/ClipInspector.cpp
+8adf92d6449ce5cbd1ec5913cf691d680ccdd4f357c312064a4256d523224a98  src/ui/InspectorRepoint.h
+ecc5a31ca42fd5e238889f36dc48e0432ed2a6cb355a9ec9ebb81b322f147b49  src/MainComponent.cpp

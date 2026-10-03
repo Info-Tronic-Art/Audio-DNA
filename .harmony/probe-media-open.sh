@@ -12,7 +12,7 @@
 # probe-image-load.sh's scaffolding verbatim (MEDIAOPEN_* instead of IMGLOAD_*).
 # Clone of .harmony/probe-render-state.sh (refuse / fresh out dir / foreign-traffic check / graceful quit).
 # Production mode (no --test-mode). Screen-safe: open -g (never plain open / foreground exec), no screen capture,
-# no Output window, no synthetic input; graceful quit, pkill only if still running after 30 s. REFUSES if Audio-DNA
+# no Output window, no synthetic input; quit_ours: graceful quit of the launched pid, kill of that pid after 30 s. REFUSES if Audio-DNA
 # is already running. The caller holds /tmp/audiodna-live.lock (PROBE RIG GATE below).
 #
 # usage: probe-media-open.sh [out-base] [row,row,...]
@@ -33,15 +33,15 @@ if [ -n "${AUDIODNA_LOCK_OWNER:-}" ]; then
 fi
 adna_pids() { ps -eo pid=,ucomm= | awk '$2=="Audio-DNA"{print $1}'; }
 adna_running() { [ -n "$(adna_pids)" ]; }
-adna_kill() { local p; p="$(adna_pids)"; [ -n "$p" ] && kill $p 2>/dev/null; }
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; A='http://127.0.0.1:7070'
+. "$ROOT/.harmony/probe-quit-ours.sh"   # refuse_foreign_start / record_ourpid / quit_ours: quit ONLY the app this run launched
 MAIN="$(cd "$(git -C "$ROOT" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)/.." 2>/dev/null && pwd)"
 APP="${MEDIAOPEN_APP:-$ROOT/build/AudioDNA_artefacts/Release/Audio-DNA.app}"
 PY="${MEDIAOPEN_PY:-}"
 if [ -z "$PY" ]; then for c in "$ROOT/.venv/bin/python" "$MAIN/.venv/bin/python"; do [ -x "$c" ] && { PY="$c"; break; }; done; fi
 [ -d "$APP" ] || { echo "REFUSE: no app at $APP (set MEDIAOPEN_APP)"; exit 64; }
 [ -n "$PY" ] && "$PY" -c 'import PIL, numpy, requests' 2>/dev/null || { echo "REFUSE: no python with PIL+numpy+requests (set MEDIAOPEN_PY)"; exit 64; }
-adna_running && { echo "REFUSE: Audio-DNA already running"; exit 64; }
+refuse_foreign_start || exit 64
 lsof -nP -iTCP:7070 -sTCP:LISTEN >/dev/null 2>&1 && { echo "REFUSE: port 7070 already has a listener: $(lsof -nP -iTCP:7070 -sTCP:LISTEN | tail -n +2 | awk '{print $1" "$2}' | head -2 | tr '\n' ' ')"; exit 64; }
 BASE="${1:-/tmp}"; mkdir -p "$BASE"; OUT="$(mktemp -d "$BASE/mediaopen.XXXXXX")" || exit 64
 echo "app: $APP"; echo "out: $OUT"
@@ -49,6 +49,7 @@ echo "app: $APP"; echo "out: $OUT"
 "$PY" "$ROOT/.harmony/probe-media-open.py" "$ROOT" "$OUT" --make-fixtures "${2:-}" || { echo "FAIL  fixtures"; exit 1; }
 ENVARGS=(); [ -n "${MEDIAOPEN_ENV:-}" ] && ENVARGS=(--env "$MEDIAOPEN_ENV")
 open -g --stdout "$OUT/out.log" --stderr "$OUT/err.log" ${ENVARGS[@]+"${ENVARGS[@]}"} "$APP"
+record_ourpid; echo "ours: pid ${OURPID:-none}"
 UP=0; for _ in $(seq 1 60); do [ -n "$(curl -s --max-time 1 "$A/api/health")" ] && { UP=1; break; }; sleep 1; done
 sleep 2
 RC=1
@@ -64,9 +65,7 @@ if [ "${FOREIGN:-0}" -gt 0 ]; then
   grep -o 'Captured frame: [^ ]*' "$OUT/err.log" | grep -v "Captured frame: $OUT/" | head -3 | sed 's/^/      /'
   RC=1
 else echo "PASS  no foreign render_frame traffic during the run"; fi
-osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
-for _ in $(seq 1 30); do adna_running || break; sleep 1; done
-adna_running && { adna_kill; sleep 2; }
+quit_ours || RC=1
 if adna_running; then echo "FAIL  app still running"; RC=1; else echo "PASS  app terminated"; fi
 rm -rf "$OUT/media"
 echo; [ "$RC" -eq 0 ] && echo "PROBE-MEDIA-OPEN GREEN" || echo "PROBE-MEDIA-OPEN RED"

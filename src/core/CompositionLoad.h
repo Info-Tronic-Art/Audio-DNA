@@ -16,40 +16,42 @@
 namespace compload
 {
 // Upper bound on a deck's numColumns, checked in validateDeck below. Unlike the
-// `layers`/`clips` JSON arrays (whose parsed size is inherently bounded by how
+// `layers` (rows) / `clips` JSON arrays (whose parsed size is inherently bounded by how
 // much array data is actually present in the file), numColumns is a single int
-// field that reaches Layer::ensureColumns()'s unconditional `clips.resize(count)`
+// field that reaches ClipRow::ensureColumns()'s unconditional `clips.resize(count)`
 // with no data behind it — a hand-edited/corrupted file's "numColumns": 2000000000
 // would otherwise attempt a multi-gigabyte std::vector<std::optional<Clip>>
 // allocation INSIDE the validator whose entire purpose is to refuse bad files
 // (OOM/crash-on-open). 10000 is far beyond any real deck (default is 12; the
 // MIDI grid controller surface tops out at 20, MidiOutputHandler.h's
 // kMaxColumns) while bounding the worst-case resize to a few MB even across
-// many layers.
+// many rows.
 inline constexpr int kMaxNumColumns = 10000;
 
 // Normalize + validate a freshly-deserialized Deck. "" = OK, else a human-readable
 // refusal reason. REPAIRS (in place, on the staged copy only): numColumns >= 1 and
-// >= every layer's clips.size(); every layer padded to numColumns.
+// >= every row's clips.size(); every row padded to numColumns.
 inline std::string validateDeck(Deck& d)
 {
-    if (d.layers.empty())
+    if (d.rows.empty())
         return "deck '" + d.name + "' has no layers";
     if (d.numColumns > kMaxNumColumns)
         return "deck '" + d.name + "' has an implausible column count ("
              + std::to_string(d.numColumns) + ")";
     int cols = std::max(1, d.numColumns);
-    for (const auto& l : d.layers)
-        cols = std::max(cols, static_cast<int>(l.clips.size()));
+    for (const auto& r : d.rows)
+        cols = std::max(cols, static_cast<int>(r.clips.size()));
     d.numColumns = cols;
-    for (auto& l : d.layers)
-        l.ensureColumns(cols);
+    for (auto& r : d.rows)
+        r.ensureColumns(cols);
     return "";
 }
 
 // REFUSES: no decks (an FX-preset .json, a deck .json or arbitrary JSON all parse fine
-// but have no "decks" array); any deck without layers. REPAIRS: activeDeckIndex out of
-// range -> 0. Runs validateDeck on every deck.
+// but have no "decks" array); any deck without rows; no shared layer (lane bf9b). REPAIRS:
+// every deck at exactly layers.size() rows (Composition::normalizeRows, plan-bf9b S2.3);
+// activeDeckIndex out of range -> 0. Runs validateDeck on every deck. Deck ids are kept
+// <= ClipRef::kMaxDeckId by Composition::fromVar (ruling-bf9b amendment 7(b)).
 inline std::string validateComposition(Composition& c)
 {
     if (c.decks.empty())
@@ -57,6 +59,9 @@ inline std::string validateComposition(Composition& c)
     for (auto& d : c.decks)
         if (auto r = validateDeck(d); !r.empty())
             return r;
+    c.normalizeRows();
+    if (c.layers.empty())
+        return "not a composition file (no layers)";
     if (c.activeDeckIndex < 0 || c.activeDeckIndex >= static_cast<int>(c.decks.size()))
         c.activeDeckIndex = 0;
     return "";
@@ -69,8 +74,8 @@ inline std::string validateComposition(Composition& c)
 inline int remintClipIds(Deck& d, uint32_t& nextId)
 {
     int n = 0;
-    for (auto& layer : d.layers)
-        for (auto& cell : layer.clips)
+    for (auto& row : d.rows)
+        for (auto& cell : row.clips)
             if (cell.has_value()) { cell->id = nextId++; ++n; }
     return n;
 }
@@ -102,8 +107,8 @@ inline int reconcileSourceParams(Deck& d, const SourceParamLookup& lookup)
 {
     std::map<std::string, std::optional<std::vector<RegisteredSourceParam>>> cache;
     int changed = 0;
-    for (auto& layer : d.layers)
-        for (auto& cell : layer.clips)
+    for (auto& row : d.rows)
+        for (auto& cell : row.clips)
         {
             if (!cell.has_value() || cell->mediaType != Clip::MediaType::Source || cell->sourceType.empty())
                 continue;
@@ -147,10 +152,10 @@ inline int reconcileSourceParams(Composition& c, const SourceParamLookup& lookup
     return n;
 }
 
-// Duplicate = a value copy under "<name> copy", library link dropped, EVERY clip re-minted: the copy must never share
-// a clip id with its source — MainComponent's dispose hook closes media by id (its FUTURE-FRAGILE note), and
-// InsertDeckCmd/RemoveDeckCmd dispose by id on undo/execute. A queued (quantized) trigger is NOT copied: the copy
-// becomes the active deck at once and a copied pending trigger would fire on it at the next beat.
+// Duplicate = a value copy of the deck's ROWS under "<name> copy", library link dropped, EVERY clip re-minted: the copy
+// must never share a clip id with its source — MainComponent's dispose hook closes media by id (its FUTURE-FRAGILE
+// note), and InsertDeckCmd/RemoveDeckCmd dispose by id on undo/execute. Lane bf9b: a deck holds no tuple, so nothing
+// plays from the copy (no ref names it) and the source keeps playing (Pitfall 36).
 inline Deck duplicateDeck(const Deck& src, uint32_t& nextClipId)
 {
     Deck copy = src;
@@ -158,31 +163,24 @@ inline Deck duplicateDeck(const Deck& src, uint32_t& nextClipId)
     copy.sourceFile = juce::File();
     copy.id = 0;                     // re-minted by Composition::appendDeck
     remintClipIds(copy, nextClipId);
-    for (auto& layer : copy.layers)
-    {
-        auto rt = layer.runtime();
-        rt.pendingTriggerColumn = -1;
-        rt.pendingTriggerSnapOverride = Clip::BeatSnapMode::Off;
-        layer.setRuntime(rt);
-    }
     return copy;
 }
 
-// Ids of every clip that owns renderer-side media (Video / ImageSequence), sorted.
+// Ids of every clip that owns renderer-side media (Video / ImageSequence), sorted -- every deck box, retired ones
+// included (Composition::forEachClip), so a swap closes a retired deck's media with the old model.
 inline std::vector<uint32_t> playableClipIds(const Composition& c)
 {
     std::vector<uint32_t> ids;
-    for (const auto& d : c.decks)
-        for (const auto& l : d.layers)
-            for (const auto& cell : l.clips)
-                if (cell.has_value() && cell->isPlayable()) ids.push_back(cell->id);
+    c.forEachClip([&](const Clip& clip, const ClipSite&) {
+        if (clip.isPlayable()) ids.push_back(clip.id);
+    });
     std::sort(ids.begin(), ids.end());
     return ids;
 }
 
 // s-rta-0928 renderleft R1.5: every Image clip's file path (full path, non-empty mediaFile), in the order the renderer
-// should prefetch them: the active deck first -- within each layer its active clip first, then the other columns --
-// then the other decks in index order. Deduplicated, the first occurrence kept.
+// should prefetch them (lane bf9b): the clips the shared layers PLAY first (any deck), then the shown deck's other
+// cells, then the other decks in index order. Deduplicated, the first occurrence kept.
 inline std::vector<std::string> imagePaths(const Composition& c)
 {
     std::vector<std::string> out;
@@ -196,17 +194,14 @@ inline std::vector<std::string> imagePaths(const Composition& c)
         out.push_back(std::move(p));
     };
     auto visitDeck = [&](const Deck& d) {
-        for (const auto& l : d.layers)
-            if (const Clip* a = l.getActiveClip())
-                add(*a);
-        for (const auto& l : d.layers)
-        {
-            const int activeCol = l.runtime().activeClipColumn;
-            for (size_t ci = 0; ci < l.clips.size(); ++ci)
-                if (l.clips[ci].has_value() && static_cast<int>(ci) != activeCol)
-                    add(*l.clips[ci]);
-        }
+        for (const auto& row : d.rows)
+            for (const auto& cell : row.clips)
+                if (cell.has_value())
+                    add(*cell);
     };
+    for (int i = 0; i < c.getNumLayers(); ++i)
+        if (const Clip* playing = c.playingClip(i))
+            add(*playing);
     const int active = c.activeDeckIndex;
     if (active >= 0 && active < static_cast<int>(c.decks.size()))
         visitDeck(c.decks[static_cast<size_t>(active)]);
