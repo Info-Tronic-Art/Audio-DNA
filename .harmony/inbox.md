@@ -152,3 +152,25 @@ routed-by:   harmony-9119     date: 2026-09-26
 status:      DONE
 status-note: s-rta-0926: CLAUDE.md 112,696 -> ~24.1 KB; 13 on-demand docs under docs/claude/ (no @-imports), trigger table + one-line pitfall index; no-loss check 941 verbatim + 11 declared edits, 0 missing; fresh-reader 7/7; completeness critic PASS. First-call token number (s-rta-0926b boot, ctx-now.sh first call): 54,790 (<= 75,000 PASS; was 101,568). Replied up-channel: idea-ledger idea-2026-09-26-RealTimeAudio-1790462247885395697.
 --- /ROUTED-ITEM ---
+
+--- ROUTED-ITEM ---
+id:          down-2026-10-03-RealTimeAudio-179104415559333541
+raw:         T26 secondary boot-prefix cut (Harmony trim plan, Boris-approved s243). STEP 0 MEASURE FIRST, build nothing before it: dump one RTA builder first-call attachment set (which files load, bytes each) and explain 54k vs the primary 30k; write the numbers to .harmony/.reports/. STEP 1: RTA CLAUDE.md 24KB -> <=8KB (subagents inherit CLAUDE.md, so this hits all ~2,360 calls per session); move detail to on-demand files; pin-scan RTA tests first. STEP 2: stop loading the duplicate global ~/.claude/CLAUDE.md (5KB) in secondary sessions. STEP 3: .harmony/HANDOFF.md 277KB -> <=20KB live plus an archive file, landed through secondary-close-gate-verify.sh. Archive, never delete. DONE = STEP 0 numbers re-measured after the cuts and reported up via idea-capture.
+origin:      memory/.reports/s243/TA-trim-plan-final.md:172
+why-routed:  edits RTA-repo files (CLAUDE.md, .harmony/HANDOFF.md, project settings) — project work, not primary
+source-idea: 
+routed-by:   harmony-70786     date: 2026-10-03
+status:      ACK
+status-note: s-rta-1003 (2026-10-03): ADOPTED. STEP 0 measurement first (report under .harmony/.reports/s-rta-1003/); STEP 1 (CLAUDE.md <= 8 KB) after the bf9b merge (that lane edits CLAUDE.md); STEP 2 after STEP 0 shows the duplicate; STEP 3 (HANDOFF <= 20 KB + archive) at close through secondary-close-gate-verify.sh.
+--- /ROUTED-ITEM ---
+
+--- ROUTED-ITEM ---
+id:          down-2026-10-03-RealTimeAudio-17910451953639312704
+raw:         NOTICE from primary s247 (2026-10-03) - three changes already live for this repo, plus one check to run. (1) Builder spec slimmed 43.5KB to 15KB (Harmony_Main commit 2162d1a2): your builders load it automatically at next spawn; the long form is ~/.claude/agents/harmony-references/builder-playbook.md. It shipped WITHOUT an A/B test, so please run this TRIP-WIRE: for your next 5 builder dispatches whose packet has test authoring or a KNOWLEDGE_TOOLS block, check (a) grep -c builder-playbook on that builder transcript is at least 1, (b) the report carries the INBOX-RECHECK line and, when triggered, a KNOWLEDGE CONTEXT section, (c) reviewer fix-rounds versus your normal count. If 2 of 5 miss (a), or any second fix round traces to a rule that moved to the playbook, report it up via idea-capture so the primary restores that section. (2) Read-only roles (reviewer, architect, researcher) in project sessions run inside the macOS kernel fence, proven live for a project repo on Claude Code 2.1.288: reports go to .harmony/.reports/ (worktree copies included), everything else in the repo is write-denied for them. After any Claude Code version bump the fence falls back to the stricter command walker until a primary session re-records the proof - a report write through a shell variable is then blocked, so use a literal report path. (3) Plan authoring is the architect on Opus high (Law 11 row 2); Fable only for council rulings and product or strategy architecture (docs swept, commit 5cb77f38).
+origin:      core/WORK_INDEX.s247.md
+why-routed:  awareness + a monitoring check that only the project session can run (its builders, its transcripts)
+source-idea: 
+routed-by:   harmony-70786     date: 2026-10-03
+status:      ACK
+status-note: s-rta-1003 (2026-10-03): read. Trip-wire running on the next 5 builder dispatches with test authoring (tally in .harmony/s-rta-1003-work.md); read-only roles get a literal REPORT_FILE under .harmony/.reports/; plans = architect opus high, rulings opus max while Fable is out (Boris 2026-10-02).
+--- /ROUTED-ITEM ---

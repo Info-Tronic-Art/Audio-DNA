@@ -76,3 +76,102 @@ BF10 [BUG, READY] (2026-10-02 14:40:58) MilkDrop output not adjusted to the comp
 BF9 CLARIFIED (2026-10-02 14:44:36): decks are boxes of clips; switching decks never changes what plays (verbatim in BORIS_DECISIONS.md
     "Decks are boxes of clips"). The running plan-bf9 (premise "deck change stops the old deck") is SUPERSEDED -> re-planned
     as bf9b; plan-bf9.md is research input only.
+
+# Boris feedback of 2026-10-03 (received ~13:28, recorded 2026-10-03 13:32:39, session s-rta-1003) — answers to the Oct 2 page (39 questions) + new items
+## VERBATIM (his whole message; lead-in: "here is my feedback. organize it as you wish and give me list of questions to clarify, if needed:")
+```
+Firing a column that is already playing should restart its videos
+
+What does this mean: Momentary pad released before its quantized beat: now cancels
+
+Little correction. When record to clip, we want to see the recording in the layer it is recording to while it is being recorded. Can you do that?
+
+The layer strip does not need to show the deck a clip is playing from.
+
+Recording a clip should be prominently displayed, so it can be recorded as long as the user likes. There's no limit except hard drive Space.
+
+The recording should look exactly like the output. If there's a logo, it should look exactly as it's displayed.
+
+The recording will always play like a regular clip once it is recorded. 
+
+As far as a video clip is concerned, it is in two categories, either BPM synced throughout the whole thing, or just playing with a speed control. If it is BPM synced, regardless of the length, it is synced to the current playing BPM and it has bars that the user can set. We automatically set bars for a cliff, but the user can change the bars in it by amount. Let me know if you have any questions on that. Regardless of the clip being BPM or speed controlled, if we are in Qantize mode, it is triggered on time by the Qantize method.  There should be no problem playing clips that are set up for BPM and clips that are set up for speed at the same time. Their speeds are just controlled differently.
+
+For sync control we should have a way to remember it as part of a composition save. I imagine if a user is doing this professionally, they will set up the venue and save it in case of a computer crash or something and if they come back to that venue, they have the settings already.
+
+Sync lives in top bar
+
+For sync and setting the BPM. The user of the application will tap tempo and keep the application in time with the music. It is hard to tap ahead or behind the beat. The user will try to have the beat matched exactly to the music so the user can see it pulsing exactly to the time of the music. Sometimes the visual system is a little delayed and will need to be a little ahead or sometimes the visual system is a little faster than the music and that's what this is for. The visuals should be on the delay. The music is in time and the visuals should be delayed or a little ahead depending on how the system is wired. Let me know if you have questions to clarify. 
+
+Long samples: squeeze the whole sample into the envelope length (up to 10 minutes), or pick a section? Default: the whole sample. I want to be able to use the whole thing or to shorten it manually but clicking to timing marks.
+
+For Milk drop there is no timeline, but there are effects.
+
+Explain this to me. Where do I draw the timeline curve? [ After this fix, “Clip Position” and “Timeline” do the same thing: the knob goes from its low end to its high end as the clip plays. Once you can draw the Timeline curve, Timeline follows your drawing and Clip Position stays a straight line. Keep both, or remove Clip Position? Default: keep both.]
+
+Quantize 1 bar, 1/2 bar, 1/4, 1/8, 1/6
+
+Let’s get rid of beats and just have bars in most places unless beats are necessary. For setting a clips beats, these are done with beats and not bars. For most other things, we will use bars. For the circle at the top that counts off 1234 and then starts over, those are beats as well. 
+
+We should pick the most optimal Kodex to use and not worry about the other ones. Web M is not necessary. I want codecs that decode easily and play well
+
+If there are ‘/‘ characters in a decks file name, do not worry about adding sub folders. They are just characters. If there are characters that are no good, then let me know and we will create a fix together
+
+Can you figure out how to get everything working in the keying menu? Does the keying slider actually do anything? Maybe we get rid of it. Some elements in the keying menu work and some don’t. Should we use the transparency slider to do the work for keying elements? Also review the compositing menu, right slider in layer strip. These elements don’t work: Creative, 3D, 
+
+When I grab the play head and move the timeline, I do not want it to jump back to where it was or where it should be playing before I grabbed it. I wanted to keep playing at the same speed, but play from wherever I drop the play head. Does this make sense?
+
+
+Testing some of your work. When I switch decks, the clips in the layers disappear. They should remain. The output also goes black when I switch decks in there are clips playing in a layer.
+
+
+How do I access the bigger envelope, editor? I don't think I need it? I am fine using the envelope editor in the signal tab. I want all of the controls to work in that one rather than an extra bigger envelope window.
+
+I have beats and seconds in the milkdrop editor. I only need beats.
+
+Gain slider in top bar could be twice as long. I have very little space to move it because I start at a quarter from the left edge and move down from there so I have very little distance to make a lot of fine adjustment.
+
+All the other defaults are good.
+```
+
+## Items (Harmony's reading — consequence text, not Boris's words). Page = .harmony/.reports/s-rta-1002b/boris-checks.html (questions 1-39).
+BF11 [NEW, READY] Firing a column that is already playing restarts its videos (today a column re-fire leaves them running).
+BF12 [EXPLAIN] "Momentary pad released before its quantized beat: now cancels" (s-rta-1002 page, feel check) — explanation owed, no build.
+BF13 [bf1 DELTA] Record to clip: (a) the recording is visible in the layer / cell it records into WHILE recording (OPEN-Q: how —
+     a live picture in the destination cell vs played into the layer; a whole-output recording played into its own layer would
+     record itself); (b) page Q7 ANSWERED: no automatic end; REC shown prominently; the only limit is disk space (a disk-space
+     guard is Harmony's consequence); (c) page Q8 ANSWERED: "should look exactly like the output ... logo ... exactly as it's
+     displayed" (OPEN-Q: single-layer recording keeps see-through parts? default now YES); (d) page Q9 = default (plays like a
+     regular clip; Quantize decides).
+BF14 [bf9b DELTA, READY] The layer strip does NOT show the source deck: remove the strip's source-deck badge (ruling-bf9b
+     amendment 16(a)-(c): badge + badge click) before the merge. OPEN-Q: the deck TAB dot (default keep).
+BF15 [NEW MODEL STATEMENT] A video clip is either BPM-synced (always follows the current BPM; a length the user can set; the app
+     sets it automatically, the user changes it) or speed-controlled; Quantize times the START of both kinds; both kinds play
+     side by side. (Today: transport mode "BPM Sync" with beat-division presets exists — docs/claude/history.md:55,
+     architecture.md:92 beatDivision.) OPEN-Q: unit (his message says "bars" here and "beats" under BF21), how "by amount"
+     works, the automatic length rule.
+BF16 [bf2 DELTA] Sync: (a) saved as part of the composition (venue recall after a crash / return visit); (b) page Q14 ANSWERED:
+     it lives in the TOP BAR; (c) page Q16: the user taps in time with the music; the beat stays in time with the music; the
+     VISUALS are what gets delayed / advanced (confirm: beat wheel unshifted, output shifted).
+BF17 [bf45 DELTA] Long samples (page Q21): whole sample by default, AND shorten it by hand by clicking timing marks.
+BF18 [bf6] Page Q24 = (a): MilkDrop has no timeline (Timeline greyed out); its effects remain.
+BF19 [EXPLAIN] Page Q25: where the Timeline curve is drawn — explanation owed; the default (keep both) stands until he says.
+BF20 [bf7 DELTA] Quantize menu: 1 bar, 1/2 bar, 1/4, 1/8, "1/6" (OPEN-Q: read as 1/16).
+BF21 [bf7 DELTA] Bars in most places; a clip's length is set in BEATS; the top circle counts BEATS (1-2-3-4).
+BF22 [NEW] Codecs: pick the one that decodes easily and plays best; do not chase the others; WebM not needed (page Q39: no job).
+BF23 [BUG, page section 3] "/" in a deck name is just a character — never a sub-folder. Characters a file name cannot hold:
+     tell him, fix together.
+BF24 [NEW AUDIT] Keying menu: make every entry work or propose removal; does the Keying slider do anything (maybe remove; maybe
+     the transparency slider does the keying amount); compositing (blend) menu on the layer strip's right slider: the
+     "Creative" and "3D" groups do not work.
+BF25 [BUG] Dragging the playhead: after the drop the clip plays on from the drop point at the same speed; it must not jump
+     back to where it was / would have been.
+BF26 [REPORT] "When I switch decks, the clips in the layers disappear ... output also goes black" = the app WITHOUT the deck
+     change (lane bf9b is built, not merged: main 5abdf01 vs lane/bf9b a7491d4; the lane's own probe shows the pre-change app
+     changing the picture on a switch). Merge = this session's first job.
+BF27 [bf45 REVERSAL] No bigger envelope editor. Every control works in the Signal tab's envelope editor (supersedes BF4
+     "bigger envelope" and page Q17 / Q18).
+BF28 [bf7] MilkDrop editor: beats and seconds shown today; only the musical unit is needed (OPEN-Q: label in bars or beats).
+BF29 [NEW, ui] Top bar Gain slider twice as long (he works in the lower quarter of its travel).
+BF30 "All the other defaults are good." -> every page question not named above takes its default (decks Q1-Q4; record Q5, Q6,
+     Q10; sync Q11 bar-not-dial, Q12, Q13, Q15; envelopes Q19, Q20, Q22, Q23; Timeline Q26; bars Q27, Q29, Q30 (except clip
+     length = beats); deck rename Q32, Q33; picture info Q34; Q35 on-screen test strip NOT OK'd; MilkDrop Q36, Q37; MKV Q38).

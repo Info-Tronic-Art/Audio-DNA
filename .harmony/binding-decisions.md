@@ -604,3 +604,53 @@ build it; "audio controls the video", all tempo-locked, current UI will be scrap
   autopilot) belong to the shared layer, one set for all decks (old shows: the first deck's layer settings win); every
   deck shows the show's layer rows; the deck-to-deck transition fade is removed (a deck switch has nothing to fade); the
   layer strip shows each layer's playing clip and the deck it came from; Persistent removed; ignore-column stays.
+
+## 2026-10-03 (s-rta-1003) — Boris's answers to the Oct 2 page + new feedback BF11-BF30 (full message verbatim: .harmony/boris-feedback-backlog.md "Boris feedback of 2026-10-03"; recorded 2026-10-03 13:32:39)
+- Column re-fire — Boris: "Firing a column that is already playing should restart its videos" -> a column fire restarts the
+  videos of a column that is already playing.
+- Layer strip — Boris: "The layer strip does not need to show the deck a clip is playing from." -> the strip's source-deck
+  badge (ruling-bf9b amendment 16) is removed; SUPERSEDES the 2026-10-02 consequence default "the layer strip shows each
+  layer's playing clip and the deck it came from" (the playing clip stays; the deck does not).
+- Deck switch — Boris: "When I switch decks, the clips in the layers disappear. They should remain. The output also goes black
+  when I switch decks in there are clips playing in a layer." -> restates "Decks are boxes of clips"; the app he tested does
+  not contain the deck change yet.
+- Record to clip — Boris: "When record to clip, we want to see the recording in the layer it is recording to while it is being
+  recorded."; "Recording a clip should be prominently displayed, so it can be recorded as long as the user likes. There's no
+  limit except hard drive Space."; "The recording should look exactly like the output. If there's a logo, it should look
+  exactly as it's displayed."; "The recording will always play like a regular clip once it is recorded." -> no automatic end
+  (replaces the 64-bar default); a prominent recording display; the recording is visible at its destination while it runs;
+  the recording matches the output; a finished recording is an ordinary clip.
+- Clip transport — Boris: "As far as a video clip is concerned, it is in two categories, either BPM synced throughout the
+  whole thing, or just playing with a speed control. If it is BPM synced, regardless of the length, it is synced to the
+  current playing BPM and it has bars that the user can set. We automatically set bars for a cliff, but the user can change
+  the bars in it by amount." / "Regardless of the clip being BPM or speed controlled, if we are in Qantize mode, it is
+  triggered on time by the Qantize method.  There should be no problem playing clips that are set up for BPM and clips that
+  are set up for speed at the same time. Their speeds are just controlled differently."
+- Sync — Boris: "For sync control we should have a way to remember it as part of a composition save."; "Sync lives in top
+  bar"; "The user of the application will tap tempo and keep the application in time with the music. ... The visuals should
+  be on the delay. The music is in time and the visuals should be delayed or a little ahead depending on how the system is
+  wired." -> the sync setting is saved with the composition; its control is in the top bar; the tapped beat stays in time
+  with the music and the visuals carry the offset.
+- Envelopes — Boris: "I want to be able to use the whole thing or to shorten it manually but clicking to timing marks."; "I
+  am fine using the envelope editor in the signal tab. I want all of the controls to work in that one rather than an extra
+  bigger envelope window." -> NO bigger envelope editor (SUPERSEDES 2026-10-02 BF4 "bigger envelope"); every envelope control
+  lives in the Signal tab's editor; a long sample is used whole or trimmed by hand on timing marks.
+- Timeline — Boris: "For Milk drop there is no timeline, but there are effects." -> page Q24 (a).
+- Quantize / units — Boris: "Quantize 1 bar, 1/2 bar, 1/4, 1/8, 1/6"; "Let’s get rid of beats and just have bars in most
+  places unless beats are necessary. For setting a clips beats, these are done with beats and not bars. For most other
+  things, we will use bars. For the circle at the top that counts off 1234 and then starts over, those are beats as well.";
+  "I have beats and seconds in the milkdrop editor. I only need beats."
+- Codecs — Boris: "We should pick the most optimal Kodex to use and not worry about the other ones. Web M is not necessary. I
+  want codecs that decode easily and play well"
+- Deck file names — Boris: "If there are ‘/‘ characters in a decks file name, do not worry about adding sub folders. They are
+  just characters. If there are characters that are no good, then let me know and we will create a fix together"
+- Keying / compositing — Boris: "Can you figure out how to get everything working in the keying menu? Does the keying slider
+  actually do anything? Maybe we get rid of it. Some elements in the keying menu work and some don’t. Should we use the
+  transparency slider to do the work for keying elements? Also review the compositing menu, right slider in layer strip.
+  These elements don’t work: Creative, 3D,"
+- Playhead drag — Boris: "When I grab the play head and move the timeline, I do not want it to jump back to where it was or
+  where it should be playing before I grabbed it. I wanted to keep playing at the same speed, but play from wherever I drop
+  the play head."
+- Gain — Boris: "Gain slider in top bar could be twice as long."
+- Everything else — Boris: "All the other defaults are good." -> every Oct 2 page question he did not name takes its default
+  (list: boris-feedback-backlog.md BF30). Page item 35 (on-screen test strip) keeps its default: NOT run without his OK.
