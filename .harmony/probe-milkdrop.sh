@@ -9,7 +9,12 @@
 # Launch / quit, three ways (TEST MODE always: load_milkdrop_preset / set_composition_params / render_frame are 8080):
 #   LOCK_LIB set (the rig lock helper; LANE set): the helper's start_app / quit_app (quit_app touches ONLY the pid
 #                start_app recorded). This is the path .harmony/probe-vupload-ab.sh drives (it exports LOCK_LIB).
-#   MILKDROP_ATTACH=1: no launch, no quit -- the caller started the app (e.g. with the helper) and quits it.
+#   MILKDROP_ATTACH=1: no launch, no quit -- the caller started the app (e.g. with the helper) and quits it. It
+#                attaches ONLY to the harness's own test-mode app (Harmony ruling R1, s-rta-1002b: Boris uses this Mac
+#                and this app): the one running Audio-DNA pid must equal MILKDROP_ATTACH_PID, else the pid the lock
+#                helper's start_app recorded (LOCK_LIB + LANE); that pid must own the 8080 listener and 8080
+#                /api/health must answer. Otherwise: REFUSE, exit 2, no request sent (/api/health is asked only once
+#                the pid and the listener match). Selftest: .harmony/probe-milkdrop-selftest.sh (no app, no request).
 #   neither: standalone, cloned from probe-canvas.sh: open -g ... --args --test-mode, then a graceful quit of ONLY
 #                the pid this script launched (refuses to quit any other Audio-DNA).
 # Screen-safe: open -g, never an Output window (set_output_tap opens none), no synthetic input, window-only captures
@@ -20,6 +25,7 @@
 #   MILKDROP_PY                python with PIL+numpy+requests+pyobjc (default: <root>/.venv, else the main checkout's)
 #   MILKDROP_MODE              lane (default) | pre  (calibration on the pre-lane app: see probe-milkdrop.py)
 #   MILKDROP_ARM               A | B label for the m3_rewarm DATA line
+#   MILKDROP_ATTACH_PID        the pid MILKDROP_ATTACH=1 may attach to (see above)
 # Every run captures into a FRESH dir: mktemp -d "<out-base>/milkdrop.XXXXXX" (out-base default /tmp).
 # PROBE RIG GATE: refuses (exit 64) unless /tmp/audiodna-live.lock/owner exists; if AUDIODNA_LOCK_OWNER is set it must
 # match the owner file's first field. Process matching by the kernel's ucomm, never pgrep -f.
@@ -41,6 +47,19 @@ if [ -z "$PY" ]; then for c in "$ROOT/.venv/bin/python" "$MAIN/.venv/bin/python"
 ATTACH="${MILKDROP_ATTACH:-0}"
 if [ "$ATTACH" = 1 ]; then
   adna_running || { echo "REFUSE: MILKDROP_ATTACH=1 but no Audio-DNA is running"; exit 64; }
+  # R1: an Audio-DNA no harness started is Boris's -- m4 / m6 / m9 / m10 would replace his composition over 7070.
+  RUNPID="$(adna_pids | tr -d ' \n')"
+  WANTPID="${MILKDROP_ATTACH_PID:-}"
+  if [ -z "$WANTPID" ] && [ -n "${LOCK_LIB:-}" ]; then   # the helper names start_app's pid record OURPID
+    WANTPID="$(LANE="${LANE:-${LOCK_LANE:-}}"; . "$LOCK_LIB" >/dev/null 2>&1 && cat "$OURPID" 2>/dev/null | tr -d ' \n')"
+  fi
+  L8080="$(lsof -nP -t -iTCP:8080 -sTCP:LISTEN 2>/dev/null | sort -u | tr -d ' \n')"
+  if [ -z "$WANTPID" ] || [ "$RUNPID" != "$WANTPID" ] || [ "$L8080" != "$RUNPID" ] \
+     || [ -z "$(curl -s --max-time 2 -H 'Connection: close' http://localhost:8080/api/health)" ]; then
+    echo "REFUSE: the running Audio-DNA is not a test-mode app this run started (it may be Boris's)"
+    echo "        running pid ${RUNPID:-none}; expected ${WANTPID:-none} (MILKDROP_ATTACH_PID, else LOCK_LIB + LANE's start_app record); 8080 listener ${L8080:-none}"
+    exit 2
+  fi
 else
   [ -d "$APP" ] || { echo "REFUSE: no app at $APP (set MILKDROP_APP)"; exit 64; }
   adna_running && { echo "REFUSE: Audio-DNA already running (pid $(adna_pids | tr '\n' ' '))-- never touch it"; exit 64; }
