@@ -90,7 +90,7 @@ SOLID_B = os.path.join(ROOT, FIX["fixtures"]["solid_b"])
 P1 = os.path.join(ROOT, FIX["presetDir"], P1_OVERRIDE or FIX["p1"])
 print(f"P1 = {P1}" + ("  (OVERRIDE via MILKDROP_P1 -- calibration only)" if P1_OVERRIDE else ""), flush=True)
 HEAVY = os.path.join(ROOT, FIX["presetDir"], FIX["heavy"])
-CA, CB = np.array(FIX["colourA"], float), np.array(FIX["colourB"], float)
+CA = np.array(FIX["colourA"], float)
 U = FIX["uniform"]; FP = FIX["fingerprint"]
 S = requests.Session()
 S.headers["Connection"] = "close"   # one fresh connection per request (cpp-httplib keep-alive race, s-rta-0927)

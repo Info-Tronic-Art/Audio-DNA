@@ -42,6 +42,7 @@ adna_pids() { ps -eo pid=,ucomm= | awk '$2=="Audio-DNA"{print $1}'; }
 adna_running() { [ -n "$(adna_pids)" ]; }
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 MAIN="$(cd "$(git -C "$ROOT" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)/.." 2>/dev/null && pwd)"
+[ -n "${MILKDROP_APP:-}" ] && [ -n "${VIDEO_APP:-}" ] && [ "$MILKDROP_APP" != "$VIDEO_APP" ] && { echo "REFUSE: MILKDROP_APP and VIDEO_APP name different apps (under probe-vupload-ab.sh both arms would run MILKDROP_APP)"; exit 64; }
 APP="${MILKDROP_APP:-${VIDEO_APP:-$ROOT/build/AudioDNA_artefacts/Release/Audio-DNA.app}}"
 PY="${MILKDROP_PY:-}"
 if [ -z "$PY" ]; then for c in "$ROOT/.venv/bin/python" "$MAIN/.venv/bin/python"; do [ -x "$c" ] && { PY="$c"; break; }; done; fi
