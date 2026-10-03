@@ -347,21 +347,6 @@ private:
     juce::TextButton loadPresetButton_{"Load"};
     juce::Label fileLabel_;
     juce::Label audioDeviceNotice_;   // s-rta-0929b btguard (BG6): see refreshAudioDeviceNotice
-    // Lane bf9b S3.4 (ruling-bf9b amendment 9(d)): the load notice -- an old show converted / routine pads left empty /
-    // the deck-id refusal -- in the same yellow, right-aligned row-1 slot as audioDeviceNotice_ (both visible share it);
-    // its tooltip holds the details. Visible until the next save, the next load or a click on it; never takes focus.
-    struct NoticeLabel : juce::Label
-    {
-        std::function<void()> onClick;
-        void mouseUp(const juce::MouseEvent& e) override
-        {
-            juce::Label::mouseUp(e);
-            if (onClick) onClick();
-        }
-    };
-    NoticeLabel loadNotice_;
-    void showLoadNotice(const juce::String& text, const juce::String& details);
-    void clearLoadNotice();
     juce::Label fpsLabel_;
     juce::Label cpuLabel_;
 

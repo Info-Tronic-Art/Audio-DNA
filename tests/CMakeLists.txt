@@ -1882,7 +1882,7 @@ apply_sanitizers(test_tab_bar_layout)
 catch_discover_tests(test_tab_bar_layout)
 
 # --- test_deck_tab_row (s-rta-0926b plan6 §6.1: the deck tab row's geometry --
-# tabs, the "+" button, the Remove-Deck undo hint -- and its two menus). Pure
+# tabs, the "+" button -- and its two menus). Pure
 # header src/ui/DeckTabRow.h -- no JUCE; DeckView places its buttons from it.
 add_executable(test_deck_tab_row test_deck_tab_row.cpp)
 target_include_directories(test_deck_tab_row PRIVATE ${SRC_DIR})
@@ -3465,6 +3465,7 @@ add_executable(test_show_model
     ${SRC_DIR}/recording/RecorderClock.cpp
     ${SRC_DIR}/recording/RoutineEngine.cpp
     ${SRC_DIR}/binding/BindingManager.cpp
+    ${SRC_DIR}/ui/MenuBarModel.cpp
     ${SRC_DIR}/ui/DeckView.cpp
     ${SRC_DIR}/ui/ClipCell.cpp
     ${SRC_DIR}/ui/RoutinePad.cpp
@@ -3516,10 +3517,11 @@ if("address" IN_LIST ADNA_SANITIZE)
         PROPERTIES ${ADNA_ASAN_TEST_PROPERTIES})
 endif()
 
-# --- test_layer_strip_source_deck (lane bf9b S3, plan-bf9b S3.1 / S3.2, ruling-bf9b amendments 16(a)-(c), 16(e) and the
-# B7 MACHINE checks M-a .. M-f): the strip's source-deck badge (tab number / "x", dim for the shown deck, click = show
-# that deck), the deck tabs' dots, the grid's lit cells and column header on the shared stack, the showDeck snapshot
-# walk. Headless JUCE widgets; the DeckView set (as test_deck_thumbnails).
+# --- test_layer_strip_source_deck (lane bf9b S3, plan-bf9b S3.2, ruling-bf9b 16(e); restated by ruling-bf9b-merge
+# AM-11 / AM-12 -- the B7 MACHINE checks M-a, M-c, M-t, the BF14 pin, G1', G2, G3): a layer strip paints nothing that
+# depends on the deck its clip came from, the deck tabs paint nothing that depends on playing, the grid's lit cells and
+# column header on the shared stack, the showDeck snapshot walks. Headless JUCE widgets; the DeckView set (as
+# test_deck_thumbnails).
 add_executable(test_layer_strip_source_deck
     test_layer_strip_source_deck.cpp
     ${SRC_DIR}/ui/DeckView.cpp

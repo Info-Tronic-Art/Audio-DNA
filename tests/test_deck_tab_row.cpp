@@ -1,5 +1,5 @@
-// test_deck_tab_row -- s-rta-0926b plan6 §6.1: the deck tab row's geometry (tabs, the "+" button, the Remove-Deck
-// undo hint) and its two menus. Pure header src/ui/DeckTabRow.h -- no JUCE; DeckView places its buttons from it.
+// test_deck_tab_row -- s-rta-0926b plan6 §6.1: the deck tab row's geometry (tabs, the "+" button) and its two menus.
+// Pure header src/ui/DeckTabRow.h -- no JUCE; DeckView places its buttons from it.
 #include <catch2/catch_test_macros.hpp>
 #include "ui/DeckTabRow.h"
 #include <string>
@@ -47,22 +47,6 @@ TEST_CASE("DeckTabRow::layout -- tabs shrink evenly when the row is full, never 
     for (const auto& t : twenty.tabs)
         CHECK(t.w == kMinTabWidth);
     CHECK(rectIs(twenty.plus, 976, 24));
-}
-
-TEST_CASE("DeckTabRow::layout -- the undo hint sits flush right and hides when it would crowd the \"+\"", "[decktabrow]")
-{
-    using namespace DeckTabRow;
-
-    CHECK(rectIs(layout(1000, 3, 120).hint, 880, 120));
-    CHECK(rectIs(layout(1000, 12, 120).hint, 0, 0));   // 972 + 24 + 8 > 880
-    CHECK(rectIs(layout(1000, 3, 0).hint, 0, 0));      // no hint asked for
-
-    // Tabs and the "+" never move because a hint appears or disappears.
-    const auto without = layout(1000, 3);
-    const auto with = layout(1000, 3, 120);
-    for (size_t i = 0; i < without.tabs.size(); ++i)
-        CHECK(rectIs(with.tabs[i], without.tabs[i].x, without.tabs[i].w));
-    CHECK(rectIs(with.plus, without.plus.x, without.plus.w));
 }
 
 TEST_CASE("DeckTabRow::tabMenu / plusMenu -- items, order, separators, Remove only with more than one deck", "[decktabrow]")

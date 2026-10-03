@@ -1,22 +1,19 @@
-// test_layer_strip_source_deck -- lane bf9b S3 (s-rta-1002b; plan-bf9b S3.1 / S3.2, ruling-bf9b amendments 16(a)-(c),
-// 16(e), 17 and the B7 MACHINE checks M-a .. M-f). Decks are boxes of clips over ONE shared layer stack, so a layer may
-// play a clip from a deck the grid does not show. The strip says which box: a BADGE on the thumbnail's bottom-left
-// corner (the deck's 1-based tab position, "x" for a removed deck; dim when that deck is the shown one). A deck tab shows
-// a DOT while a layer plays from it. A click on the badge shows that deck in the grid (never an Undo step, never a layer
-// select). The grid lights a cell only for a ref into the SHOWN deck; the column header only on the deck it was fired
-// from; a deck switch (DeckView::showDeck) changes nothing in the strip column but the badges' dimness.
+// test_layer_strip_source_deck -- lane bf9b S3 (s-rta-1002b; plan-bf9b S3.2, ruling-bf9b 16(e)) as restated by
+// ruling-bf9b-merge AM-11 / AM-12 (s-rta-1003; the B7 MACHINE checks M-a, M-c, M-t, the BF14 pin, G1', G2, G3). Decks
+// are boxes of clips over ONE shared layer stack, so a layer may play a clip from a deck the grid does not show -- and
+// nothing on screen says which box (Boris: "The layer strip does not need to show the deck a clip is playing from.";
+// asked whether the deck-tab dot stays: "drop"). THE STRIP IS THE TRUTH: it shows the clip its layer plays, identically
+// whatever deck the clip came from. THE GRID IS THE BOX: a cell is lit only for a ref into the SHOWN deck; the column
+// header only on the deck it was fired from, at once after any rebuild. THE TABS SAY NOTHING ABOUT PLAYING. A deck
+// switch (DeckView::showDeck) changes nothing in the strip column; a rebuild keeps the selected layer's highlight.
 // Headless JUCE widgets under ScopedJuceInitialiser_GUI (no window, no peer, no dispatch loop -- the strips' timers
-// never fire; refresh() / syncTabDots() are called as the app does). Components are made visible (Pitfall 34).
+// never fire; refresh() is called as the app does). Components are made visible (Pitfall 34).
 #include <catch2/catch_test_macros.hpp>
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "model/Composition.h"
-#include "render/LayerClock.h"
-#include "ui/DeckTabRow.h"
 #include "ui/DeckView.h"
 #include "ui/LayerStrip.h"
-#include "ui/LoadNotice.h"
 #include "ShowFixture.h"
-#include <cmath>
 #include <set>
 #include <utility>
 #include <vector>
@@ -74,36 +71,6 @@ std::set<std::pair<int, int>> modelLit(const Composition& c)
     return lit;
 }
 
-juce::MouseEvent leftPressAt(juce::Component& target, juce::Point<float> at)
-{
-    const juce::ModifierKeys mods(juce::ModifierKeys::leftButtonModifier);
-    const auto now = juce::Time::getCurrentTime();
-    return { juce::Desktop::getInstance().getMainMouseSource(), at, mods,
-             0.0f, 0.0f, 0.0f, 0.0f, 0.0f, &target, &target, now, at, now, 1, false };
-}
-
-// LayerStrip::mouseDown is private; it overrides juce::Component::mouseDown (public, virtual).
-void press(LayerStrip& strip, juce::Point<int> at)
-{
-    static_cast<juce::Component&>(strip).mouseDown(leftPressAt(strip, at.toFloat()));
-}
-
-// WCAG 2 relative luminance and contrast ratio.
-double luminance(juce::Colour c)
-{
-    auto lin = [](juce::uint8 v) {
-        const double s = v / 255.0;
-        return s <= 0.03928 ? s / 12.92 : std::pow((s + 0.055) / 1.055, 2.4);
-    };
-    return 0.2126 * lin(c.getRed()) + 0.7152 * lin(c.getGreen()) + 0.0722 * lin(c.getBlue());
-}
-
-double contrast(juce::Colour a, juce::Colour b)
-{
-    const double la = luminance(a), lb = luminance(b);
-    return (std::max(la, lb) + 0.05) / (std::min(la, lb) + 0.05);
-}
-
 juce::Image snapshot(juce::Component& comp, juce::Rectangle<int> area)
 {
     return comp.createComponentSnapshot(area, true, 1.0f).convertedToFormat(juce::Image::ARGB);
@@ -136,6 +103,39 @@ int diffInside(const juce::Image& a, const juce::Image& b, juce::Rectangle<int> 
     return n;
 }
 
+// The deck tab row in DeckView coordinates: the full width at the tabs' y (tabRowStateForTests is the REST witness).
+juce::Rectangle<int> tabRowOf(DeckView& dv)
+{
+    const auto state = dv.tabRowStateForTests();
+    const auto* tabs = state["tabs"].getArray();
+    REQUIRE(tabs != nullptr);
+    REQUIRE(tabs->size() > 0);
+    return { 0, static_cast<int>((*tabs)[0]["y"]), dv.getWidth(), static_cast<int>((*tabs)[0]["h"]) };
+}
+
+// ADNA_BF9B_SHOT_DIR=<dir> writes the named snapshot there as a PNG (for a look; unset = nothing is written).
+void saveShot(const juce::Image& img, const juce::String& name)
+{
+    const auto dir = juce::SystemStats::getEnvironmentVariable("ADNA_BF9B_SHOT_DIR", {});
+    if (dir.isEmpty())
+        return;
+    const juce::File f = juce::File(dir).getChildFile(name + ".png");
+    f.deleteFile();   // Pitfall 46: a FileOutputStream opens an existing file at its end
+    juce::FileOutputStream os(f);
+    REQUIRE(os.openedOk());
+    REQUIRE(juce::PNGImageFormat().writeImageToStream(img, os));
+}
+
+// Fire deck d's column col into layer i after giving that clip a media file, so the strip shows a clip name (a
+// ShowFixture clip has no file: its strip would look like an empty layer's).
+void fireNamed(Composition& c, int i, int d, int col)
+{
+    Clip* cl = c.decks[static_cast<size_t>(d)].getClip(i, col);
+    REQUIRE(cl != nullptr);
+    cl->mediaFile = juce::File("/nonexistent/bf9b/" + juce::String(cl->name) + ".png");
+    fire(c, i, d, col, true);
+}
+
 // A headless grid over `c`, sized like the app's deck area, visible (Pitfall 34).
 struct Grid
 {
@@ -154,261 +154,67 @@ struct Grid
     }
 };
 
-// What the badge must say for layer i, from the model alone (M-b).
-juce::String expectedBadgeText(const Composition& c, int i)
-{
-    const auto p = c.playing(i);
-    if (p.clip == nullptr)
-        return {};
-    if (p.deckIndex >= 0)
-        return juce::String(1 + c.findDeckIndexById(p.ref.deckId));
-    return p.retired ? juce::String("x") : juce::String();
-}
 } // namespace
-
-TEST_CASE("S3.1 the strip badge names the deck a playing clip came from: its tab number, dim for the shown deck, normal "
-          "for another, 'x' for a removed deck, none when clear (bf9b, ruling-bf9b 16(a), B7 M-b)", "[show][strip]")
-{
-    Composition c = makeShow(3, 3, 4);
-    fire(c, 0, 0, 1, true);   // layer 0 <- deck 0 (shown)
-    fire(c, 1, 1, 2, true);   // layer 1 <- deck 1 (not shown)
-    Grid g(c);                // layer 2 clear
-
-    auto check = [&](int i, const juce::String& text, bool dim) {
-        auto* s = stripFor(g.dv, i);
-        REQUIRE(s != nullptr);
-        INFO("layer " << i);
-        CHECK(s->getSourceBadge().text() == text);
-        CHECK(s->getSourceBadge().text() == expectedBadgeText(c, i));
-        CHECK(s->getSourceBadge().dim == dim);
-        CHECK(s->sourceBadgeBounds().isEmpty() == text.isEmpty());
-    };
-    check(0, "1", true);
-    check(1, "2", false);
-    check(2, "", false);
-
-    SECTION("showing deck 1 dims layer 1's badge and undims layer 0's")
-    {
-        g.show(c, 1);
-        check(0, "1", false);
-        check(1, "2", true);
-        check(2, "", false);
-    }
-
-    SECTION("a removed deck whose clip still plays shows 'x' (normal text); the number follows the tab position")
-    {
-        REQUIRE(c.retireOrEraseDeck(1));   // retired: layer 1 plays it
-        g.dv.rebuildGrid();                // removeDeck's grid rebuild
-        check(0, "1", true);
-        check(1, "x", false);
-        CHECK(stripFor(g.dv, 1)->getSourceBadge().removed);
-    }
-
-    SECTION("the number is the tab position, not the id: removing the first deck renumbers the others")
-    {
-        fire(c, 2, 2, 0, true);   // layer 2 <- deck 2 (tab 3)
-        g.dv.refresh();
-        check(2, "3", false);
-        REQUIRE(c.retireOrEraseDeck(0));   // retired (layer 0 plays it): deck 2 is now tab 2
-        c.activeDeckIndex = 0;             // deck 1 (was tab 2) is shown
-        g.dv.rebuildGrid();
-        check(0, "x", false);
-        check(1, "1", true);
-        check(2, "2", false);
-    }
-}
-
-TEST_CASE("S3.1 a folded row draws no badge; the badge sits inside the thumbnail's bottom-left corner, clear of the "
-          "routine-band rows, wide enough for '20' (bf9b, ruling-bf9b 16(a), B7 M-d)", "[show][strip]")
-{
-    juce::ScopedJuceInitialiser_GUI gui;
-    Composition c = makeShow(20, 2, 2);
-    fire(c, 1, 19, 1, true);   // layer 1 <- deck 20 (tab "20")
-    LayerStrip strip;
-    strip.setVisible(true);
-    strip.setBounds(0, 0, 250, 96);   // DeckView's kLayerStripWidth x kCellHeight
-    strip.setLayer(&c.layers[1], 1, &c);
-    REQUIRE(strip.getSourceBadge().text() == "20");
-
-    const auto bb = strip.sourceBadgeBounds();
-    const auto tb = strip.thumbnailBoundsForTest();
-    INFO("badge " << bb.toString() << " thumbnail " << tb.toString());
-    CHECK(tb.contains(bb));
-    CHECK(bb.getBottom() <= tb.getBottom());
-    CHECK(bb.getX() - tb.getX() <= 2);                       // the left edge
-    CHECK(tb.getBottom() - bb.getBottom() <= 2);             // the bottom edge
-    CHECK_FALSE(bb.intersects(strip.routineBandRowsForTest()));
-    CHECK(bb.getWidth() >= juce::GlyphArrangement::getStringWidthInt(LayerStrip::badgeFont(), "20") + 6);
-    CHECK(bb.getHeight() >= static_cast<int>(std::ceil(LayerStrip::badgeFont().getHeight())));
-
-    // Folded (DeckView's 22-px row): the thumbnail is under 40 px, so no badge is drawn.
-    strip.setBounds(0, 0, 250, 22);
-    CHECK(strip.getSourceBadge().text() == "20");
-    CHECK(strip.sourceBadgeBounds().isEmpty());
-}
 
 TEST_CASE("S3.1 the clip-name row never names the deck: a 20-char deck name changes no pixel, a 30-char clip name "
           "changes only the clip-name row (bf9b, B7 M-d)", "[show][strip]")
 {
+    // THE BF14 PIN (ruling-bf9b-merge AM-12 (1); Boris: "The layer strip does not need to show the deck a clip is
+    // playing from."): a layer strip paints nothing that depends on the source deck. The same clip content played from
+    // the shown deck, from another deck and from a removed deck gives byte-equal strips.
     juce::ScopedJuceInitialiser_GUI gui;
-    Composition c = makeShow(2, 2, 2);
-    Clip* cl = c.decks[1].getClip(1, 1);
-    REQUIRE(cl != nullptr);
-    cl->mediaFile = juce::File("/nonexistent/bf9b/short.png");
-    fire(c, 1, 1, 1, true);   // layer 1 <- deck 1 (another deck than the shown one)
+    Composition c = makeShow(6, 2, 2);
+    for (int d : { 0, 3, 5 })   // the same clip content in three boxes (row 1, column 1)
+    {
+        Clip* cl = c.decks[static_cast<size_t>(d)].getClip(1, 1);
+        REQUIRE(cl != nullptr);
+        cl->mediaFile = juce::File("/nonexistent/bf9b/short.png");
+    }
     LayerStrip strip;
     strip.setVisible(true);
     strip.setBounds(0, 0, 250, 96);
     strip.setLayer(&c.layers[1], 1, &c);
     const auto all = strip.getLocalBounds();
+    const auto empty = snapshot(strip, all);   // nothing plays on the layer
 
-    c.decks[1].name = "D";
+    fire(c, 1, 0, 1, true);   // from the SHOWN deck
+    REQUIRE(c.playing(1).deckIndex == 0);
     strip.refresh();
-    const auto shortDeck = snapshot(strip, all);
-    c.decks[1].name = "A Twenty Char Deck N";   // 20 characters
-    REQUIRE(c.decks[1].name.size() == 20);
-    strip.refresh();
-    const auto longDeck = snapshot(strip, all);
-    CHECK(diffOutside(shortDeck, longDeck, {}) == 0);
+    const auto fromShown = snapshot(strip, all);
 
-    cl->mediaFile = juce::File("/nonexistent/bf9b/a_thirty_character_clip_name_x.png");   // 30-char name
-    REQUIRE(cl->mediaFile.getFileNameWithoutExtension().length() == 30);
+    fire(c, 1, 5, 1, true);   // from ANOTHER deck
+    REQUIRE(c.playing(1).deckIndex == 5);
+    strip.refresh();
+    const auto fromOther = snapshot(strip, all);
+    CHECK(diffOutside(fromShown, fromOther, {}) == 0);
+
+    c.decks[5].name = "A Twenty Char Deck N";   // 20 characters
+    REQUIRE(c.decks[5].name.size() == 20);
+    strip.refresh();
+    CHECK(diffOutside(fromOther, snapshot(strip, all), {}) == 0);
+
+    fire(c, 1, 3, 1, true);   // from a deck that is then REMOVED while its clip plays
+    REQUIRE(c.retireOrEraseDeck(3));
+    REQUIRE(c.playing(1).retired);
+    REQUIRE(c.playing(1).clip != nullptr);
+    strip.refresh();
+    const auto fromRemoved = snapshot(strip, all);
+    CHECK(diffOutside(fromShown, fromRemoved, {}) == 0);
+    saveShot(fromRemoved, "bf14-strip-from-removed-deck");
+
+    // VALID: the snapshot sees the strip -- a playing clip differs from an empty layer.
+    CHECK(diffOutside(empty, fromShown, {}) > 0);
+    CHECK(diffOutside(empty, fromOther, {}) > 0);
+    CHECK(diffOutside(empty, fromRemoved, {}) > 0);
+
+    // A 30-char clip name changes only the clip-name row.
+    Clip* playing = c.playing(1).clip;
+    playing->mediaFile = juce::File("/nonexistent/bf9b/a_thirty_character_clip_name_x.png");
+    REQUIRE(playing->mediaFile.getFileNameWithoutExtension().length() == 30);
     strip.refresh();
     const auto longClip = snapshot(strip, all);
-    CHECK(diffOutside(longDeck, longClip, { strip.clipNameBoundsForTest() }) == 0);
-    CHECK(diffInside(longDeck, longClip, strip.clipNameBoundsForTest()) > 0);   // the name itself did change
-}
-
-TEST_CASE("S3.1 badge contrast against its opaque background: dim >= 3:1, normal >= 7:1, normal > dim; the painted "
-          "badge uses those colours (bf9b, B7 M-f)", "[show][strip]")
-{
-    const juce::Colour bg(LayerStrip::kBadgeBg), normal(LayerStrip::kBadgeText), dim(LayerStrip::kBadgeTextDim);
-    INFO("dim " << contrast(dim, bg) << ":1, normal " << contrast(normal, bg) << ":1");
-    CHECK(bg.isOpaque());
-    CHECK(contrast(dim, bg) >= 3.0);
-    CHECK(contrast(normal, bg) >= 7.0);
-    CHECK(contrast(normal, bg) > contrast(dim, bg));
-    CHECK(LayerStrip::kBadgeText != AudioDNALookAndFeel::kRoutineCue);
-    CHECK(LayerStrip::kBadgeTextDim != AudioDNALookAndFeel::kRoutineCue);
-
-    juce::ScopedJuceInitialiser_GUI gui;
-    Composition c = makeShow(2, 2, 2);
-    fire(c, 0, 0, 0, true);   // dim (deck 0 shown)
-    fire(c, 1, 1, 0, true);   // normal
-    float brightestPx[2] = { 0.0f, 0.0f };
-    for (int i : { 0, 1 })
-    {
-        LayerStrip strip;
-        strip.setVisible(true);
-        strip.setBounds(0, 0, 250, 96);
-        strip.setLayer(&c.layers[static_cast<size_t>(i)], i, &c);
-        const auto bb = strip.sourceBadgeBounds();
-        REQUIRE_FALSE(bb.isEmpty());
-        const auto img = snapshot(strip, strip.getLocalBounds());
-        const juce::Colour text(i == 0 ? LayerStrip::kBadgeTextDim : LayerStrip::kBadgeText);
-        // The glyphs are anti-aliased (10 pt): the brightest badge pixel is the text colour, within a small tolerance,
-        // and nothing is brighter than it.
-        int bgPx = 0;
-        float brightest = 0.0f;
-        for (int y = bb.getY(); y < bb.getBottom(); ++y)
-            for (int x = bb.getX(); x < bb.getRight(); ++x)
-            {
-                const auto p = img.getPixelAt(x, y);
-                bgPx += p == bg;
-                brightest = std::max(brightest, p.getBrightness());
-            }
-        brightestPx[i] = brightest;
-        INFO("layer " << i << ": background px " << bgPx << ", brightest " << brightest << ", text colour "
-                      << text.getBrightness());
-        CHECK(img.getPixelAt(bb.getX(), bb.getY()) == bg);   // opaque background at its corner
-        CHECK(bgPx > bb.getWidth() * bb.getHeight() / 3);
-        CHECK(brightest <= text.getBrightness() + 0.02f);
-        CHECK(brightest >= text.getBrightness() - 0.15f);
-    }
-    CHECK(brightestPx[1] > brightestPx[0] + 0.2f);   // normal reads brighter than dim on screen
-}
-
-TEST_CASE("S3.1 a badge click shows that deck in the grid and never selects the layer; a removed deck's badge does "
-          "nothing; the tooltip names the deck (bf9b, ruling-bf9b 16(c))", "[show][strip]")
-{
-    Composition c = makeShow(3, 2, 2);
-    c.decks[2].name = "Breakdown";
-    fire(c, 1, 2, 1, true);   // layer 1 <- deck 2 (tab 3)
-    Grid g(c);
-    std::vector<uint32_t> clicked;
-    int selected = 0;
-    g.dv.onSourceDeckClicked = [&](uint32_t id) { clicked.push_back(id); };
-    g.dv.onLayerSelected = [&](int) { ++selected; };
-    auto* s = stripFor(g.dv, 1);
-    REQUIRE(s != nullptr);
-    const auto bb = s->sourceBadgeBounds();
-    REQUIRE_FALSE(bb.isEmpty());
-
-    CHECK(s->tooltipAt(bb.getCentre()) == "From deck 'Breakdown' (tab 3)");
-    press(*s, bb.getCentre());
-    CHECK(clicked == std::vector<uint32_t>{ c.decks[2].id });
-    CHECK(selected == 0);
-    CHECK_FALSE(s->isSelected());
-
-    press(*s, s->thumbnailBoundsForTest().getCentre());   // elsewhere on the picture: the strip's own select
-    CHECK(clicked.size() == 1);
-    CHECK(selected == 1);
-
-    SECTION("a removed deck's badge: no switch, no select")
-    {
-        REQUIRE(c.retireOrEraseDeck(2));
-        g.dv.rebuildGrid();
-        s = stripFor(g.dv, 1);
-        REQUIRE(s->getSourceBadge().text() == "x");
-        CHECK(s->tooltipAt(s->sourceBadgeBounds().getCentre()) == "From a removed deck");
-        clicked.clear();
-        selected = 0;
-        press(*s, s->sourceBadgeBounds().getCentre());
-        CHECK(clicked.empty());
-        CHECK(selected == 0);
-    }
-}
-
-TEST_CASE("S3.1 a deck tab shows a dot iff some layer's active ref, or the previous ref of a running fade, names that "
-          "deck: 20 decks (bf9b, ruling-bf9b 16(b), B7 M-e)", "[show][tabs]")
-{
-    Composition c = makeShow(20, 3, 2);
-    fire(c, 0, 3, 0, true);                 // layer 0 <- deck 3
-    c.layers[1].transitionSpeed = 4.0f;
-    fire(c, 1, 12, 0, true);                // layer 1: deck 12 ...
-    fire(c, 1, 7, 1, true);                 // ... fades out into deck 7 (previous = deck 12, progress 0)
-    REQUIRE(c.layers[1].runtime().previousRef() == ref(c, 12, 0));
-    Grid g(c);
-
-    auto dots = [&] {
-        std::set<int> on;
-        for (int d = 0; d < 20; ++d)
-            if (g.dv.tabDotShownForTest(d))
-                on.insert(d);
-        return on;
-    };
-    auto modelDots = [&] {
-        std::set<int> on;
-        for (int d = 0; d < 20; ++d)
-            if (c.deckIsPlaying(c.decks[static_cast<size_t>(d)].id))
-                on.insert(d);
-        return on;
-    };
-    CHECK(dots() == std::set<int>{ 3, 7, 12 });
-    CHECK(dots() == modelDots());
-
-    // The fade completes on the GL thread (no grid refresh): the app's 30 Hz tick re-reads the dots.
-    CHECK(LayerClock::advanceCrossfade(c.layers[1], 5.0f));
-    g.dv.syncTabDots();
-    CHECK(dots() == std::set<int>{ 3, 7 });
-    CHECK(dots() == modelDots());
-
-    // A switch changes no dot; clearing a layer drops its deck's dot.
-    g.show(c, 7);
-    CHECK(dots() == std::set<int>{ 3, 7 });
-    c.layers[0].clearActiveClip(c.rowClips(0));
-    g.dv.refresh();
-    CHECK(dots() == std::set<int>{ 7 });
+    CHECK(diffOutside(fromRemoved, longClip, { strip.clipNameBoundsForTest() }) == 0);
+    CHECK(diffInside(fromRemoved, longClip, strip.clipNameBoundsForTest()) > 0);   // the name itself did change
 }
 
 TEST_CASE("S3.2 the grid lights a cell iff it is the active ref of its row's layer in the SHOWN deck: same deck, other "
@@ -474,80 +280,79 @@ TEST_CASE("S3.2 the column header is lit only on the deck it was fired from (bf9
     CHECK(lit().empty());
 }
 
-TEST_CASE("S3.2 a 0 -> 5 -> 0 showDeck walk: every LayerStrip the same object, the strip column byte-equal outside the "
-          "badge rects (bf9b, plan F16, B7 M-c)", "[show][grid]")
+TEST_CASE("S3.2 a 0 -> 5 -> 0 showDeck walk on same-width decks: every LayerStrip the same object (SafePointer), the "
+          "WHOLE strip column byte-equal in all three (bf9b, plan F16, ruling-bf9b-merge AM-12, B7 M-c)", "[show][grid]")
 {
     Composition c = makeShow(6, 3, 3);
-    fire(c, 0, 0, 1, true);   // layer 0 <- deck 0 (shown)
-    fire(c, 1, 5, 2, true);   // layer 1 <- deck 5
-    fire(c, 2, 3, 0, true);   // layer 2 <- deck 3
+    fireNamed(c, 0, 0, 1);   // layer 0 <- deck 0 (shown)
+    fireNamed(c, 1, 5, 2);   // layer 1 <- deck 5
+    fireNamed(c, 2, 3, 0);   // layer 2 <- deck 3
     Grid g(c);
+    g.dv.selectLayer(1);
     std::vector<LayerStrip*> before;
     collect(g.dv, before);
     REQUIRE(before.size() == 3);
+    // Identity by SafePointer: a raw pointer compare can pass after destroy-and-recreate at the same address.
+    std::vector<juce::Component::SafePointer<LayerStrip>> alive(before.begin(), before.end());
 
-    std::vector<juce::Rectangle<int>> badges;
-    for (auto* s : before)
-    {
-        REQUIRE_FALSE(s->sourceBadgeBounds().isEmpty());
-        badges.push_back(g.dv.getLocalArea(s, s->sourceBadgeBounds()));
-    }
     const auto column = g.dv.getStripColumnBounds();
     REQUIRE_FALSE(column.isEmpty());
-    for (auto& r : badges)
-        r = r.translated(-column.getX(), -column.getY());
+    g.show(c, 0);
     const auto shot0 = snapshot(g.dv, column);
+    saveShot(shot0, "mc-strip-column-deck0-shown");
 
+    auto sameStrips = [&] {
+        for (const auto& sp : alive)
+            if (sp == nullptr)
+                return false;
+        std::vector<LayerStrip*> now;
+        collect(g.dv, now);
+        return now == before;
+    };
     g.show(c, 5);
-    std::vector<LayerStrip*> now;
-    collect(g.dv, now);
-    CHECK(now == before);
+    CHECK(sameStrips());
     const auto shot5 = snapshot(g.dv, column);
-    CHECK(diffOutside(shot0, shot5, badges) == 0);
-    int changedInBadges = 0;
-    for (const auto& r : badges)
-        changedInBadges += diffInside(shot0, shot5, r);
-    CHECK(changedInBadges > 0);   // layers 0 and 1 changed dimness
+    saveShot(shot5, "mc-strip-column-deck5-shown");
+    CHECK(diffOutside(shot0, shot5, {}) == 0);
 
     g.show(c, 0);
-    now.clear();
-    collect(g.dv, now);
-    CHECK(now == before);
-    const auto shotBack = snapshot(g.dv, column);
-    CHECK(diffOutside(shot0, shotBack, {}) == 0);   // back to the first deck: byte-equal everywhere
+    CHECK(sameStrips());
+    CHECK(diffOutside(shot0, snapshot(g.dv, column), {}) == 0);
+
+    // VALID: the column snapshot sees the strips -- clearing a layer changes it.
+    c.layers[1].clearActiveClip(c.rowClips(1));
+    g.dv.refresh();
+    CHECK(diffOutside(shot0, snapshot(g.dv, column), {}) > 0);
 }
 
-TEST_CASE("S3.4 the Remove Deck undo hint names the layers that keep playing a clip from the removed deck (bf9b, "
-          "ruling-bf9b 16(d))", "[show][notice]")
+
+TEST_CASE("M-t the deck tabs say nothing about playing: the tab row is byte-equal whether or not layers play from its "
+          "decks, also after a rebuild (bf9b, ruling-bf9b-merge AM-12 (3); Boris, asked whether the tab dot stays: "
+          "\"drop\")", "[show][tabs]")
 {
-    CHECK(DeckTabRow::undoRemoveHint("Breakdown", {}) == "Undo Remove \"Breakdown\"");
-    CHECK(DeckTabRow::undoRemoveHint("Breakdown", { "Layer 2" })
-          == "Undo Remove \"Breakdown\" -- Layer 2 keeps playing its clip");
-    CHECK(DeckTabRow::undoRemoveHint("Breakdown", { "Layer 1", "Layer 3" })
-          == "Undo Remove \"Breakdown\" -- Layer 1, Layer 3 keep playing their clips");
-}
+    Composition c = makeShow(20, 3, 2);
+    Grid g(c);
+    const auto row = tabRowOf(g.dv);
+    REQUIRE_FALSE(row.isEmpty());
+    const auto idle = snapshot(g.dv, row);   // nothing plays
 
-TEST_CASE("S3.4 the load notice: an old show's conversion (details = the whole note), a routine-pad note, both, or "
-          "nothing (bf9b, ruling-bf9b 9(d))", "[show][notice]")
-{
-    const std::string conv = "old show converted: layer settings come from the first deck that has each row; "
-                             "Deck 2 row 3: settings dropped; deck fade 0.30 s dropped";
-    const std::string pads = "1 routine pad was left empty: the routine it pointed at is not in this file";
+    fire(c, 0, 3, 0, true);                  // layer 0 <- deck 3
+    c.layers[1].transitionSpeed = 4.0f;
+    fire(c, 1, 12, 0, true);                 // layer 1: deck 12 ...
+    fire(c, 1, 7, 1, true);                  // ... fading into deck 7
+    REQUIRE(c.deckIsPlaying(c.decks[3].id));
+    REQUIRE(c.deckIsPlaying(c.decks[7].id));
+    REQUIRE(c.deckIsPlaying(c.decks[12].id));
+    g.dv.refresh();
+    const auto playing = snapshot(g.dv, row);
+    CHECK(diffOutside(idle, playing, {}) == 0);
+    saveShot(playing, "mt-tab-row-three-decks-playing");
 
-    const auto none = LoadNotice::forLoad("", "");
-    CHECK_FALSE(none.shown());
-    CHECK(none.text.empty());
+    g.dv.rebuildGrid();                      // a fresh row
+    REQUIRE(tabRowOf(g.dv) == row);
+    CHECK(diffOutside(idle, snapshot(g.dv, row), {}) == 0);
 
-    const auto c = LoadNotice::forLoad(conv, "");
-    CHECK(c.shown());
-    CHECK(c.text == "Old show converted -- layer looks now come from the first deck (hover for details)");
-    CHECK(c.details == conv);
-
-    const auto r = LoadNotice::forLoad("", pads);
-    CHECK(r.text == pads);
-    CHECK(r.details == pads);
-
-    const auto both = LoadNotice::forLoad(conv, pads);
-    CHECK(both.text == c.text);
-    CHECK(both.details == conv + "\n" + pads);
+    // VALID: the snapshot sees the tabs -- showing another deck moves the highlight.
+    g.show(c, 7);
+    CHECK(diffOutside(idle, snapshot(g.dv, row), {}) > 0);
 }

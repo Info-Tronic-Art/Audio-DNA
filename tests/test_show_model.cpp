@@ -30,6 +30,7 @@
 #include "ui/LayerInspector.h"
 #include "ui/ClipInspector.h"
 #include "ui/InspectorRepoint.h"
+#include "ui/MenuBarModel.h"
 #include "analysis/FeatureSnapshot.h"
 #include "ShowFixture.h"
 #include <cmath>
@@ -2026,4 +2027,44 @@ TEST_CASE("N1 LayerInspector::setLayer(B) leaves a routine's grip and a touch on
     inspector.setLayer(nullptr);                                       // and clearing it releases nothing either
     CHECK(lane.grip.kind == ParamConnection::Grip::Kind::Held);
     CHECK(inspector.opacityControlForTest().boundConnection() == nullptr);
+}
+
+// Harmony's adoption item 9 (s-rta-1003; Boris: "I don't wanna see an under removed button at all. We just use control
+// Z. The only place that we will see undo remove, will be in the top edit menu."). The menu that holds Undo is
+// "Composition" (AudioDNAMenuBar has no menu named Edit); its first item names the action on top of the Undo history.
+// Driven here: the real RemoveDeckCmd with MainComponent::removeDeck's description, the real UndoManager and the real
+// menu model, wired as MainComponent wires getUndoState / getRedoState (that wiring itself is not driven by a test).
+TEST_CASE("After a Remove Deck the Composition menu's Undo item reads \"Undo Remove Deck\" (Cmd+Z); after the undo its "
+          "Redo item reads \"Redo Remove Deck\" (bf9b fix, adoption item 9)", "[show][menu]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    Composition c = makeShow(3, 2, 2);
+    UndoManager mgr;
+    AudioDNAMenuBar menuBar;
+    menuBar.getUndoState = [&mgr] { return std::make_pair(juce::String(mgr.undoDescription()), mgr.canUndo()); };
+    menuBar.getRedoState = [&mgr] { return std::make_pair(juce::String(mgr.redoDescription()), mgr.canRedo()); };
+    auto item = [&menuBar](int id) {
+        const int menuIndex = menuBar.getMenuBarNames().indexOf("Composition");
+        REQUIRE(menuIndex >= 0);
+        const auto menu = menuBar.getMenuForIndex(menuIndex, "Composition");
+        for (juce::PopupMenu::MenuItemIterator it(menu); it.next();)
+            if (it.getItem().itemID == id)
+                return it.getItem();
+        FAIL("the Composition menu has no item " << id);
+        return juce::PopupMenu::Item();
+    };
+    CHECK(item(AudioDNAMenuBar::kCompUndo).text == "Undo");
+    CHECK_FALSE(item(AudioDNAMenuBar::kCompUndo).isEnabled);
+
+    mgr.perform(std::make_unique<RemoveDeckCmd>(resolverFor(c), passFence(), noMedia(), noDispose(), 1, c.decks[1],
+                                                c.activeDeckIndex, "Remove Deck"));
+    REQUIRE(c.decks.size() == 2);
+    CHECK(item(AudioDNAMenuBar::kCompUndo).text == "Undo Remove Deck");
+    CHECK(item(AudioDNAMenuBar::kCompUndo).isEnabled);
+    CHECK(item(AudioDNAMenuBar::kCompUndo).shortcutKeyDescription == "Cmd+Z");
+
+    REQUIRE(mgr.undo());
+    CHECK(c.decks.size() == 3);   // Cmd+Z brings the deck back
+    CHECK(item(AudioDNAMenuBar::kCompRedo).text == "Redo Remove Deck");
+    CHECK(item(AudioDNAMenuBar::kCompRedo).isEnabled);
 }

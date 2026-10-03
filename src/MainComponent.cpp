@@ -14,7 +14,6 @@
 #include "recording/RoutineSlice.h"
 #include "model/AppSettings.h"
 #include "ui/UiPaintCounters.h"
-#include "ui/LoadNotice.h"   // lane bf9b S3.4
 #include "ui/InspectorRepoint.h"   // lane bf9b fix stage: the stack-move / fenced-edit hooks' functions
 #include <algorithm>
 #include <cstdlib>
@@ -487,13 +486,6 @@ MainComponent::MainComponent(bool testMode, int testPort)
             setFileLabel("Mic: " + audioEngine_.getDeviceStatus());
     };
     refreshAudioDeviceNotice(false);
-    // Lane bf9b S3.4 (ruling-bf9b 9(d)): the load notice -- hidden until a load / refusal shows it; a click hides it.
-    addChildComponent(loadNotice_);
-    loadNotice_.setColour(juce::Label::textColourId, juce::Colour(AudioDNALookAndFeel::kMeterYellow));
-    loadNotice_.setJustificationType(juce::Justification::centredRight);
-    loadNotice_.setWantsKeyboardFocus(false);
-    loadNotice_.setMouseClickGrabsKeyboardFocus(false);
-    loadNotice_.onClick = [this] { clearLoadNotice(); };
     if (audioEngine_.hasAudioDevice())
     {
         // R13: the analysis thread resamples the device stream to its fixed
@@ -1387,11 +1379,6 @@ MainComponent::MainComponent(bool testMode, int testPort)
     deckView_->onDeckSwitched = [this](int deckIdx) {
         handleDeckSwitch(deckIdx);
     };
-    // Lane bf9b S3.1 (ruling-bf9b 16(c)): a strip's source-deck badge shows the deck its clip came from -- the same
-    // switch (never an Undo step); a removed deck's id resolves to -1, which handleDeckSwitch ignores.
-    deckView_->onSourceDeckClicked = [this](uint32_t deckId) {
-        handleDeckSwitch(composition_.findDeckIndexById(deckId));
-    };
 
     // plan6 §6.4: the deck tab row -- "+" (New Deck / Load Deck..., deckIndex -1) and a tab's right-click menu.
     deckView_->onDeckAction = [this](int deckIndex, DeckTabRow::Action action) {
@@ -1405,12 +1392,6 @@ MainComponent::MainComponent(bool testMode, int testPort)
             case DeckTabRow::Action::Duplicate:  duplicateDeck(deckIndex); break;
             case DeckTabRow::Action::Remove:     removeDeck(deckIndex);    break;
         }
-    };
-    // The 10-s "Undo Remove" button is bound to THAT removal: if anything else is on top of the undo stack the click
-    // is a no-op and the button just hides (pushCommands hides it on any later command anyway).
-    deckView_->onUndoHint = [this] {
-        if (undoManager_.undoDescription() == "Remove Deck")
-            handleMenuCommand(AudioDNAMenuBar::kCompUndo);
     };
     // s-rta-1002b ui U3.3 (BF8): the tab's in-place rename box. Every close hands the keyboard back here, BEFORE the box
     // hides (ruling AM4): JUCE would otherwise park it on column trigger "1" and the next Return would fire that column.
@@ -2172,9 +2153,6 @@ MainComponent::MainComponent(bool testMode, int testPort)
     apiServer_->onDebugAudioNotice = [this] {   // s-rta-0929b btguard
         return audioDeviceNotice_.isVisible() ? audioDeviceNotice_.getText() : juce::String();
     };
-    apiServer_->onDebugLoadNotice = [this] {    // lane bf9b S3.4
-        return loadNotice_.isVisible() ? loadNotice_.getText() : juce::String();
-    };
     // Lane bf9b fix stage (ruling-bf9b-merge AM-6): what the inspectors are bound to, for the live ASan row.
     apiServer_->onDebugInspectedLayer = [this] {
         const Layer* l = inspectorPanel_ != nullptr ? inspectorPanel_->getLayerInspector().getLayer() : nullptr;
@@ -2786,11 +2764,6 @@ void MainComponent::resized()
         const int w = juce::GlyphArrangement::getStringWidthInt(audioDeviceNotice_.getFont(), audioDeviceNotice_.getText()) + 12;
         audioDeviceNotice_.setBounds(row1.removeFromRight(juce::jmin(w, row1.getWidth() / 2)));
     }
-    if (loadNotice_.isVisible())   // lane bf9b S3.4: the same slot, left of the audio notice when both show
-    {
-        const int w = juce::GlyphArrangement::getStringWidthInt(loadNotice_.getFont(), loadNotice_.getText()) + 12;
-        loadNotice_.setBounds(row1.removeFromRight(juce::jmin(w, row1.getWidth() / 2)));
-    }
     fileLabel_.setBounds(row1);
 
     area.removeFromTop(2);
@@ -3153,7 +3126,6 @@ void MainComponent::swapCompositionModel(const std::function<void()>& mutation)
     // s-rta-0926 routines (plan R7): a running routine's Player holds coordinates into the OLD
     // model -- stop every routine (releasing its grips on the old model) before it is replaced.
     routineEngine_.stopAll();
-    clearLoadNotice();   // lane bf9b S3.4: the next load (or New) retires the last load's notice
 
     // Read OLD playable-clip ids while the old model is still live — reading
     // after `mutation` runs is too late, the ids it would report are gone.
@@ -3236,26 +3208,6 @@ void MainComponent::setFileLabel(const juce::String& text)
     if (staged_ != nullptr && staged_->label.divert(text.toStdString()))
         return;   // AL5: held for a cancel; the label keeps "Loading <name>..."
     fileLabel_.setText(text, juce::dontSendNotification);
-}
-
-void MainComponent::showLoadNotice(const juce::String& text, const juce::String& details)
-{
-    if (loadNotice_.isVisible() && loadNotice_.getText() == text && loadNotice_.getTooltip() == details)
-        return;
-    loadNotice_.setText(text, juce::dontSendNotification);
-    loadNotice_.setTooltip(details);
-    loadNotice_.setVisible(true);
-    resized();
-}
-
-void MainComponent::clearLoadNotice()
-{
-    if (!loadNotice_.isVisible())
-        return;
-    loadNotice_.setVisible(false);
-    loadNotice_.setText({}, juce::dontSendNotification);
-    loadNotice_.setTooltip({});
-    resized();
 }
 
 void MainComponent::refreshAudioDeviceNotice(bool relayout)
@@ -3403,12 +3355,6 @@ void MainComponent::finishStagedLoad()
         // Lane bf9b (plan-bf9b S2.3, ruling-bf9b amendment 9): an old show was converted -- ONE note, logged once.
         if (!composition_.migrationNote.empty())
             logLine(composition_.migrationNote);
-        // Lane bf9b S3.4 (ruling-bf9b 9(d)): ... and shown where Boris sees it, with routine pads the load left empty.
-        {
-            const auto n = LoadNotice::forLoad(composition_.migrationNote, composition_.routineLoadNote);
-            if (n.shown())
-                showLoadNotice(juce::String::fromUTF8(n.text.c_str()), juce::String::fromUTF8(n.details.c_str()));
-        }
         // 7. LABEL
         LoadTiming::Scope t(loadTiming_, LoadTiming::Ui);
         setFileLabel(done);
@@ -3430,7 +3376,6 @@ void MainComponent::finishStagedLoad()
             for (auto id : s->adopted.takeAll())
                 renderer.closeMediaForClip(id);
             logLine("[Decks] " + std::string(kDeckIdsUsedText));
-            showLoadNotice(kDeckIdsUsedText, kDeckIdsUsedText);   // S3.4: the load-notice label (9(d))
             loadTiming_.end();
             if (s->ticket)
                 s->ticket->finish(LoadTicket::Outcome::Failed);
@@ -3605,7 +3550,6 @@ void MainComponent::saveComposition()
     {
         if (composition_.saveToFile(composition_.filePath))
         {
-            clearLoadNotice();   // lane bf9b S3.4: a save retires the load notice
             setFileLabel("Saved: " + composition_.filePath.getFileName());
             if (browserPanel_)
                 browserPanel_->getCompDecksBrowser().refresh();
@@ -3634,7 +3578,6 @@ bool MainComponent::saveCompositionTo(const juce::File& saveFile)
     // plain Save cannot find it.
     composition_.filePath = saveFile;
     composition_.name = saveFile.getFileNameWithoutExtension().toStdString();
-    clearLoadNotice();   // lane bf9b S3.4: a save retires the load notice
     setFileLabel("Saved: " + saveFile.getFileName());
     if (browserPanel_)
         browserPanel_->getCompDecksBrowser().refresh();
@@ -3780,7 +3723,6 @@ void MainComponent::newDeck()
     {
         // Ruling-bf9b amendment 7(a): every deck id this session has been used -- refuse, nothing added.
         logLine("[Decks] " + std::string(kDeckIdsUsedText));
-        showLoadNotice(kDeckIdsUsedText, kDeckIdsUsedText);   // S3.4: the load-notice label (9(d))
         return;
     }
     std::vector<std::unique_ptr<Command>> children;
@@ -4004,8 +3946,8 @@ void MainComponent::stageDeckDuplicate(int deckIndex)
 }
 
 // Remove ANY deck (a tab's menu names it; the Deck menu passes the active one).
-// No dialog — the tab row shows a 10-s "Undo Remove" button instead (plan6 R1),
-// and Composition > Undo works as for every deck command.
+// No dialog and nothing on screen says it happened: the tab is gone, and Cmd+Z
+// (the Composition menu's Undo item names the action) brings it back, as for every deck command.
 void MainComponent::removeDeck(int deckIndex)
 {
     if (composition_.decks.size() <= 1
@@ -4013,7 +3955,6 @@ void MainComponent::removeDeck(int deckIndex)
         return;   // a composition keeps at least one deck
 
     const bool activeChanges = (deckIndex == composition_.activeDeckIndex);
-    const juce::String name(composition_.decks[static_cast<size_t>(deckIndex)].name);
 
     // Null both inspectors FIRST: the erased deck's Layer/Clip objects die, and
     // an inspector can be showing one of them even when a BACKGROUND deck is
@@ -4028,8 +3969,6 @@ void MainComponent::removeDeck(int deckIndex)
     // active index; the fenced execute() erases and keeps the on-screen deck
     // object active (its index drops by one when a deck before it goes).
     Deck removedCopy = composition_.decks[static_cast<size_t>(deckIndex)];
-    const uint32_t removedId = removedCopy.id;
-    const std::string removedName = removedCopy.name;
     std::vector<std::unique_ptr<Command>> children;
     children.push_back(std::make_unique<RemoveDeckCmd>(
         makeCompositionResolver(), makeDeckFence(),
@@ -4054,19 +3993,6 @@ void MainComponent::removeDeck(int deckIndex)
     // deck, plan-bf9b F3 -- so no preview refresh)
     if (inspectorPanel_)
         inspectorPanel_->refresh();
-
-    // Lane bf9b S3.4 (ruling-bf9b 16(d)): the hint names every layer that keeps playing a clip from the removed
-    // (retired) deck -- no new dialog; the strip's X clears such a layer.
-    std::vector<std::string> playingLayers;
-    for (const auto& layer : composition_.layers)
-    {
-        const auto rt = layer.runtime();
-        if (rt.activeClipColumn >= 0 && rt.activeDeckId == removedId)
-            playingLayers.push_back(layer.name);
-    }
-    if (deckView_)
-        deckView_->showUndoHint(juce::String::fromUTF8(DeckTabRow::undoRemoveHint(removedName, playingLayers).c_str()));
-    setFileLabel("Removed deck \"" + name + "\"");
 }
 
 bool MainComponent::keyPressed(const juce::KeyPress& key)
@@ -4457,7 +4383,6 @@ void MainComponent::timerCallback()
             layerNames.push_back(juce::String(l.name));
         deckView_->setRoutineView(deriveRoutineDeckView(routineEngine_.status(), composition_.activeDeckIndex,
                                                         deckNames, layerNames));
-        deckView_->syncTabDots();   // lane bf9b S3.1: a fade completing / a GL-thread fire moves a dot (compare-before-set)
     }
 }
 
@@ -5403,9 +5328,6 @@ std::unique_ptr<Command> MainComponent::makeSetClipCmd(int deckIndex, const Cell
 void MainComponent::pushCommands(std::vector<std::unique_ptr<Command>> children,
                                  const juce::String& compositeDescription)
 {
-    // plan6 §6.2: any later command (a clip placed, a tab switch, a trigger) retires the Remove-Deck undo hint --
-    // Undo would then no longer mean "un-remove".
-    if (deckView_) deckView_->hideUndoHint();
     if (children.empty())
         return;
     if (children.size() == 1)

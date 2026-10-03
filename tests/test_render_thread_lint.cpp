@@ -434,3 +434,47 @@ TEST_CASE("bf9b B4h: the stack-move hook is wired to repointInspectorsAfterStack
         CHECK(count(us, "handOver();") == 2);
     }
 }
+
+// Case 8 (lane bf9b fix stage, s-rta-1003; ruling-bf9b-merge AM-12 = B4j, plus Harmony's adoption items 9-11). Boris:
+// "The layer strip does not need to show the deck a clip is playing from."; asked whether the deck-tab dot stays:
+// "drop"; "I don't wanna see an under removed button at all. We just use control Z."; "We don't need any text
+// indicating what has happened or what has happened. [...] Please remove it cleanly and completely." No identifier of
+// the strip's source-deck badge, the tab dot, the tab row's Undo Remove button or the load-notice label is left in
+// src/ (*.h / *.cpp / *.mm, recursively). WHOLE lines -- comments included: nothing dead left behind.
+TEST_CASE("bf9b B4j: no source-deck badge, tab dot, Undo Remove button or load notice identifier left in src/",
+          "[lint][bf9b]")
+{
+    namespace fs = std::filesystem;
+    const std::regex badgeAndDot(   // the ruling's B4j pattern, verbatim
+        R"(SourceBadge|sourceBadge|onSourceDeckClicked|kBadge|syncTabDots|tabDotShownForTest|kDotColour|dotBounds)");
+    const std::regex announcements(   // adoption items 9-11
+        R"(undoHint|UndoHint|undoRemoveHint|Undo Remove|loadNotice|LoadNotice|load_notice|\bNoticeLabel\b|Removed deck)");
+    const fs::path root(AUDIODNA_SRC_DIR);
+    std::string hits;
+    int files = 0, count = 0;
+    for (const auto& e : fs::recursive_directory_iterator(root))
+    {
+        if (!e.is_regular_file())
+            continue;
+        const auto ext = e.path().extension().string();
+        if (ext != ".h" && ext != ".cpp" && ext != ".mm")
+            continue;
+        ++files;
+        const auto rel = fs::relative(e.path(), root).generic_string();
+        std::ifstream f(e.path());
+        REQUIRE(f.good());
+        int n = 0;
+        for (std::string l; std::getline(f, l);)
+        {
+            ++n;
+            if (std::regex_search(l, badgeAndDot) || std::regex_search(l, announcements))
+            {
+                ++count;
+                hits += "\n  " + rel + ":" + std::to_string(n);
+            }
+        }
+    }
+    REQUIRE(files > 50);   // the walk reached src/
+    INFO(count << " hit(s) in src/:" << (hits.empty() ? std::string(" none") : hits));
+    CHECK(count == 0);
+}

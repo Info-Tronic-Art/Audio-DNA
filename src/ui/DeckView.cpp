@@ -13,17 +13,6 @@ DeckView::DeckView()
     gridViewport_.setScrollBarsShown(true, true);
     addAndMakeVisible(gridViewport_);
 
-    // plan6 §6.2: the Remove-Deck undo hint -- created once, hidden until showUndoHint (Pitfall 34: a Component is
-    // invisible by default; addChildComponent keeps it so), never rebuilt with the tabs.
-    undoHintBtn_ = std::make_unique<juce::TextButton>();
-    undoHintBtn_->setColour(juce::TextButton::buttonColourId, juce::Colour(0xff2a2a2a));
-    undoHintBtn_->setColour(juce::TextButton::textColourOffId, juce::Colour(0xffcccccc));
-    undoHintBtn_->onClick = [this] {
-        if (onUndoHint) onUndoHint();
-        hideUndoHint();
-    };
-    addChildComponent(undoHintBtn_.get());
-
     // s-rta-1002b ui U3.2 (BF8; ruling AM2 / AM3): the deck-name box -- created once, hidden (Pitfall 34), never rebuilt
     // with the tabs -- and the ONE nested listener that opens it on a double-click and commits it on a click elsewhere.
     renameEditor_.onClose = [this](bool keep) { finishRename(keep); };
@@ -108,20 +97,15 @@ void DeckView::resized()
     int viewportHeight = std::min(gridHeight, area.getHeight() - kDeckTabHeight);
     gridViewport_.setBounds(area.removeFromTop(viewportHeight));
 
-    // Deck tabs immediately after the grid (attached to bottom of last layer); the "+" after the last tab and the
-    // Remove-Deck undo hint flush right (plan6 §6.1 DeckTabRow::layout -- tabs never move for the hint).
+    // Deck tabs immediately after the grid (attached to bottom of last layer); the "+" after the last tab
+    // (plan6 §6.1 DeckTabRow::layout).
     auto tabArea = area.removeFromTop(kDeckTabHeight);
     tabRow_ = tabArea;
-    const auto L = DeckTabRow::layout(tabArea.getWidth(), static_cast<int>(deckTabs_.size()),
-                                      undoHintBtn_->isVisible() ? undoHintBtn_->getWidth() : 0);
+    const auto L = DeckTabRow::layout(tabArea.getWidth(), static_cast<int>(deckTabs_.size()));
     for (size_t i = 0; i < deckTabs_.size(); ++i)
         deckTabs_[i]->setBounds(tabArea.getX() + L.tabs[i].x, tabArea.getY(), L.tabs[i].w, kDeckTabHeight);
     if (plusTab_)
         plusTab_->setBounds(tabArea.getX() + L.plus.x, tabArea.getY(), L.plus.w, kDeckTabHeight);
-    if (L.hint.w > 0)
-        undoHintBtn_->setBounds(tabArea.getX() + L.hint.x, tabArea.getY(), L.hint.w, kDeckTabHeight);
-    else if (undoHintBtn_->isVisible())
-        hideUndoHint();                         // no room next to the "+": never overlap it
     placeRenameEditor();                        // s-rta-1002b ui U3.2: the open box follows its deck's tab
 
     // Layout grid content inside viewport
@@ -136,9 +120,6 @@ void DeckView::setComposition(Composition* comp)
 
 void DeckView::rebuildGrid()
 {
-    // plan6 §6.2: every structural change retires the Remove-Deck undo hint (removeDeck shows it AFTER its rebuild).
-    hideUndoHint();
-
     // Clear existing
     layerStrips_.clear();
     clipCells_.clear();
@@ -200,9 +181,6 @@ void DeckView::rebuildGrid()
         };
         strip->onRoutineRemove = [this](int slot) {   // s-rta-0927: a band's x
             if (onRoutineRemoved) onRoutineRemoved(slot);
-        };
-        strip->onSourceDeckClicked = [this](uint32_t deckId) {   // lane bf9b S3.1: the source-deck badge
-            if (onSourceDeckClicked) onSourceDeckClicked(deckId);
         };
 
         gridContent_->addAndMakeVisible(strip.get());
@@ -351,23 +329,7 @@ void DeckView::refresh()
                 deckTabs_[i]->setTooltip(tip);
         }
     }
-    syncTabDots();
-
     repaint();
-}
-
-void DeckView::syncTabDots()
-{
-    if (!composition_) return;
-    for (size_t i = 0; i < deckTabs_.size() && i < composition_->decks.size(); ++i)
-    {
-        const bool dot = composition_->deckIsPlaying(composition_->decks[i].id);
-        if (deckTabs_[i]->dot != dot)
-        {
-            deckTabs_[i]->dot = dot;
-            deckTabs_[i]->repaint();
-        }
-    }
 }
 
 void DeckView::setActiveColumn(int col, uint32_t deckId)
@@ -571,7 +533,6 @@ void DeckView::setupDeckTabs()
         int capturedIdx = static_cast<int>(i);
         btn->onClick = [this, capturedIdx] { tabClicked(capturedIdx); };
         btn->onContextMenu = [this, capturedIdx] { showDeckTabMenu(capturedIdx); };
-        btn->dot = composition_->deckIsPlaying(deck.id);   // lane bf9b S3.1: a fresh row shows its dots at once
 
         addAndMakeVisible(btn.get());
         deckTabs_.push_back(std::move(btn));
@@ -1021,30 +982,4 @@ void DeckView::showPlusMenu()
                            if (result > 0 && onDeckAction)
                                onDeckAction(-1, static_cast<DeckTabRow::Action>(result));
                        });
-}
-
-void DeckView::showUndoHint(const juce::String& text)
-{
-    undoHintBtn_->setButtonText(text);
-    // Measured like the tab text (drawButtonText's 14 pt font) + 8 px each side.
-    const int w = juce::GlyphArrangement::getStringWidthInt(juce::Font(juce::FontOptions(14.0f)), text) + 16;
-    undoHintBtn_->setSize(w, kDeckTabHeight);
-    undoHintBtn_->setVisible(true);
-    resized();
-
-    const int gen = ++undoHintGeneration_;
-    juce::Timer::callAfterDelay(kUndoHintMs, [sp = juce::Component::SafePointer<DeckView>(this), gen] {
-        if (sp != nullptr && sp->undoHintGeneration_ == gen)
-            sp->hideUndoHint();
-    });
-}
-
-void DeckView::hideUndoHint()
-{
-    ++undoHintGeneration_;
-    if (undoHintBtn_->isVisible())
-    {
-        undoHintBtn_->setVisible(false);
-        resized();
-    }
 }
