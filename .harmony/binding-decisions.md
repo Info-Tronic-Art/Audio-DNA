@@ -742,3 +742,207 @@ build it; "audio controls the video", all tempo-locked, current UI will be scrap
   head area whereas if it was speed control, it's just the basic play head and with beats control there are lines for each beat in
   the play head area and the play head moves past them on time" -> in beats mode: one line per beat in the playhead area, and the
   playhead crosses them on the beat; in speed mode: the plain playhead.
+
+## 2026-10-04 (s-rta-1004) — Boris's answers to the 25 questions (recorded 2026-10-04 11:59:06; whole message verbatim + questions as asked + the 8 Resolume screenshots: boris-feedback-backlog.md, same stamp)
+- All defaults, except the ones below — Boris: "All defaults good except for these:"
+- A paused clip that is fired (Q1) — Boris: "when you pause a clip and then fire it, it stays, paused" -> it stays paused.
+  REPLACES his default of 2026-10-03 (it played from its beginning). Where it stays: OPEN (question 26).
+- Playhead held still (Q2) — Boris: "2 b" -> the picture waits on that frame until he lets go. Unchanged.
+- Playhead and the in / out points (Q10) — Boris: "there are two conditions here. 1 the in point and out point of the timeline
+  has not been set. In this condition, if you drag the play head, it cannot go beyond the edges of the time. 2 in and/or out
+  points have been moved. In this condition, if you drag the play head, it cannot be dragged outside of the in and out points.
+  You can click outside the timeline and In-N-Out points, but that won't do anything. The play head can only go to the edges as
+  they are defined." -> the playhead never leaves the timeline's ends, nor the in and out points once they are moved; a click
+  outside does nothing.
+- The clip's transport control (Q4) — Boris: "I want you to study these images and mimic exactly how resolume is doing. It's
+  transport control. Also, here is details from their manual on how the transport control works." -> the clip transport panel
+  mimics Resolume's (screenshots .harmony/.reports/s-rta-1004/boris-resolume/, manual text in the backlog). RE-OPENS the
+  transport plan's panel. Scope OPEN (questions 27-30).
+- Bars, not beats (Q7) — Boris: "lets do bars here not beats. I know I said beats before but lets do bars" -> a clip's length
+  is set in BARS. REVERSES "the clips are set with beats not bars" (2026-10-03 23:46:03).
+- A BPM-synced clip stays on the beat (Q9) — Boris: "9 b" -> the app keeps nudging it back by itself. Unchanged.
+- Cmd+Z and the layer strip (Q3) — Boris: "cmd-z does not affect anything in layer strip: play, play reverse, pause,
+  transparency, bypass, solo, etc. if it is  the layer strip, cmd-z does not affect it. If a clip is triggered and plays, it is
+  not affected." -> unchanged rule, now with his list.
+- A removed layer (Q5) — Boris: "default is ok. If a layer strip is deleted, user can ctrl-z to get it back, but clip is not
+  playing" -> Undo brings a removed layer back, its clip not playing.
+- Sync from a controller (Q13) — Boris: "yes and for shows that are pre-programmed, this sync matters more. Key and pad is
+  fine, knobs can skip the sync" -> a key or a pad is enough; no knob / fader binding for Sync.
+- Which failures show a message (Q12) — Boris: "we should list all the things that can be saved, but if the user is changing
+  things around settings, etc., and they do not save the composition, nothing is saved. If the user is recording a clip live,
+  and that is not saved in a message should show. If the user is recording the show, that is not saved, and that should be
+  shown. Nothing else." -> a live clip recording that was not saved and a show recording that was not saved show a message.
+  REPLACES "12 b". OPEN: the "Save failed" box of Save show / Save Deck (question 34), what "recording the show" names
+  (35), what an unsaved show means for things the app keeps by itself (36). OWED to him: the list of everything that can be saved.
+- Record cannot start (Q19) — Boris: "display not enough HDD space to record." -> that state is displayed. Where: OPEN (37).
+- Whole bars (Q20) — Boris: "we are going to use whole bars instead, so this doesn't happen. To create a 120 BPM, we figure out
+  some kind of math and look at how resolution does it. It creates a nice in and out point and even amounts of bars in the
+  timeline for 120 bpm. If the user pulls the outpoint in, then within that same amount of bars, it goes through less video,
+  appearing to play slower, and if the user pulls the outpoint out, and the same amount of bars, it covers more video appearing
+  to play faster." -> a BPM-synced clip spans a whole number of bars; the marked part (in to out) is played over that many
+  bars, so moving the out point changes how fast the video looks. How the first number and out point are chosen and which
+  numbers are allowed: OPEN (31, 32).
+- Dropping the playhead between beats (Q24) — Boris: "yes but this will be bars now" -> default A (it plays on and eases back
+  into time), in bars. Beat or bar: OPEN (33).
+- The S fader in bars mode (Q25) — Boris: "doubles and halves and then smaller fractions to higher multiples, just like
+  resolume does" -> it steps through halves and doubles as Resolume's Speed does; the exact list is read from Resolume.
+- Every other question (6, 8, 11, 14, 15, 16, 17, 18, 21, 22, 23) takes its default.
+
+## 2026-10-04 (s-rta-1004) — The sync dial is REPLACED by a Delay per output screen, as Resolume (recorded 2026-10-04 12:08:21 and 12:09:11; verbatim + screenshot: boris-feedback-backlog.md, same stamps)
+- Delay per output screen — Boris: "I think we should copy what resolume does for delay. each output screen can be delayed and
+  that is set on output display properties. Makes it simpler. These are the resolume screen output adjustment window" -> each
+  output screen gets its own Delay, set in that output's display properties.
+- Replace, not beside — Boris: "replace our sync with this" -> the sync dial (top-bar SYNC, the room list, earlier / later, the
+  Sync key and pad targets) is not built further and does not merge. SUPERSEDES for the dial: "Sync lives in top bar";
+  "-500 to +500 in 1 ms steps ..." (2026-10-02); "every show remembers it's sync" (2026-10-03 14:55:32) as far as it names the
+  dial -- where a screen's Delay is remembered is OPEN (question 38).
+- Lining up the beat — Boris: "We need to do something smart where we can move the beat forward or back to get it to match the
+  image exactly but that's something that user can do. We can just put that in our manual" -> the user moves the beat; the
+  manual says how. With which control: OPEN (question 41).
+- The purpose — Boris: "so the video matches the audio at the soundboard or wherever the vj is stationed in middle of room
+  preferably" -> the Delay is set so that picture and sound agree where the VJ stands.
+
+## 2026-10-04 (s-rta-1004) — Boris's answers to clarifying questions 26-36 (recorded 2026-10-04 12:21:01; verbatim + questions as asked + the quit screenshot: boris-feedback-backlog.md, same stamp)
+- A fired paused clip (26) — Boris: "stays in layer strip paused" -> it stays paused, in the layer strip. Which frame: read as
+  the frame it was paused on (INFERRED; told to him as a reading).
+- SMPTE and DJ-player modes (27) — Boris: "add this to our build plan later after core elements are built and tested, but leave
+  a dropdown menu for those items and grey them out for now" -> later; listed greyed in the mode menu now.
+- Random and BeatLoopr (28) — Boris: "build random and beatloopr" -> both are built.
+- The fire menu (29) — Boris: "can you clarify?" -> OPEN; re-asked with an example as question 42.
+- An uneven clip (31) — Boris: "always work with multiples of 4. If it is uneven, then move the outpoint in to keep those
+  multiples. Any other way will not work with music. Music and especially DJ music, is always in multiples of four." -> the
+  app moves the out point in; the clip is never stretched to fit.
+- Which bar counts (32) — Boris: "c only multiples of 4" -> OPEN: C as asked was "Only 1, 2, 4, 8, 16, 32"; which set he
+  means is asked as question 43.
+- Dropping the playhead mid-bar (33) — Boris: "b can you program this reliably or should we change the plan?" -> B: the clip
+  slides until its bars sit on the music's bars. His question is Harmony's to answer with a measurement, not a guess.
+- The two recordings (35) — Boris: "we can only record the show which is recording all the parameters and the actual audio
+  file, or recording a clip which records the actual video content into a video file and displays it in the nearest open
+  cell" -> "the show" = the performance take with its audio; "a clip" = video into a file, shown in the nearest open cell.
+- Quitting (36) — Boris: "when the user quits, we need to have a secondary window open to say this, which is what resolume
+  does. Look at the image." -> a quit window as Resolume's: "Do you really want to quit? All unsaved progress will be lost."
+  with Quit / Cancel / Save & Quit.
+- Bars only on the timeline — Boris: "Timeline only shows bars. The only place we see beats is in the circle with 4 positions
+  in top bar that shows the 4 beats repeating." -> the clip timeline draws bar lines only. REVERSES "there are lines for each
+  beat in the play head area" (2026-10-03 23:46:03).
+- Not named by him, defaults stand: 30 (no BPM box on the clip), 34 (the "Save failed" box stays for Save show / Save Deck),
+  37 (the disk-space sign is a line in the Record tab).
+
+## 2026-10-04 (s-rta-1004) — Boris's answers to questions 39-41: output settings, Syphon, the beat nudge (recorded 2026-10-04 12:23:42; verbatim + questions as asked: boris-feedback-backlog.md, same stamp)
+- All of Resolume's Screen settings (39) — Boris: "yes add all of those output settings" -> every output gets Device, Delay,
+  Opacity, Brightness, Contrast, Red, Green, Blue.
+- Syphon (40) — Boris: "syphon is an output and treated with same output settings as a screen" -> Syphon gets the same output
+  settings as a screen, the Delay included.
+- The beat nudge (41) — Boris: "user can nudge main bpm forward or back and this needs to be displayed as "off beat by [+/- X]
+  ms'" -> a control that moves the main beat earlier or later, with the text "off beat by [+/- X] ms". REPLACES this morning's
+  "that's something that user can do. We can just put that in our manual" as far as "nothing new is built" was read from it.
+- Not named by him, default stands: 38 (a screen's settings are remembered with the screen, whatever show is open).
+
+## 2026-10-04 (s-rta-1004) — Boris's answers to questions 42-46: fires, 4 bars, recording boxes, Tap / Resync and the nudge (recorded 2026-10-04 12:31:04; verbatim + questions as asked: boris-feedback-backlog.md, same stamp)
+- The nudge — Boris: "You are exactly right. A nudge just moves the placement of the downbeat in time not the tempo." -> the
+  nudge moves the downbeat's place in time; the tempo is untouched.
+- Every fire from the start (42) — Boris: "42 default" -> a fired clip starts at its beginning, every time; no per-clip
+  "carry on" menu is built.
+- Short clips (43) — Boris: "a short clip can have 4 bars but it will move super fast" -> a clip too short for 4 bars still
+  gets 4 bars. OPEN: the set of bar counts (read as 4, 8, 12, 16 ...) and that such a clip plays SLOWER, not faster
+  (question 47).
+- What a recording holds (44) — Boris: "We should be able to record the video into a cell which will always be recorded to a
+  folder. We can record the output to parameters which will record the audio file and record all the parameter movements
+  which saves on hard drive space. We can also record the video file of the show, which will take a lot of hard drive space.
+  We can also record the output, video file and the output parameters and the output audio. These are all check boxes on what
+  will be recorded." -> check boxes choose what is recorded (video file, parameters, audio); a clip recorded into a cell is
+  always also written to a folder. Which boxes: OPEN (question 48).
+- Tap, Resync and the nudge number (45) — Boris: "If I tapped the tempo again, to set the tempo, the time does not change. If I
+  press re-sync, then it does re-sync and that changes by how far off the beat we are." -> Tap leaves the number alone;
+  Resync changes it. To what: OPEN (question 49).
+- The beat circle (46) — Boris: "46 default" -> it moves with the nudge.
+- What the nudge moves (recorded 2026-10-04 12:31:21; arrived mid-turn) — Boris: "If we are shifted forward or back, everything that is
+  connected to BPM shifts forward or back. I mean everything. If the user twist the knob in real time, or triggers a clip, that
+  is not affected unless it's set to be quantized" -> one shifted beat for every beat-driven thing; a knob turned or a clip
+  fired by hand is not shifted; a quantised fire lands on the shifted beat.
+
+## 2026-10-04 (s-rta-1004) — Boris's answers to questions 47-49 (recorded 2026-10-04 12:41:09; questions as asked: .harmony/.reports/s-rta-1004/boris-clarify-47-49.md)
+- Bar counts and short clips (47) — Boris: "47 default" -> 4 bars is the least; bar counts are 4, 8, 12, 16 ...; a short clip
+  starts slow and Speed makes it fast (the question's own words).
+- The Record boxes (48) — Boris: "48 b" -> three boxes, each on its own: Parameters, Audio, Video.
+- The nudge number after a Resync (49) — Boris: "49 default" -> it reads 0; Resync is a fresh start.
+- Not named by him, default stands: 50 (the app remembers key and MIDI settings by itself, on this computer).
+- Key and MIDI settings between launches (50; recorded 2026-10-04 12:41:19; arrived mid-turn) — Boris: "50 default" -> the app remembers
+  them by itself, on this computer, whatever show is open (Export / Import stay).
+
+## 2026-10-04 (s-rta-1004) — One Save: everything the user saves is saved with the show (recorded 2026-10-04 12:50:58; verbatim with his pasted list: boris-feedback-backlog.md, same stamp)
+- One Save — Boris: "All of these things should be saved when a show is saved. There's no reason to save them separately:"
+  (followed by the nine lines of his page's list A: the show, a deck, Collect Media, an effects look, FX Save, key and MIDI
+  settings, the window layout, a snapshot, Save Routine) -> saving the show saves its decks, effects, key and MIDI settings,
+  window layout and routines. OPEN: whether Save Deck and the effects saves stay as an export (80); key and MIDI settings
+  with the show REVERSES "50 default" (81); Collect Media at every Save (82).
+- Key and MIDI settings, changed (recorded 2026-10-04 12:52:00) — Boris: "50 change answer to B and also saved on the computer for other shows
+  to keep these as these are computer and midi hardware settings" -> saved with the show AND kept on the computer for other
+  shows. REPLACES "50 default". OPEN: which set is live when a show's differs from the computer's (question 83).
+
+## 2026-10-04 (s-rta-1004) — Boris's answers to questions 80-82: decks through the list of shows, keys and MIDI, Collect Media (recorded 2026-10-04 12:56:12; verbatim + screenshot: boris-feedback-backlog.md, same stamp)
+- Decks (80) — Boris: "A deck will go into all of the decks that are available and they are the decks that are available with
+  a show like this is how resolume does it:" (+ a screenshot: a show named Example, "4 Decks", its four deck names) -> no
+  separate deck save; the list of shows opens each show to its decks and a deck is taken from there.
+- Key and MIDI settings (81) — Boris: "with show and app. these stay. if a user starts another show file from scratch, they can
+  import the settings from another show file." -> kept on the computer AND saved in the show; settings can be imported from
+  another show file.
+- Collect Media (82) — Boris: "82 default" -> it stays its own command; Save does not copy media.
+- Key and MIDI settings, again (83; recorded 2026-10-04 12:56:43; arrived mid-turn) — Boris: "83 they are in a show and can be imported to
+  another show" -> they live in the show; another show gets them by import. OPEN: whether opening a show changes the live
+  keys (question 85).
+- Effects looks (84; recorded 2026-10-04 12:59:09; arrived mid-turn) — Boris: "every effect has many looks with specific parameter setups.
+  these are saved with the app. always." -> the looks stay, kept by the app for every show; they are not part of "one Save".
+- Do the keys change when a show is opened (85; same stamp) — Boris: "yes but you import the setup from the most recent show"
+  -> yes, the show's keys take over; a new show takes its setup from the most recent show.
+- The old look buttons (86; recorded 2026-10-04 13:22:56) — Boris: "86 default yes" -> the small Save and Load, FX Save and the ten slots are
+  removed now; looks per effect (kept by the app, always) are their own build.
+
+## 2026-10-04 (s-rta-1004) — Boris's answers to questions 71, 72, 74: no slide, pause is the clip's and is saved, Speed to 10 (recorded 2026-10-04 14:06:21; questions as asked: .harmony/.reports/s-rta-1004/boris-clarify-71-74.md)
+- No slide (71) — Boris: "71 b" -> a clip out of time plays on and cuts ONCE, on the next "1", into time. REPLACES the
+  slide he chose in question 33 ("b can you program this reliably or should we change the plan?").
+- Pause (72) — Boris: "new clip plays, the old clip is permanently paused and if comp is saved, it is saved as paused. the
+  clip is now paused until the user changes that setting." -> pause is a setting of the clip, kept until he changes it and
+  saved with the show; a different clip fired on that layer plays.
+- Timeline Speed (74) — Boris: "74 b" -> the range goes to 10.
+- Not named by him, default stands: 51 (a screen's Delay runs 0 to 100 ms).
+
+## 2026-10-04 (s-rta-1004) — Boris's answers to questions 61-63: the nudge's sign and text, the tempo row, the amount in the show (recorded 2026-10-04 14:21:32; questions as asked: .harmony/.reports/s-rta-1004/boris-clarify-61-63.md)
+- Sign and text (61) — Boris: "61 b but lets call it "nudge X ms"" -> plus moves the beat EARLIER; the text reads "nudge X ms".
+  REPLACES "off beat by [+/- X] ms" (12:23:42).
+- The tempo row (62) — Boris: "do a similar to resolume: beatWheel play pause stop bpm# bpm- bpm+ nudgeBack nudgeForward /2 *2
+  tap resync" -> that row, in that order; /2 and *2 work; play, pause, stop, BPM minus and BPM plus are new.
+  OPEN: what play / pause / stop run (question 111).
+- The amount and the show (63) — Boris: "good (this is just nudge amount)" -> a show's own nudge amount takes over when it is
+  opened.
+- Play, pause, stop in the tempo row (111; recorded 2026-10-04 14:29:06) — Boris: "just the bpm timer. If most of the show is set up to BPM,
+  and the BPM goes stop, the BPM goes to zero nothing moves. If there are clips that are not BPM based, then they play just as
+  they were and are unaffected" -> they run the BPM timer only; what is not BPM-based is unaffected.
+
+## 2026-10-04 (s-rta-1004) — "Routines" become "actions"; Boris's answers to questions 101-104, 106 (recorded 2026-10-04 15:07:44; questions as asked: .harmony/.reports/s-rta-1004/boris-clarify-101-106.md)
+- The name — Boris: "I want to change what we are calling routines to actions. Easier to remember" -> everywhere he sees or
+  says "routine", the app says "action".
+- Looks shipped with the app (101) — Boris: "I will build them later myself, but when the app is finished" -> none ship now.
+- Signals in a look (102) — Boris: "102 B" -> a look remembers which signal drives each slider and plugs them in again when
+  loaded. OVERRULES the looks ruling's "no signal connections".
+- A changed look (103) — Boris: "For a default behavior I will want to create a look 3 when I change look 2 and save a
+  differnt version of look 2. look 2 remains unchanged but I need to have a way to save look 2 if I tweak it a little." ->
+  a new look by default; saving over the loaded look is also offered.
+- Naming a look (104) — Boris: "open a name box but with default name look x that can easily be changed" -> a name box,
+  already holding "Look X".
+- His two old effect presets (106) — Boris: "delete them. this is a new build" -> deleted; nothing is converted.
+
+## 2026-10-04 (s-rta-1004) — Boris's answers to questions 91, 93, 94 (recorded 2026-10-04 15:30:15; questions as asked: .harmony/.reports/s-rta-1004/boris-clarify-91-94.md)
+- Clicks in the list of shows (91) — Boris: "91 default" -> one click on a show opens or closes its decks; a double-click on
+  a show opens it (it asks first); a double-click on a deck adds it; one click on a deck does nothing.
+- Return in the quit window (93) — Boris: "93 b" -> Return presses "Save & Quit", the lit button; Esc cancels.
+- Keys at launch (94) — Boris: "94 default" -> the keys of the show saved last.
+- A screen's Delay range (51; recorded 2026-10-04 15:35:01) — Boris: "51 default is good" -> 0 to 100 ms, as in Resolume.
+
+## 2026-10-04 (s-rta-1004) — Boris's answers to questions 121-124; "Beat Repeat" (recorded 2026-10-04 15:59:53; questions as asked: .harmony/.reports/s-rta-1004/boris-clarify-121-124.md)
+- Resync and out-of-time clips (121) — Boris: "121 a" -> they cut into time at once; his press is the "1".
+- A paused clip in a saved show (122) — Boris: "122 a" -> it opens paused on the same frame.
+- Where a clip fired between two "1"s cuts to (123) — Boris: "123 b" -> always back to its beginning, on the next "1".
+- A beat loop switched off without Catch Up (124) — Boris: "124 a" -> the clip carries on and cuts into time on the next "1".
+- The name — Boris: "also, lets change name to beat repeat. beat loopr is resolumes original name" -> the feature is called
+  "Beat Repeat" in Audio-DNA.

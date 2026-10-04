@@ -1,0 +1,71 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Audio-DNA — open questions (Oct 4)</title><style>body{font:16px/1.5 -apple-system,Helvetica,Arial,sans-serif;max-width:860px;margin:32px auto;padding:0 20px;background:#14161a;color:#e6e6e6}
+h1{font-size:26px}h2{font-size:20px;margin-top:34px;border-bottom:1px solid #333;padding-bottom:6px}
+li{margin:8px 0}.exp{color:#9fd3a4}.bad{color:#e3a19a}.dim{color:#9aa0a6}
+.box{background:#1c1f25;border:1px solid #2c3038;border-radius:8px;padding:12px 16px;margin:14px 0}
+.a{display:block;margin:4px 0 0 0}.a b{color:#9fd3a4}.b b{color:#d9c58a}
+table{border-collapse:collapse;width:100%;margin:12px 0}th,td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid #2c3038}
+th{color:#9aa0a6;font-weight:600;font-size:14px}</style>
+<style>pre{white-space:pre-wrap;font:15px/1.5 -apple-system,Helvetica,Arial,sans-serif;background:#1c1f25;border:1px solid #2c3038;border-radius:8px;padding:12px 16px}</style></head><body>
+<h1>Audio-DNA — what is still open with you</h1>
+<div class="box"><b>Where things stand (Oct 4, afternoon).</b> Nothing was built today. Five lanes are planned, attacked by blind critics, ruled and adopted: one Save, output settings, the beat nudge, transport, looks per effect. Building starts next session.<br>
+<b>Nothing waits on you.</b> Every question below has a default (A). Answer only the ones you would change — for example "127 B, 131 B". In these texts "routines" are your "actions" and "BeatLoopr" is your "Beat Repeat": the names change in their own job.</div>
+<h2>The tempo row (125–129)</h2><pre>125. The tempo &quot;-&quot; and &quot;+&quot; buttons -- how big is one step?
+     A (default) Whole numbers: from 127.6, &quot;+&quot; goes to 128, then 129; &quot;-&quot; goes to 127. For anything finer you type it.
+     B Small steps of 0.1: 127.6, 127.7, 127.8 ...
+126. The BPM timer is stopped. What should the tempo number show?
+     A (default) The tempo it will run at when you press play (so you can still tap, type, halve and double while it
+       is stopped). The lit stop button and the still circle show that it is stopped.
+     B 0, until you press play.
+127. Today there are three small buttons left of the beat circle: play and pause run every clip on every layer, and
+     the square stops all routines. Your row now has its own play, pause and stop for the BPM timer.
+     A (default) The old play and pause for all clips leave the top bar (each layer keeps its own). The &quot;stop all
+       routines&quot; button stays, to the left of the row, labelled &quot;R[]&quot; in the routines&#x27; green so it cannot be taken
+       for the row&#x27;s stop.
+     B All three old buttons stay, to the left of the row.
+     C All three go; routines are stopped from their own bands and pads only.
+128. The BPM timer is stopped or paused, and you tap a tempo or press Resync.
+     A (default) The tempo you tapped is taken, Resync puts it on the &quot;1&quot; -- but it stays stopped until you press play.
+     B Tapping or Resync starts it running again.
+129. You have set a nudge, say &quot;nudge +12 ms&quot;. You press stop, and later play. What does the nudge read?
+     A (default) 0. Stop then play is a fresh start by hand, like Resync: the &quot;1&quot; is where you press play, nothing on top.
+     B Still +12. Stop and play never touch the nudge; only Resync puts it back to 0.
+Readings to tell him with the questions (he corrects only what is wrong):
+ R74 Pause never touches the nudge number.
+ R75 A take does not record the timer&#x27;s play / pause / stop, and replaying a take never stops your beat. While the
+     timer is held, a routine that is playing waits with it; a take that is replaying follows its own audio and plays on.
+ R76 With the app listening, &quot;-&quot;, &quot;+&quot;, &quot;/2&quot;, &quot;x2&quot; or a typed tempo switch Manual on.
+ R77 The tempo you set by hand can go from 30 to 400; what the app hears by itself stays between 60 and 200. Above
+     about 200, beat-driven looks flash fast (400 is almost 7 times a second).
+ R78 &quot;/2&quot; and &quot;x2&quot; never move the &quot;1&quot;: the beat just runs half or twice as fast.
+ R79 The &quot;Bar 1..4&quot; text sits just left of the circle; the LOCKED word sits beside Manual.
+ R80 The nudge buttons read &quot;&lt;&lt;&quot; (back = later = minus) and &quot;&gt;&gt;&quot; (forward = earlier = plus), because &quot;-&quot; and &quot;+&quot; are
+     now the tempo&#x27;s.
+ R81 Stopped or paused with Quantize on: a clip you fire waits and starts when you press play -- from stop on your
+     press, from pause on the next beat or bar line. With Quantize off it fires at once.
+ R82 Opening a show, or New, never starts or stops the BPM timer. The app always launches with it running.
+ R83 A routine pad pressed while the timer is stopped starts on the first bar line after play: one bar after your
+     press.
+ R84 Resync while stopped or paused: the beat goes to the &quot;1&quot; and the nudge reads 0, as after any Resync.</pre>
+<h2>Looks per effect (131–134)</h2><pre>131. An effect has a signal plugged into a slider. You load a look that was made with NO signal on that slider, or you load
+     &quot;Default&quot;.
+     A (default) The signal is unplugged: the effect becomes exactly the look. A signal you plugged in by hand and never
+       kept in a look is gone; Cmd+Z brings it back.
+     B The signal stays plugged in: a look only ever plugs signals in. A look made without signals then does not look the
+       same on an effect that has signals, and the button does not show its name.
+132. `Save over &quot;Look 2&quot;` replaces Look 2 for good; there is no undo for it.
+     A (default) A small window asks first. Only a click on &quot;Save Over&quot; saves; Return and Esc cancel.
+     B It saves at once, with no window.
+133. You loaded &quot;Look 2&quot; and moved a slider. The small button on the effect:
+     A (default) reads &quot;Looks&quot;, dim -- it shows a name only while the effect is exactly that look. The menu still says
+       `Save over &quot;Look 2&quot;`.
+     B keeps reading &quot;Look 2&quot; with a mark that says it was changed.
+134. Still on your disk from before: nine quick FX saves (the numbered slots). When the old buttons go, the app no longer
+     opens them.
+     A (default) Leave them on the disk.
+     B Delete them too.</pre>
+<h2>Four things only you can give me</h2>
+<ol><li><b>Three tracks you would really play</b>, about 10 minutes each — tell me where the files are. The first transport measurement (how often the picture would cut) cannot run without them.</li>
+<li>A screenshot of the <b>Beat Repeat</b> row in Arena (Resolume calls it BeatLoopr), on a clip in BPM Sync.</li>
+<li>A screenshot of a clip in BPM Sync with the loop menu on <b>Random</b>, showing Interval and Distance.</li>
+<li>In Arena: click <b>plus once on Speed and once on Duration</b> and tell me the numbers.</li></ol>
+<p class="dim">Your words are filed as you write them. The page of everything the app saves is boris-saves.html, next to this one.</p></body></html>

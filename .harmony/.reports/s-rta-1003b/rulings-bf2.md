@@ -119,3 +119,27 @@ H-16 For S5b (from S4b's stop items; each needs the architect before S5b's packe
      label_w <= its w - 4" is false today on 15 existing 32-px per-layer buttons -- re-state it (the two Sync targets
      pass); the keyboard bind overlay has no test route (H-10's state needs one); the standing learn title's em dash may
      be mojibake on screen (a visible text: its own small fix + capture).
+
+## RULINGS of 2026-10-04 12:09:11 (session s-rta-1004; Boris replaces the sync dial)
+BORIS, VERBATIM (binding-decisions.md, 2026-10-04 "The sync dial is REPLACED ..."):
+- "I think we should copy what resolume does for delay. each output screen can be delayed and that is set on output display
+  properties. Makes it simpler." (2026-10-04 12:08:21)
+- "replace our sync with this" (2026-10-04 12:09:11)
+H-17 THE LANE IS SUPERSEDED. His words outrank every ruling above (this file's precedence line). From this stamp:
+     (a) NO further bf2 stage is started: R7r (incl. its step 0, the merge of lane/bf2-keys into lane/bf2), S6, S5a, S5b, and
+         the architect ruling H-16 asked for. None was running at this stamp (R7r's script was not yet written; nothing to stop).
+     (b) Harmony's owed rows -- the quiet [timing] x3, R5 x5, G6, R7's 21 arms + R7b, R7's mutant RED, R1a, R4, R4b -- are
+         VOID WITH THE LANE: never run, neither passed nor failed. They are not carried as debt against main, because nothing
+         of the lane merges.
+     (c) lane/bf2 (740b6d6) and lane/bf2-keys (9eab9bd) do NOT merge into main as they stand. Branches and worktrees are KEPT
+         (read-only, at these commits) as a source of parts until the replacement plan (a Delay per output screen, BF44) is
+         ruled; the plan's recon lists what is carried and what is dropped; then the worktrees are removed. Pitfall 68 stays
+         free (the lane's text for it is not merged).
+     (d) H-14 (RD = O1, the take's one-block origin is the probe's, not the product's) stands as a FINDING about main's take
+         recorder and the probe; it does not depend on the dial. The filed debts of the s-rta-1003b ledger that are about
+         main (the doubled onset on click 69, "CC relative mode" unreachable from any screen, Load Deck accepting a whole
+         composition file, frameTimeMs reading 0.0, APP-INVENTORY's 1249 against 1252) stay open on main.
+     (e) What rode in the lane and is not the dial (the music-beat wheel of S5a, the Gain 140 px of S5b, the learn title's em
+         dash of H-16, docs fixes such as testing-eyes.md's kill advice, the APP-INVENTORY count) goes to the replacement
+         plan's recon as "carry or drop", each with its commit.
+     Reason this is recorded as a ruling and not only as his quote: a successor reading H-1..H-16 alone would resume R7r.

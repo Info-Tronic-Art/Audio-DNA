@@ -595,3 +595,39 @@ status-note:
 artifact:
 history:     NEW(2026-10-04)
 --- /IDEA ---
+
+--- IDEA ---
+id:          idea-2026-10-04-RealTimeAudio-1791144717556104074
+raw:         Answers to 25 questions below. Ask questions to clarify till you are 100% confident you understand what needs to be done:
+context:     s-rta-1004 2026-10-04 11:59:06, RealTimeAudio. A WORKING-STYLE DIRECTIVE from Boris, kept all session: every answer of his was read against the question as asked, every gap became a numbered question with a default A (26-134), and nothing was planned on a guess. It produced 54 filed rules (BF38-BF91) and five ruled lanes in four hours. SYSTEM-UPGRADE CANDIDATES for Harmony, from the same session: (1) a helper for foreign lanes that files Boris words in one call -- takes the verbatim text, stamps it from date itself, appends to the backlog and the decisions file (a hand-typed stamp was 4 minutes off and was caught by luck); (2) a helper that extracts pasted images from the session jsonl to disk the turn they arrive (they die with the session; a 20-line python walk did it); (3) the generic plan -> blind seats -> ruling workflow with the lanes table inside the script (~/projects/RealTimeAudio/.harmony/.reports/s-rta-1004/wf/plan-lane.js) and its dry-run-against-stub-agents check are reusable beyond this repo. Full session record: ~/projects/RealTimeAudio/.harmony/sessions/2026-10-04-s-rta-1004-secondary.md.
+why:         
+intent:      
+target:      
+constraints: 
+related:     
+priority:    HIGH
+repo:        RealTimeAudio     session:      date: 2026-10-04
+status:      NEW
+status-changed: 2026-10-04
+status-note:
+artifact:
+history:     NEW(2026-10-04)
+--- /IDEA ---
+
+--- IDEA ---
+id:          idea-2026-10-04-RealTimeAudio-17911447175562611343
+raw:         finish current tasks, save all decisions and run eos
+context:     s-rta-1004 2026-10-04 15:14:22, RealTimeAudio. REPORT-UP at close: nothing built or merged; the sync dial lane was superseded by Boris (per-screen output Delay as Resolume); five lanes planned, councilled, ruled and adopted (one-save, outputs, nudge + tempo row, transport, looks per effect), builds start next session. Again reported: fable-usage-audit WARN LAW11-LOG-GAP -- 16 architect dispatches, 0 DISPATCH_LOG rows, because a foreign lane cannot write Harmony_Main; a registry-pull for dispatch rows (as for ideas) would close it. Session index: skipped (foreign lane, no transport). T26 STEP 1-2 still open. Context reached 68 % with eleven workflows and about sixty Boris exchanges: the per-exchange filing cost (two appends + a clarify file) is the main driver -- candidate (1) above would cut it.
+why:         
+intent:      
+target:      
+constraints: 
+related:     
+priority:    HIGH
+repo:        RealTimeAudio     session:      date: 2026-10-04
+status:      NEW
+status-changed: 2026-10-04
+status-note:
+artifact:
+history:     NEW(2026-10-04)
+--- /IDEA ---

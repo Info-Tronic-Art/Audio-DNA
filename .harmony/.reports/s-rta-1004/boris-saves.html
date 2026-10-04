@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Audio-DNA — everything the app saves (Oct 4)</title>
+<style>body{font:16px/1.5 -apple-system,Helvetica,Arial,sans-serif;max-width:860px;margin:32px auto;padding:0 20px;background:#14161a;color:#e6e6e6}
+h1{font-size:26px}h2{font-size:20px;margin-top:34px;border-bottom:1px solid #333;padding-bottom:6px}
+li{margin:8px 0}.exp{color:#9fd3a4}.bad{color:#e3a19a}.dim{color:#9aa0a6}
+.box{background:#1c1f25;border:1px solid #2c3038;border-radius:8px;padding:12px 16px;margin:14px 0}
+.a{display:block;margin:4px 0 0 0}.a b{color:#9fd3a4}.b b{color:#d9c58a}
+table{border-collapse:collapse;width:100%;margin:12px 0}th,td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid #2c3038}
+th{color:#9aa0a6;font-weight:600;font-size:14px}</style></head>
+<body>
+<h1>Audio-DNA — everything the app saves</h1>
+<div class="box"><b>Why this page.</b> You wrote: "we should list all the things that can be saved". This is that list.<br>
+It was read out of the code of the app you run today, by three separate searches, merged, then checked again by a fourth reader who looked for anything missing and found nothing. <b>Nothing here is built or changed</b> — it is the app as it is.<br>
+<span class="dim">A line marked * was read once, not twice.</span></div>
+
+<h2>A. Things you save yourself</h2>
+<ul>
+<li><b>The show</b> — Save, or Save As with a new name. The routines on the routine pads live inside it.</li>
+<li><b>A deck</b> — Save Deck, or Save Deck As with a new name.</li>
+<li><b>Collect Media</b> — copies your pictures and videos next to a copy of the show.</li>
+<li><b>An effects look</b> — the small Save button, to a name you choose.</li>
+<li><b>FX Save</b> — the quick effects save, numbered by itself.</li>
+<li><b>Your key and MIDI settings</b> — only through Export. <span class="bad">This is the only place they are kept (see "Things you may not expect").</span></li>
+<li><b>The window layout</b> — Save Layout.</li>
+<li><b>A snapshot</b> — a still picture of the screen.</li>
+<li><b>Save Routine</b> — kept only inside the show, so the show must be saved too.</li>
+</ul>
+
+<h2>B. Recordings</h2>
+<ul>
+<li><b>A show recording (a take)</b> — every move you make, plus the sound. The app writes it when you press Record, again when the tempo is known, every minute, and when you stop. If you quit while it records, it stops and saves it.</li>
+<li><b>The sound of a take</b> — its own sound file beside the take.</li>
+<li><b>A video recording of the screen</b> — Output &gt; Start Recording. A video file, picture only, no sound*.</li>
+<li><b>Repair Audio</b> — mends the sound record of a take that was cut off.</li>
+</ul>
+<p class="dim">Recording video into a cell is not in the app yet.</p>
+
+<h2>C. Things the app keeps by itself (no save pressed)</h2>
+<ul>
+<li>Which output screens were open, so "Restore Last Outputs" can bring them back.</li>
+<li>The MilkDrop folder you picked.</li>
+<li>Your MilkDrop favorites.</li>
+<li>The files and folders you starred in the file browser.</li>
+</ul>
+<p>That is all of it. Four things.</p>
+
+<h2>Not kept at all</h2>
+<ul>
+<li>Key and MIDI settings (unless you export them).</li>
+<li>The audio device you picked.</li>
+<li>Manual tempo and the BPM you typed.</li>
+<li>Link on or off.</li>
+<li>The MIDI output choice.</li>
+<li>The tooltips choice.</li>
+<li>The window size.</li>
+</ul>
+<p>The app never saves the show by itself, and today it does not ask anything when you quit with an unsaved show.</p>
+
+<h2>What you see when a save fails — today, and after your rulings</h2>
+<table>
+<tr><th>What fails</th><th>Today</th><th>After your rulings of Oct 3 and 4</th></tr>
+<tr><td>Save show, Save As, Save Deck, Save Deck As</td><td>A box: "Save failed"</td><td class="exp">Stays</td></tr>
+<tr><td>A show recording (take) that could not be saved</td><td>A line in the Record tab. In one case the line ends at the colon, with no reason given.</td><td class="exp">A message</td></tr>
+<tr><td>A video recording that could not be saved</td><td class="bad">Nothing. The app cannot tell that it failed.</td><td class="exp">A message</td></tr>
+<tr><td>A clip recorded into a cell (not built yet)</td><td>—</td><td class="exp">A message</td></tr>
+<tr><td>Not enough disk space to record</td><td>A take refuses to start under 2 GB free, with a line. A video recording does not check at all.</td><td class="exp">A sign in the Record tab</td></tr>
+<tr><td>You quit with an unsaved show</td><td class="bad">It quits. Nothing is asked.</td><td class="exp">The Quit window: Quit / Cancel / Save &amp; Quit</td></tr>
+<tr><td>Everything else: an effects look, FX Save, a snapshot, exporting keys, the layout, favorites</td><td>Nothing</td><td>Nothing ("Nothing else.")</td></tr>
+</table>
+
+<h2>Things you may not expect</h2>
+<ol>
+<li><b>Your key and MIDI settings are gone when you quit</b>, unless you exported them and import them again. The app does not remember them by itself. <span class="dim">See question 50 below.</span></li>
+<li><b>Save Routine says it saved</b>, but the routine lives only inside the show. Quit without saving the show and the routine is gone.</li>
+<li><b>A video recording can fail silently.</b> The app always reports it as finished, even when the file could not be written.</li>
+<li><b>The audio device you pick is not remembered</b> between launches.</li>
+</ol>
+
+<h2>One question</h2>
+<ol start="50">
+<li value="50"><b>Your key and MIDI settings between launches.</b>
+<span class="a"><b>A (default)</b> The app remembers them by itself, on this computer, whatever show is open.</span>
+<span class="a b"><b>B</b> They are saved with the show.</span>
+<span class="a b"><b>C</b> As today: only Export and Import, by hand.</span></li>
+</ol>
+<p class="dim">Nothing waits on you. If you say nothing, A is planned. Your words are filed as you write them.</p>
+</body></html>

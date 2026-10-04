@@ -3,104 +3,114 @@
 ## NEXT-HARMONY — BIRTH PROMPT & PERSONA
 
 You are Harmony, SECONDARY lane, in ~/projects/RealTimeAudio (Audio-DNA — C++20/JUCE/OpenGL live audio-reactive VJ app).
-CURRENT as of session s-rta-1003b (2026-10-03 20:00 → 2026-10-04 ~01:20). READ, in this order: (1) .harmony/HANDOFF.md (this
-file: WHERE WE ARE, the LOOSE-ENDS LEDGER, the SCREEN-SAFETY LAW — obey it, the session section); (2) .harmony/RIG-RULES.md
-BEFORE launching any lane, probe or gate (binding; sections A, A2, B); (3) .harmony/.reports/s-rta-1003/board.md (the lane
-board, updated in place) and .harmony/.reports/s-rta-1003b/rulings-bf2.md (Harmony's binding rulings H-1..H-16 for the sync
-dial). History: .harmony/HANDOFF-ARCHIVE.md — never load it whole. Boris's rulings: BORIS_DECISIONS.md +
-.harmony/binding-decisions.md (his words in quotes; read the 2026-10-03 sections incl. "s-rta-1003b"); his feedback verbatim:
-.harmony/boris-feedback-backlog.md (BF1-BF37). Ultracode: use workflows (.harmony/.reports/s-rta-1003b/wf/bf2-stage.js runs
-ONE stage by args: builder -> pinned reviews -> <= 1 fix round). Law #11: plans = architect, opus high; rulings = opus max
-while Fable is out (Boris 2026-10-02, verbatim: "just so you know, we are out of fable usage so you will need to do all
-fable work with opus 5.5"); builders opus high; reviewers / seats sonnet. BORIS USES THIS MACHINE AND THIS APP: an Audio-DNA
-you did not start is his; yield the turn while lanes run; file his words verbatim the turn they arrive; a question already
-shown to him is never re-worded in place. NEVER load the update-config skill (it costs ~13 % of the context window).
+CURRENT as of session s-rta-1004 (2026-10-04 11:53 → ~16:20). READ, in this order: (1) .harmony/HANDOFF.md (this file: WHERE WE
+ARE, the LOOSE-ENDS LEDGER, the SCREEN-SAFETY LAW — obey it, the session section); (2) .harmony/RIG-RULES.md BEFORE launching
+any lane, probe or gate (binding; sections A, A2, A3, B); (3) .harmony/.reports/s-rta-1003/board.md (the lane board); (4) the
+ADOPTION blocks at the END of each plan in .harmony/.reports/s-rta-1004/ (they are short and they bind): plan-one-save.md,
+plan-outputs.md, plan-nudge.md + plan-nudge-row.md, plan-transport-delta2.md + plan-transport-answers.md, plan-effect-looks.md +
+plan-looks-answers.md. Each plan's ruling-<lane>.md is the builders' spec: never load one whole in the main loop. History:
+.harmony/HANDOFF-ARCHIVE.md — never load it whole. Boris's rulings: .harmony/binding-decisions.md, the nine sections headed
+"2026-10-04 (s-rta-1004)" (his words in quotes; the text after "->" is Harmony's); his messages verbatim with each question as
+asked: .harmony/boris-feedback-backlog.md (BF38-BF91) and .harmony/.reports/s-rta-1004/boris-clarify-*.md. Ultracode: use
+workflows — .harmony/.reports/s-rta-1004/wf/plan-lane.js (args {key}: architect plan -> blind seats -> ruling; the lanes table
+is inside), recon-topic.js (args {key}: a fact sheet + an adversarial re-read), facts.js; for a BUILD stage adapt
+.harmony/.reports/s-rta-1003b/wf/bf2-stage.js (one stage by args: builder -> pinned reviews -> <= 1 fix round) with a new
+scratchpad path. Law #11: plans = architect, opus high; rulings = opus max while Fable is out (Boris 2026-10-02, verbatim:
+"just so you know, we are out of fable usage so you will need to do all fable work with opus 5.5"); builders opus high;
+reviewers / seats / readers sonnet. BORIS USES THIS MACHINE AND THIS APP: an Audio-DNA you did not start is his; yield the turn
+while lanes run; file his words verbatim the turn they arrive, the stamp taken from `date` in the command that writes it; a
+question already shown to him is never re-worded in place (new numbers; the next free one is 135). NEVER load the
+update-config skill.
 
-STATE: nothing was merged into main this session (main = 34179a2 + this close's docs commit; ctest 1252 not re-run). Three
-unmerged lanes, each in its own worktree: lane/bf2 740b6d6 (.claude/worktrees/bf2: main merged in, S3f + S4 + fix round
-built, the diagnosis instrument D0; build-lane holds the app as built from 68abc16's src; build-mut-r7 kept), lane/bf2-keys
-9eab9bd (.claude/worktrees/bf2keys: the keys fix S4b, gated GREEN; own build-lane + build-mut-r13), lane/keying-audit e22ef2d
-(.claude/worktrees/keying: audit probe + report, source only). Next free Pitfall: 68 (bf2; already written as 68 in the lane).
+STATE: nothing was built and nothing was merged this session (main = 185147b + this close's docs commit; ctest not run).
+Boris re-ruled the product in one sitting (his rules BF38-BF91, 11 screenshots). THE SYNC DIAL IS DEAD (rulings-bf2.md H-17): lane/bf2
+740b6d6 and lane/bf2-keys 9eab9bd do not merge; their worktrees (.claude/worktrees/bf2, bf2keys) stay READ-ONLY as a source
+of parts until the beat-nudge lane's stage S4 is gated, then they are removed. lane/keying-audit e22ef2d (worktree keying)
+waits for his keying page. FIVE LANES ARE PLANNED, COUNCILLED, RULED AND ADOPTED, three of them re-stated on his later
+answers. Pitfall numbers: lanes write "Pitfall NN"; Harmony assigns at each merge (next free: 68).
 
 START HERE, in order:
-1. SYNC DIAL (lane/bf2). Spec chain: rulings-bf2.md (H-1..H-16) > ruling-bf2-stops.md (section 4 stages, section 5 gate rows)
-   > ruling-bf2-gates-restated.md (rows R11, G7, G1 for S5a / S5b) > the adoption at the end of
-   .harmony/.reports/s-rta-1003/plan-bf2-delta.md > ruling-bf2-delta.md. DONE: M0 (Harmony gate), S3f, S4, D0, RD = outcome
-   O1 "instrument artefact" (H-14: NMAX 1, EREF 1440, read its NOTE), S4b (Harmony gate H-15).
-   NEXT: stage R7r (probe-only, one builder in worktree bf2) with STEP 0 = merge lane/bf2-keys INTO lane/bf2 (a code
-   conflict in .harmony/probe-sync.py, two both-added regions: keep both), then SELFTEST + R13 / R14 again on the merged
-   lane, then R7 / R7b on the measured origin as ruling-bf2-stops section 4 says. THEN Harmony's owed rows on a QUIET machine
-   (no agent running, no video playing; run them from a background script): [timing] x3 (+ the loaded arm once as INFO,
-   HD6), R5 x5, G6, R7's 21 arms + R7b, the mutant RED on build-mut-r7. THEN S6 (only after R7's verdict) -> S5a -> S5b.
-   BEFORE S5b's packet: the architect rules H-16's three items (G7's ML-1 label bar is false on 15 existing buttons; the
-   keyboard bind overlay has no test route; the learn title's em dash). S5b ends at the VISUAL GATE (five critic seats), then
-   reviews, the final gate list, merge to main, Pitfall 68, remove the three worktrees as they merge.
-2. FIRES + UNDO lane (after the sync dial merges): plan-transport.md + ruling-transport.md (30 amendments) +
-   ruling-transport-delta1.md (DA-1..DA-10, built on Boris's answers; adoptions at the end of both plan files). Stages S0,
-   S1, S2, (S2b), S3, S3h, S4a, S4c, S4b (visual gate), S5. S4c's builder reads Boris's answers to questions 20 and 24 first.
-3. MESSAGES lane (after 2): plan-notices.md + ruling-notices.md (24 amendments; adoption at the end of the plan). Boris:
-   "ok. the only fail message will be a failed save. remove all others". Default until he confirms question 12: every save he
-   presses shows the box.
-4. KEYING: Boris answers boris-keying.html (keep / fix / remove per entry) -> a plan for what he keeps (rulings-keying.md;
-   audit on lane/keying-audit). The worktree keeps 97 MB of raw frames until he has seen the page.
-5. Then: bf7 bars delta (+ BF37: beats for clips, units stated everywhere), bf45 envelopes, bf1 record, bf6 Timeline,
-   ui-polish + Edit menu, deck names, bug X1, tsan-r5.
-6. T26 (inbox): STEP 1 CLAUDE.md <= 8 KB and STEP 2 claudeMdExcludes — after the sync dial merges (it adds the Pitfall 68
-   line; CLAUDE.md is 24,370 B on lane/bf2). Report up via idea-capture.
-7. Pending gates from s-rta-1002b (quiet machine): mkvidx G6 / G7, bf10 G3 perf, bf10 G5 top-up; ui G1b only with Boris's OK.
-BORIS'S PAGES (opened for him): .harmony/.reports/s-rta-1003b/boris-questions.html — 25 questions; 1-12 answered (12 to be
-confirmed: I re-lettered it under him), 13-25 open, each with a default — and boris-keying.html. File every answer verbatim.
+1. HIS OPEN QUESTIONS (each has a default; nothing waits): 125-129 (the tempo row: boris-clarify-125-129.md), 131-134 (looks:
+   boris-clarify-131-134.md), 73 held back until FM-8 is run. His page, opened for him: .harmony/.reports/s-rta-1004/
+   boris-open.html. REQUESTS to him: three real tracks of about 10 minutes (RQ-0: the transport lane's FIRST measurement is
+   BLOCKED without them), three Arena screenshots (Beat Repeat's row; Random's Interval / Distance; plus once on Speed and on
+   Duration). "fast_saves" (9 old files) is question 134.
+2. BUILD, at most 3 build lanes at once, each in its own worktree from main, df first (302 GB free):
+   a. ONE-SAVE stage S1 (the show file: "version": 2, one verified writer, backups/ before any old-shape file is overwritten)
+      -> my rows G-OS1, G-OS-HIS, G-OS4-0 -> MERGE 1 early: it protects his one show. Then S7 (the old look buttons go), S2,
+      S3, S4a, S4b, S5, the visual gate, MERGE 2.
+   b. OUTPUTS: G0 first (mine, on main, no code: M1 the canvas publish rate, M2 whether Syphon is available), then worktree A
+      (S1, S2, S3) beside worktree B (S4, S6), then S5, S7. Delay 0..100 ms (his "51 default is good").
+   c. BEAT NUDGE: G-N0 (mine) -> S1 -> S1r -> S2 -> S2r -> S3a -> VG-0 -> S3m -> S3r -> S4 -> S4r -> VG -> S5.
+      ONE builder at a time in BPMTracker.cpp across lanes: nudge S1, S1r, THEN the transport lane's S4t.
+   d. TRANSPORT: S0 -> SM-a (mine, production mode, three tracks) -> S4t -> SR -> SM-b -> S1 -> S2 -> S3 -> S3h -> MERGE 1 ->
+      S4a -> S4d -> S4e -> S5a -> S5b -> S4c -> S6 -> MERGE 2. No slide exists any more: a clip out of time is CUT once on the
+      next "1" (his "71 b").
+   e. LOOKS: after one-save S7. S1a -> S1b -> SE -> S2 -> S3 -> the visual gate.
+   Every stage: builder -> pinned sonnet reviews -> my behavioural gate; every live row and every verdict is mine; every
+   visible change goes through the visual gate (capture builder, five critic seats) before he sees it.
+3. NOT YET PLANNED (each needs a fact sheet, then plan-lane.js): the MESSAGES lane re-stated (BF41, BF42; ruling-notices.md of
+   s-rta-1003b is stale against today's words; the quit window moved to one-save); RECORDING (three boxes Parameters / Audio /
+   Video; record a clip into the nearest open cell, always also to a folder: BF52, BF58, BF62; bf1); NAMES (routines ->
+   "actions" BF80; BeatLoopr -> "Beat Repeat" BF91: every on-screen and documented use, and whether "action" already means
+   something on screen); the TAKE GAP (a take records neither mouse-moved effect sliders nor a look load); the manual
+   (docs/manual; its first entry is the nudge lane's S5).
+4. Older lanes, now mostly re-shaped by today's words — re-read each against binding-decisions.md before touching it: bf7 bars
+   (clips are in BARS now, BF40 / BF61), bf45 envelopes, bf6 Timeline, ui-polish + Edit menu, deck names, bug X1, tsan-r5,
+   keying (his page boris-keying.html is unanswered), T26 STEP 1-2 (CLAUDE.md <= 8 KB), the s-rta-1002b pending gates.
 
 ## WHERE WE ARE IN THE BUILD
 <!-- caveman positional status — Boris-facing, skimmable -->
-BUILD: Audio-DNA feedback round (BF1-BF37): make the app behave the way Boris performs. Tonight: the sync dial.
-SHIPPED: nothing new in his app tonight (no merge to main). On branches: sync dial brought up to today's app; the take-timing
-  test finished; nudge on a key or pad; a knob can no longer be bound dead; the 10.7 ms take mystery diagnosed (a test
-  artefact, not the app). Plans ruled: fires + Undo (with his answers), messages removal. Keying audit done, page for him.
+BUILD: Audio-DNA re-shaped around how Boris performs: Resolume-style transport in bars, per-screen output settings, a beat
+  nudge, one Save, looks per effect.
+SHIPPED: nothing in his app today (no build, no merge). On paper: every answer he gave today filed word for word; 8 verified fact
+  sheets; 5 lanes planned, attacked by blind critics, ruled and adopted; 3 of them re-stated on his later answers; the sync
+  dial stopped the minute he replaced it; his list of everything the app saves (a page).
 IN-FLIGHT: none (every started task is finished and filed).
-NEXT: merge the keys fix into the sync-dial branch -> re-state the take-alignment gate -> the long quiet test rows -> taps
-  through the dial -> saved with the show -> the on-screen SYNC button (critic panel) -> merge. Then fires + Undo, messages.
-BLOCKERS: none. The quiet rows need about 30 minutes with no video playing and no agent running.
-YOU ARE HERE: 5 of the first 10 feedback items are in the app; the sync dial is about half-way through its remaining
-  stages on its branch; the next three lanes are planned and ruled, none built.
+NEXT: build. First the show-file protection (his one old show gets a backup before any Save), then output settings, the beat
+  nudge, transport, looks. The transport lane's first step is a measurement on three real tracks.
+BLOCKERS: three real tracks from Boris for that measurement. Nothing else.
+YOU ARE HERE: 5 of the first 10 feedback items are in the app (unchanged since Oct 3); the next five lanes are fully ruled and
+  none is built.
 
-## LOOSE-ENDS LEDGER — s-rta-1003b (CURRENT)
+## LOOSE-ENDS LEDGER — s-rta-1004 (CURRENT)
 NOT RUN / NOT MET (reported as such, never as pass):
-- The quiet [timing] x3: NOT RUN (machine never quiet). It failed once on a builder's run under load and passed in three
-  full runs of mine; cause of the low readings NOT established (H-8; ruling-bf2-stops P4).
-- Every sync live row as a GATE line: R1a, R4, R4b, R5 x5, R7 21 arms, R7b, G6, the R7 mutant RED — NOT RUN by Harmony
-  (builders ran short development subsets only). G1-RED evidence for S3f / S4 was read in summaries, not re-derived.
-- lane/bf2-keys is NOT merged into lane/bf2. A build WITHOUT the test server (the three debug routes compiled out): NOT built.
-- RD: the earlier "3 of 3 shifted takes in one launch" pattern is NOT explained (in RD: 1 of 6 in two launches). H-14.
-- Keying audit: I re-captured 87 frames (identical to the audit's); I did NOT re-derive the verdict arithmetic, and did NOT
-  check the page's rows against the JSON myself (the page writer's script did). Sheet captions still call Max RGB an alias.
-- Transport, delta and notices rulings: read-only work; NOTHING built or run; their facts FM-1..FM-6 are unmeasured.
-- main's ctest (1252) not re-run this session; B6 / B3b / ASAN-LIVE of the deck change still as the s-rta-1003 ledger said
-  (archived); pending s-rta-1002b gates unchanged.
+- NOTHING was built, run or measured this session: no ctest, no app launch, no gate. Every "ruled" behaviour is a reading of
+  185147b by an architect. Three rulings say so themselves: the nudge's arithmetic "rests on a python paper model"; the tempo
+  row "Nothing was run", two top-bar widths ASSUMED; the looks delta's after-write hook ASSUMED.
+- I adopted each ruling after reading its verdict, stage list, decisions and section 7 (questions) — NOT its facts, attack
+  table, amendments or gate rows (each adoption block says so). Builders and reviewers read those in full.
+- The fact sheets were each re-read by a second sonnet reader (verdicts in the work log); I did not re-derive them. One line
+  on Boris's page (the video recording has no sound) was read once. Resolume facts with no source are marked NOT DOCUMENTED.
+- Held back / owed: question 73 (FM-8); main's ctest count (1252 vs APP-INVENTORY's 1249) still unchecked; the s-rta-1002b
+  pending gates unchanged; the sync dial's owed rows are VOID with the lane (H-17), not passed.
 OPEN WITH BORIS:
-- Question 12 ("12 b"): I rewrote the question in place after he opened the page and its letters swapped meaning. Read as:
-  a take or a routine that fails to save also shows the message (= the current default). He has been asked to confirm.
-- Questions 13-25 unanswered (defaults stand). Question 20's default (a clip whose Beats is not whole is NOT beat-locked) is
-  HARMONY'S default, not his word; at his "default all bpms to 120" most clips start that way.
-- The keying page: every Remove is a proposal; nothing is built until he answers.
-FILED DEBT (found, not fixed):
-- The onset detector double-fires on click 69 of the probe's click file (the "late marker"; pre-existing).
-- BeatLead's manual-Resync branch, originX_, lastResyncs_, Flags::resyncs are dead since D5 (HD3: kept as debt).
-- "CC relative mode" is unreachable from any screen (CLAUDE.md lists it as a capability); MIDI learn makes every CC Absolute.
-- Load Deck accepts a whole composition file (its shape check looks only for "layers"). GET /api/status frameTimeMs reads 0.0.
-  R5 in AUTO printed odd tracker tempi (182.83 / 131.40 / 0.00) on a 120 BPM click; no bar reads it.
-- Screen / Multiply / Darken / Lighten ignore opacity and a picture's alpha; 49 of 55 blends and 41 of 55 transitions are
-  duplicates; the Keying slider and Threshold / Softness do nothing (the keying page).
-- main's APP-INVENTORY said 1249 unit tests where its build lists 1252 (fixed on lane/bf2).
+- 125-129 and 131-134 unanswered (defaults stand: A is built). Three tracks and three Arena screenshots requested.
+- Told to him as readings and not corrected (INFERRED consent, each in a boris-clarify file): my R1-R77 and the tempo-row
+  ruling's own R74-R84 (the numbers overlap: cite those as "tempo-row R74"). One I got wrong and
+  corrected to him (R41: his old deck files are NOT loadable); one I withdrew (R39).
+- DONE AT HIS WORD: "prestest 2.json" and "test 1.json" moved from ~/Library/AudioDNA/Presets to the Trash (Finder rc 0; the
+  Trash could not be listed from here). His one show was copied to .harmony/.reports/s-rta-1004/boris-show-backup/ (same
+  sha256; NOT committed; his Library untouched).
+FILED DEBT (found on main by the fact sheets, not fixed; the full list with file:line is in s-rta-1004-work.md, rows "DEBT
+FOUND"): the Output-menu video recording can never report failure and has no disk check; a failed take save prints "Could not
+stop the take: " with no reason; key / MIDI bindings are written nowhere automatically; Save Routine says "saved" with nothing
+on disk; a plain Save of an old-shape show overwrites the original with no backup; Load Deck of a new-shape show makes an
+empty deck that Save Deck would write over the show; settings.json drops other keys after one unreadable read; JUCE's
+replaceWithText can report success on a full disk (INFERRED); the top-bar "/4 /2 x1 x2 x4" buttons are inert; momentary keys
+and CC-relative knobs cannot be set from any screen (CLAUDE.md lists both as capabilities); a structural effect undo
+overwrites later slider edits; the Link macros and user signals have no serializer; at nudge 0 in Auto a bar-quantised fire
+can land a beat late (nudge ruling SF-1); a take records neither mouse-moved effect sliders nor a look load; Collect Media can
+re-point a clip to a same-named file (read once). Plus the s-rta-1003b ledger's debts on main (archived), unchanged.
 SESSION / SYSTEM:
-- WARN fable-usage-audit LAW11-LOG-GAP: 13 architect dispatches, 0 DISPATCH_LOG rows (a foreign lane cannot write it).
+- WARN fable-usage-audit LAW11-LOG-GAP: 16 architect dispatches, 0 DISPATCH_LOG rows (a foreign lane cannot write it).
 - Session index: skipped (foreign-repo lane, no transport yet). T26 STEP 1-2 open.
-- The TEMPORARY rm guard (installed at Boris's request for the unattended night) was REMOVED at close; script, settings
-  snippet and decision log are in .harmony/.reports/s-rta-1003b/ (rm-guard.py, rm-guard-settings-snippet.json, rm-guard.log).
-- Worktrees kept: bf2, bf2keys, keying (all unmerged). Disk: about 13 GB of build dirs across them.
+- Worktrees kept: bf2, bf2keys (parts, read-only), keying. About 13 GB of build dirs. No new worktree was made.
 DOUBTS:
-- Whether Boris read questions 13-19 at all (he wrote "answer to 12 questions").
-- Whether "a failed save" in his ruling includes a failed take save — the default now says yes (ruling-notices H-1).
+- Whether Boris wants looks to UNPLUG signals (question 131's default) — the critics called it the riskiest default.
+- Whether "delete them. this is a new build" (106) was meant wider than the two files I named: I kept it narrow.
+- "Routines" -> "actions": "action" is already a word in the code and maybe on screen (binding actions): unchecked.
+- The context of this session ran to 68 %: the last three adoptions were made at TIGHT. Re-read their adoption blocks first.
 
 ## SCREEN-SAFETY LAW — MANDATORY, EVERY SESSION, NO EXCEPTIONS
 
@@ -148,44 +158,62 @@ Report in the handoff: windows closed, process gone, screen visually verified.
 no full-screen capture — count Audio-DNA / Output / UserNotificationCenter windows with Quartz after every batch; launch
 only with open -g; no gate ever opens an Output window. See .harmony/RIG-RULES.md.)
 
-# >>> SESSION s-rta-1003b (2026-10-03 20:00 → 2026-10-04 ~01:20, secondary) — START HERE <<<
+# >>> SESSION s-rta-1004 (2026-10-04 11:53 → ~16:20, secondary) — START HERE <<<
 
 ## THE ONE-LINE VERSION
-The sync dial moved through its merge-in and three stages on its branch, its one mystery was diagnosed by an instrumented
-run, the next three lanes are planned and ruled, and the keying menus were audited pixel by pixel; nothing merged to main.
-Session log .harmony/sessions/2026-10-04-s-rta-1003b-secondary.md; work log .harmony/s-rta-1003b-work.md; everything else
-.harmony/.reports/s-rta-1003b/.
+Boris answered the 25 questions and then re-ruled the product in one sitting; the sync dial was stopped, eight fact sheets
+were written and re-read, and five lanes were planned, attacked, ruled and adopted (three re-stated on his later answers);
+nothing was built. Session log .harmony/sessions/2026-10-04-s-rta-1004-secondary.md; work log .harmony/s-rta-1004-work.md;
+everything else .harmony/.reports/s-rta-1004/.
 
-## VERIFICATION — PROVEN, AND HOW (Harmony ran every line below herself; logs in .harmony/.reports/s-rta-1003b/gate-*/)
-- M0 (lane/bf2 c45b579): "100% tests passed, 0 tests failed out of 1321"; tsan 11 / 11, 0 reports; lints; quit sweep
-  "SELFTEST 96 ok / 0 FAIL"; smoke health 200 + sync 200.
-- A1 (lane/bf2 68abc16): 1330 / 1330; tsan 12 / 12; probe-sync-selftest "0 case(s) differ"; quit selftest 57 / 0.
-- RD (lane/bf2 740b6d6, app as built): "RD outcome O1 (24 valid takes in 4 launches; c0 = 0 in 22, >= 1 block in 2; e' span
-  64; C span 0; NMAX 1; EREF 1440)".
-- S4b (lane/bf2-keys 9eab9bd): 1335 / 1335; "PASS  R13 the handler case moves the dial: 9 of 9 steps"; "PASS  R14 MIDI learn
-  refuses a CC on a Sync target and changes nothing else; a note attaches: 8 of 8 states"; on the mutant app exit 1 with 8
-  R13 FAIL lines and 5 R14 FAIL lines.
-- Keying sample: 87 of 87 re-captured frames identical to the audit's (max difference 0); one contact sheet looked at.
-Reviews (independent, pinned): merge / gates / realtime PASS_WITH_NITS; keys FAIL on lane/bf2 (closed by S4b: keys + gates
-r2 0 MUST); D0 probe r2 0 MUST; keying method r2 0 MUST; the gate re-statement refuted twice, folded (round 3).
+## WHAT BORIS RULED TODAY (short; his words are in binding-decisions.md)
+- TRANSPORT mimics Resolume's panel (Timeline / BPM Sync; SMPTE and DJ modes listed greyed). Clips in BARS: 4, 8, 12, 16 ...;
+  the out point moves in, a clip is never stretched (a clip shorter than 4 bars is fitted whole and plays slow). Every fire
+  starts at the beginning. NO slide: a clip out of time is cut once on the next "1"; fired between two "1"s it cuts back to
+  its beginning; a Resync cuts at once. Pause is the CLIP's, saved with the show. Timeline Speed to 10. Random and
+  "Beat Repeat" (his name for BeatLoopr) are built. The timeline shows bars only.
+- THE SYNC DIAL IS REPLACED by a Delay per output screen (0..100 ms) in an "Output Screens" window, with Opacity, Brightness,
+  Contrast, Red, Green, Blue; Syphon is an output with the same settings; remembered with the screen.
+- BEAT NUDGE: "nudge X ms", plus = earlier, shifts everything connected to the BPM; Tap leaves it, Resync zeroes it; saved
+  with the show; key or pad. The tempo row: beat wheel, play, pause, stop (the BPM timer only), BPM number, BPM -, BPM +,
+  nudge back, nudge forward, /2, *2, tap, resync.
+- ONE SAVE: the show holds decks, keys and MIDI, window layout, "actions" (his name for routines). Decks are taken from the
+  list of shows. A show's keys take over when it is opened; a new show takes the most recent show's. Quit asks (Return =
+  Save & Quit). Collect Media and Snapshot stay commands.
+- LOOKS PER EFFECT, kept by the app: values, Dry / Wet and the signals on the sliders; a changed look is a new look, save-over
+  offered; a name box holding "Look X". The old Save / Load / FX Save / ten slots go. Nothing ships; he makes looks later.
+- MESSAGES: only an unsaved clip recording, an unsaved show recording, a failed Save, no disk space to record, and the quit
+  window. RECORDING: three boxes (Parameters, Audio, Video); a clip recorded into a cell always also goes to a folder.
+- Cmd+Z never touches the layer strip; a removed layer comes back not playing.
+
+## VERIFICATION — PROVEN, AND HOW
+- Nothing was run. What was CHECKED, and by whom: each fact sheet by an independent sonnet re-read (8 of 8 SOUND or
+  SOUND_WITH_CORRECTIONS; each sheet's VERIFICATION section overrides its body); each plan by blind seats whose citations the
+  ruling re-derived; each workflow script by node --check and a dry run against stub agents before launch (prompt lengths of
+  running lanes compared after every edit of the shared script).
+- By me: boot state against the s-rta-1003b handoff (heads, cleanliness, the merge conflict); his two preset files read before
+  deleting; sha256 of his show before and after my copy; the screen (below).
 
 ## NOT VERIFIED — WHAT ONLY BORIS CAN CHECK
-- Nothing new is in his app tonight. His two pages carry what is his: 25 questions (taste and behaviour), and the keying
-  keep / fix / remove proposals with pictures.
-- When the sync dial lands: the feel of the dial against a real room; a held Sync key repeating; the SYNC button and the
-  longer Gain (after the critic panel).
+Nothing new is in his app. When the lanes land, each ruling's section 6 lists his checks: outputs B-0..B-10 (a slider drags in
+the never-key window; the delay against a phone's slow motion; the right screen after a re-plug; colours against Resolume);
+the nudge's and the tempo row's (a held key repeats; the row at his window width); transport's (the cut on the "1" by eye;
+bars against his own clips; Speed 10); one-save's (his old show opens and its first Save leaves a backup; the quit window);
+looks' (signals re-plugged; the name box while keys are bound).
 
 ## MY OWN ERRORS THIS SESSION — recorded because no gate would surface them
-1. Two hand-typed times on the lane board (corrected from the work log). 2. A silent 70,000-character cut of council papers
-made the transport ruling PARTIAL (completion round run). 3. A quote of Boris stamped with the time I wrote a file, not the
-time it was recorded (an architect caught it). 4. I re-worded question 12 on his page in place after he had it open; its
-letters swapped meaning and his "12 b" had to be re-asked. 5. Loading the config skill cost about 13 % of the context
-window. Habits are in RIG-RULES.md A2 and the notebook.
+1. A "recorded" stamp typed by hand (4 minutes off), caught before it was appended; stamps now come from `date` by
+substitution (notebook). 2. Reading R41 told him his old deck files were loadable; they are an older format the app already
+refuses (corrected to him). 3. I told him the slide took "about 15 seconds"; it was 17 to 34 (the ruling corrected it; he then
+dropped the slide). 4. I told him the Delay ran to 500 ms before Resolume's 100 was known (overruled, asked as 51).
+5. Question 36's option named things "the app keeps by itself" that it does not keep (the audio input, bindings). 6. One
+dry-run "failure" was my own harness, not the script (re-run, logged). 7. Reading R39 (the computer's keys stay live) was
+withdrawn after his next message read the other way. Habits: RIG-RULES.md A3 and the notebook.
 
 ## SCREEN STATE AT CLOSE (screen-safety law #4)
-Every launch was open -g through the lock helper or a probe that quits only its own pid; no gate opened an Output window;
-0 Audio-DNA / Output / UserNotificationCenter windows after every batch and at close (Quartz count); no Audio-DNA process;
-live + ctest locks free; no full-screen capture.
+This session launched NO Audio-DNA, no probe and no gate. At close: no Audio-DNA process; Quartz count 0 Audio-DNA windows,
+0 Output-named, 0 UserNotificationCenter; live + ctest locks absent; no full-screen capture was taken. Two pages were opened
+in his browser in the background (boris-saves.html, boris-open.html). Finder moved two files to the Trash at his word.
 
 ## COUNTS — run them, never inherit them
-ctest 1252 on main (NOT re-run this session); 1330 / 1330 on lane/bf2 68abc16; 1335 / 1335 on lane/bf2-keys 9eab9bd.
+ctest on main: NOT run this session (1252 by the s-rta-1003b lane's count, 1249 in APP-INVENTORY). Nothing else was counted.

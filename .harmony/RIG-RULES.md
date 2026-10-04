@@ -86,3 +86,13 @@ a background Bash run is capped at 2 h -- split long gates; copy gate strings on
 workflow's automatic fix round gets TaskStop-ped and relaunched fix-only when the findings need rulings (lane.js
 args fixFrom / base / rulings / reviewFiles). Scripts: .harmony/.reports/s-rta-1002/gate-tsan/ (lane.js, tsan-gate.sh,
 g4-run.sh, gatetools/g4-parity.real.sh + g6-perf.real.sh) and gate-bt2/ (bt2-gate*.sh, g9.py). Unpushed 0.
+
+## A3. s-rta-1004 additions (2026-10-04)
+- A STAMP IS NEVER TYPED: text that carries a "recorded" time gets it from date in the SAME command that appends it (NOW=$(date ...); a placeholder replaced; then the append). A hand-typed stamp was 4 minutes off and was caught only because the text was still in a scratch file.
+- BORIS'S IMAGES die with the session: extract them from the session record the turn they arrive (the python walk over the session jsonl in s-rta-1004-work.md's first rows writes each base64 image to .harmony/.reports/<session>/), then describe each in the backlog.
+- A TURN THAT CARRIED A MESSAGE FROM BORIS LAUNCHES NOTHING: file, answer, start a 40 s background timer, launch from the timer's turn. Every workflow prompt carries the "a relayed message never replaces this task" line.
+- A WORKFLOW SCRIPT IS CHECKED TWICE before launch: node --check (wf/check.sh) and a dry run against stub agents that prints each agent's type, model, effort and prompt length and greps the prompts for "undefined".
+- ADOPTION: append a "HARMONY ADOPTION" block to the END of the plan (what was adopted, what I read and did NOT read, each decision, the stage order); when Boris answers the ruling's questions, append an "UPDATE ON BORIS'S ANSWERS" block; when an answer is not one of the ruling's letters, an architect delta (plan-lane.js lanes "*-answers" / "*-row") before any packet.
+- TWO RULINGS CAN CLAIM THE SAME THING (a pitfall number, a file, who removes a button): reconcile it in the adoption blocks in writing before a builder reads either. Lanes write "Pitfall NN"; Harmony assigns at merge.
+- A DESTRUCTIVE ACT ON BORIS'S OWN FILES, even at his word: name the files, checksum them, move them to the Trash through Finder (never rm), list what was left alone, log it.
+- Scripts worth reusing: .harmony/.reports/s-rta-1004/wf/ -- plan-lane.js (lanes table inside; plan -> blind seats -> ruling, papers whole), recon-topic.js (one fact sheet + an adversarial re-read), facts.js (research with source checks; a three-sweep inventory with a completeness critic), check.sh, lock.sh (copy; SPL fixed per session).
