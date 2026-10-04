@@ -272,3 +272,46 @@ FOLLOW-UP (recorded 2026-10-03 15:42:01) — Harmony asked: "For texts that were
 VERBATIM: "we should have an edit menu. note this, finish current tasks then eos"
 BF33 [NEW, ui] The app gets a standard Edit menu (Undo / Redo at least; today Undo is the first item of the "Composition" menu and names the action, e.g. "Undo Remove Deck"). Next UI pass (ui-polish lane), VISUAL + interaction gate.
 SESSION: finish the tasks in flight (the deck change: last build stage -> reviews -> Harmony's gates -> merge), then EOS. Nothing new starts.
+
+## Boris on failure messages / a failed save (recorded 2026-10-03 20:58:42, session s-rta-1003b)
+Harmony's boot status said: "One open question, has a default: failure messages (e.g. a failed save) — keep or remove? Default: they go with the rest."
+VERBATIM: "how would a save fail? not sure we need that"
+Harmony's reading (not his words): a question plus a lean, NOT a ruling. "that" most likely = the failure message. The default (failure texts go with the rest, BF32 app-wide) stands unchanged until he says otherwise. Harmony answered the same turn (how a save fails; what the app shows today = facts-notices.md B06 / B08, the alert "Save failed: <path>" is the only signal; section 5 R1) and asked ONE question back: keep only the two save-failed alerts (composition, deck), or remove them too. Notices lane is not started; nothing waits on the answer.
+
+## Boris RULES on failure messages (recorded 2026-10-03 20:59:50, session s-rta-1003b) — after Harmony's answer on how a save fails
+Harmony had answered: a save fails when the drive is unplugged / the disk is full / the folder moved / the file is locked; today a box "Save failed: <path>" (Save Composition, Save Deck) is the only sign; and recommended: "keep exactly these two boxes (Save Composition failed, Save Deck failed) and remove the other 19 failure texts as you ruled." Question as asked: "keep the two \"Save failed\" boxes as the one exception, or remove them too?"
+VERBATIM: "ok. the only fail message will be a failed save. remove all others"
+BF34 [RULE, amends BF32] The ONLY failure message the app shows is a failed save. Harmony's reading (not his words): the two alerts facts-notices.md B06 (Save Composition: "Save failed: <path>") and B08 (Save Deck: "Save failed: <path>") STAY; the other 19 failure texts (B01-B05, B07, B09-B21) and the 23 event texts (Table A) go. EDGE, flagged not decided: other things that "save" and can fail -- a take (B17 "could not save take.json", B18), a routine (B20 "Could not save the routine") -- are read as "all others" (they go) because his "ok" answered a recommendation that named exactly the two boxes; the notices plan lists it for him as a check with that default. State displays stay truthful (the Record panel must not read "Recording" after a failed take).
+
+NOTE (2026-10-03 23:41:08, s-rta-1003b) on BF34's reading: the notices ruling (ruling-notices.md, H-1) found that his words do not narrow "a failed save" to the show and deck alerts; until he answers page question 12 the DEFAULT is the literal reading -- every save he presses (show, deck, take at Stop, preset, FX Save) shows the box when it fails. Harmony's narrow reading above is kept as the other answer, not as the default.
+
+## Boris's answers to the questions page (recorded 2026-10-03 23:46:03, session s-rta-1003b) — page .harmony/.reports/s-rta-1003b/boris-questions.html
+He wrote "answer to 12 questions": the page had 12 questions when it was first opened (21:5x); Harmony later revised it in place to 14 and then 19 questions and REWROTE question 12 (its A and B swapped meaning). His answers are read against the 12-question version; "12 b" is being confirmed with him because of that rewrite.
+VERBATIM (whole message):
+"answer to 12 questions. all defaults except for:
+2 b
+10 If we set the inpoint and endpoint on the timeline of the clip, I should not be able to drag outside of the points. It should be as if that is the extent of the timeline unless I let go and drag one of the in or out points.
+4 For setting the clip beat marks, the clips are set with beats not bars. x2 or /2 are beat changes. bars will confuse this. A bar is for beats and is used in places where longer durations make sense and beats are used where exaggerations makes sense. We should be very clear where we are using beats and bars, but they are essentially the same thing like feet and inches
+9 b
+3 cmd z Does not change anything in the layer strip which is by default live based
+12 b
+One thing I didn't mention is that when the Video is in beats rather than adjust by speed mode, the beats are shown with lines in the play head area whereas if it was speed control, it's just the basic play head and with beats control there are lines for each beat in the play head area and the play head moves past them on time"
+QUESTIONS AS ASKED (the 12-question version) and Harmony's readings (consequence text, not his words):
+- Q1, Q5, Q6, Q7, Q8, Q11: DEFAULTS (a paused clip plays from its beginning when fired; a removed layer comes back not playing; a reversed clip starts from its end; x2 next to Beats doubles the beats; a loaded deck's added layers stay; opening a show replaces the dial's number with no way back).
+- Q2 "You keep the mouse down on the playhead and hold still. A (default) The clip keeps playing from under your hand. B The picture waits on that frame until you let go." -> B: the picture HOLDS while the mouse is down (the transport ruling's conditional stage S3h is built).
+- Q10 "You drop the playhead beyond a clip's end marker. A (default) It stops at the end marker and the loop starts over. B It plays the part outside the markers once." -> his own rule: the playhead cannot be dragged outside the in and out points at all; they act as the ends of the timeline; to reach outside, he moves an in or out point.
+- Q4 "How the BPM box and the Beats box belong together. A (default) ... two ways of saying one thing ... B Beats cuts the loop shorter while BPM stays." -> he picked neither letter; he ruled the UNIT: a clip is set in BEATS, x2 and /2 change beats, bars are not used for a clip; beats and bars are the same measure at two scales and every place must say clearly which it uses. Harmony's reading: default A stands for how the boxes relate (INFERRED: nothing he wrote asks for B); the unit rule binds the transport lane and the bars lane (bf7).
+- Q9 "A BPM-synced clip left running for many minutes ... A (default) To line it up with the beat again, you fire it. B The app keeps nudging it back onto the beat by itself." -> B.
+- Q3 "Cmd+Z and a layer that is playing. A (default) Bypass, solo, the order of the layers and effects are still undone, as today. B Cmd+Z leaves some of these alone while the layer plays -- say which." -> his own rule, wider than A or B: Cmd+Z changes NOTHING in the layer strip, playing or not (the strip is live by nature).
+- Q12 (12-question version) "\"A failed save\" -- which saves? A (default) Only a show or a deck that could not be saved. A recorded take or a routine that could not be saved shows no message: you would find out when you look for it. B A take or a routine that could not be saved also shows a message." -> "12 b". OPEN until he confirms which version he read (in the rewritten version B means the opposite: only show and deck).
+BF35 [NEW] In beats mode the playhead area shows a line for each beat and the playhead passes them on time; in speed mode it is the plain playhead.
+BF36 [RULE, widens BF31] Cmd+Z never changes anything in the layer strip.
+BF37 [RULE, units] Clips are set in beats; x2 and /2 are beat changes; bars only where longer durations make sense; every place says clearly whether it shows beats or bars.
+
+## Boris: going to bed, finish autonomously (recorded 2026-10-03 23:46:59, session s-rta-1003b; arrived mid-turn)
+VERBATIM: "I am to go into bed and you need to finish the rest of this autonomously. I will not be able to approve the RM commands so I will need you to approve those yourself. can you do this or find a good workaround so your work tonight is not lost?"
+Harmony's reading: (1) work the queue overnight without him; (2) permission prompts for rm commands must not stall an agent while he sleeps -- he asks Harmony to settle that (an explicit request to change how those prompts are handled); (3) nothing done tonight may be lost. Not his words: which rm commands, and how wide a permission -- Harmony keeps it as narrow as the rig needs.
+
+## Boris: finish the current tasks, then end the session (recorded 2026-10-04 00:17:47, session s-rta-1003b)
+VERBATIM: "finish session when doing with current tasks then eos"
+Harmony's reading: nothing NEW starts. The tasks in flight are finished to a verified, committed state -- (1) the diagnosis run RD of the 10.7 ms take state and its outcome written into rulings-bf2.md; (2) the keys fix S4b (builder + reviews in flight), then Harmony's gate on it and its merge into lane/bf2 if the gate is green; (3) the transport delta ruling (in flight) and its adoption -- then a full EOS (handoff, Boris page, screen state, commit). NOT started: R7r, the owed quiet rows, S6, S5a, S5b, the transport and notices builds.

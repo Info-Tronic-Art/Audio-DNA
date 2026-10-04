@@ -541,3 +541,57 @@ status-note:
 artifact:
 history:     NEW(2026-10-03)
 --- /IDEA ---
+
+--- IDEA ---
+id:          idea-2026-10-04-RealTimeAudio-17910904834063820629
+raw:         ok. the only fail message will be a failed save. remove all others
+context:     s-rta-1003b 2026-10-03 20:59:50, Audio-DNA: Boris's ruling on on-screen messages after asking 'how would a save fail? not sure we need that'. Amends his 'remove the list entirely and cleanly'. Filed as BF34 in .harmony/boris-feedback-backlog.md; planned in ruling-notices.md.
+why:         
+intent:      
+target:      
+constraints: 
+related:     
+priority:    HIGH
+repo:        RealTimeAudio     session:      date: 2026-10-04
+status:      NEW
+status-changed: 2026-10-04
+status-note:
+artifact:
+history:     NEW(2026-10-04)
+--- /IDEA ---
+
+--- IDEA ---
+id:          idea-2026-10-04-RealTimeAudio-17910904834065511968
+raw:         answer to 12 questions. all defaults except for: 2 b / 10 If we set the inpoint and endpoint on the timeline of the clip, I should not be able to drag outside of the points. It should be as if that is the extent of the timeline unless I let go and drag one of the in or out points. / 4 For setting the clip beat marks, the clips are set with beats not bars. x2 or /2 are beat changes. bars will confuse this. A bar is for beats and is used in places where longer durations make sense and beats are used where exaggerations makes sense. We should be very clear where we are using beats and bars, but they are essentially the same thing like feet and inches / 9 b / 3 cmd z Does not change anything in the layer strip which is by default live based / 12 b / One thing I didn't mention is that when the Video is in beats rather than adjust by speed mode, the beats are shown with lines in the play head area whereas if it was speed control, it's just the basic play head and with beats control there are lines for each beat in the play head area and the play head moves past them on time
+context:     s-rta-1003b 2026-10-03 23:4x, Audio-DNA: Boris's answers to the questions page (.harmony/.reports/s-rta-1003b/boris-questions.html); questions as asked are in boris-feedback-backlog.md; BF35-BF37; ruled in ruling-transport-delta1.md.
+why:         
+intent:      
+target:      
+constraints: 
+related:     
+priority:    HIGH
+repo:        RealTimeAudio     session:      date: 2026-10-04
+status:      NEW
+status-changed: 2026-10-04
+status-note:
+artifact:
+history:     NEW(2026-10-04)
+--- /IDEA ---
+
+--- IDEA ---
+id:          idea-2026-10-04-RealTimeAudio-1791090483406723307
+raw:         I am to go into bed and you need to finish the rest of this autonomously. I will not be able to approve the RM commands so I will need you to approve those yourself. can you do this or find a good workaround so your work tonight is not lost?
+context:     s-rta-1003b 2026-10-03 23:4x. SYSTEM-UPGRADE CANDIDATE for Harmony: an unattended / overnight mode for secondaries. What worked: a PreToolUse hook that allows rm inside the rig's roots and DENIES any other rm at once (never a prompt), narrow allow rules, a background watchdog timer; recipe + script in ~/projects/RealTimeAudio/.harmony/.reports/s-rta-1003b/rm-guard.py. Cost lesson: the update-config skill's schema dump took ~13 % of a 1M context window -- a lean 'permissions + hooks' reference would avoid that. Also reported up: fable-usage-audit WARN LAW11-LOG-GAP (13 architect dispatches, 0 DISPATCH_LOG rows: a foreign lane cannot write the log); T26 STEP 1-2 still open.
+why:         
+intent:      
+target:      
+constraints: 
+related:     
+priority:    HIGH
+repo:        RealTimeAudio     session:      date: 2026-10-04
+status:      NEW
+status-changed: 2026-10-04
+status-note:
+artifact:
+history:     NEW(2026-10-04)
+--- /IDEA ---

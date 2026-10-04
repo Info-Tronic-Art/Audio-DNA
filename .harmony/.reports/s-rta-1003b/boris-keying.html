@@ -1,0 +1,223 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Audio-DNA — Keying, Blend and Transition menus: keep, fix or remove (Oct 4)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{font:16px/1.5 -apple-system,Helvetica,Arial,sans-serif;max-width:860px;margin:32px auto;padding:0 20px;background:#14161a;color:#e6e6e6}
+h1{font-size:26px}h2{font-size:20px;margin-top:34px;border-bottom:1px solid #333;padding-bottom:6px}
+li{margin:14px 0}.exp{color:#9fd3a4}.bad{color:#e3a19a}.dim{color:#9aa0a6}code{background:#23262c;padding:1px 5px;border-radius:4px}
+.box{background:#1c1f25;border:1px solid #2c3038;border-radius:8px;padding:12px 16px;margin:14px 0}
+.a{display:block;margin:4px 0 0 0}.a b{color:#9fd3a4}.b b{color:#d9c58a}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px}
+th,td{border:1px solid #2c3038;padding:7px 9px;text-align:left;vertical-align:top}
+th{background:#1c1f25;color:#cfd2d6;font-weight:600}
+tr.g td{background:#1c1f25;color:#9aa0a6;font-weight:600;padding:5px 9px}
+.k{color:#9fd3a4;font-weight:700}.f{color:#d9c58a;font-weight:700}.r{color:#e3a19a;font-weight:700}
+.sh{margin:20px 0}.sh img{max-width:100%;border:1px solid #2c3038;border-radius:6px;display:block;margin-top:8px}
+blockquote{margin:12px 0;padding:8px 16px;border-left:3px solid #2c3038;color:#c9ccd1}
+td.n,th.n{text-align:center;white-space:nowrap}</style></head><body>
+<h1>Audio-DNA — what works in the Keying, Blend and Transition menus</h1>
+
+<div class="box">
+<p style="margin:0">I put every entry of the Keying menu (13), the layer Blend menu (55) and the Transition menu (55) into the real Audio-DNA app, one at a time, and compared the finished pictures number by number. Nothing in the app was changed. Of the 123 entries, 20 do what their name says, 43 draw exactly the same picture as another entry, 55 do nothing at all, and 5 are wrong in some way. The Keying slider changed not one pixel under any of the 13 keying entries.</p>
+</div>
+<p class="dim">Every entry below has a proposal: Keep, Fix or Remove. Nothing is built until you answer, and every Remove is only a proposal.</p>
+
+<h2>1. Your questions, answered</h2>
+<p class="dim">You wrote:</p>
+<blockquote>Can you figure out how to get everything working in the keying menu? Does the keying slider actually do anything? Maybe we get rid of it. Some elements in the keying menu work and some don’t. Should we use the transparency slider to do the work for keying elements? Also review the compositing menu, right slider in layer strip. These elements don’t work: Creative, 3D,</blockquote>
+<ol>
+<li><b>Does the Keying slider actually do anything?</b>
+<span class="a"><b class="bad">No.</b> I set the Keying value, and the Softness value too, to 0, 0.5 and 1 under each of the 13 keying entries (156 pictures in all) and not one pixel changed. The layer inspector’s Threshold and Softness controls set the same two values. One limit: I set the values in a show file instead of dragging the slider; that the slider writes that value is read from the code, not tried by hand. The likely reason is that no keying entry listens for it (Luma Key listens for it under a different name).</span></li>
+
+<li><b>Which keying entries work?</b>
+<span class="a"><b class="exp">Three of 13:</b> Alpha, Chroma Key (removes green only, a fixed green with a hard edge) and Max RGB (dark parts become see-through, bright parts stay solid).</span>
+<span class="a"><b class="bad">Luma Key is wrong:</b> it removes only pure black, nothing else (measured on this Mac). Inverted Luma Key and Saturation Key draw exactly Luma Key’s picture. Luma Is Alpha draws exactly Max RGB’s picture.</span>
+<span class="a"><b>The other six do nothing</b> (Inverted Luma Is Alpha, Edge Detection, Threshold Mask, Channel Red, Channel Green, Channel Blue): the picture comes out untouched. So the 13 entries make only 4 different pictures.</span></li>
+
+<li><b>Should the transparency (opacity) slider do the work for keying?</b>
+<span class="a"><b>Not as it is today.</b> It works under all 13 entries, but as a fade of the whole layer (at 25% the layer is 25% as strong); it does not move where the key cuts. My suggestion, not a measurement: leave it as the fade, and give the key its own amount (the Keying slider, once it is connected to Luma Key).</span></li>
+
+<li><b>What is the right slider in the layer strip, and does it work?</b>
+<span class="a"><b class="exp">I take it to be F, the fade time in seconds for transitions. It works.</b> Set to 2, 4 and 8 seconds, one second into the fade the picture was 50%, 25% and 12.5% of the way across, as it should be. (I could not tell 0 seconds from the half second the app likely uses instead.) Please confirm F is the slider you meant. The menu that goes with it is the problem: only 15 of its 55 entries have a look of their own.</span></li>
+
+<li><b>You said Creative and 3D don’t work.</b>
+<span class="a"><b class="exp">Confirmed.</b> In the Blend menu all 9 Creative and all 6 3D entries just draw the plain picture. In the Transition menu all 9 Creative and 5 of the 6 3D entries (all but Flip) are the same soft cross-dissolve. In the Blend menu, everything from “Special” down is really a list of transition names that do nothing there.</span></li>
+</ol>
+
+<h2>2. Entry by entry: what it does today, and my proposal</h2>
+<div class="box">
+<p style="margin:0 0 8px 0"><b>How I chose.</b> Works: Keep. A duplicate, or an entry that does nothing: Remove, unless the cause (read from the code, not tried) looks like a small, obvious fix: then Fix, marked “likely small fix”. The four blends that ignore opacity and transparency: Fix, but whether that is a defect is your call.</p>
+<p style="margin:0 0 8px 0"><b>Words used.</b> <b class="exp">Works</b>: draws what its name says. <b class="dim">Same picture as X</b>: draws exactly what X draws, so it is a duplicate. <b class="dim">Does nothing</b>: the picture comes out as the plain one. <b class="bad">Wrong</b>: it does something, but not what its name says, or only in some cases.</p>
+<div class="tw"><table style="max-width:520px;margin:6px 0 0 0">
+<tr><th>Menu</th><th class="n">Keep</th><th class="n">Fix</th><th class="n">Remove</th><th class="n">Total</th></tr>
+<tr><td>Keying</td><td class="n">3</td><td class="n">2</td><td class="n">8</td><td class="n">13</td></tr>
+<tr><td>Layer Blend</td><td class="n">2</td><td class="n">4</td><td class="n">49</td><td class="n">55</td></tr>
+<tr><td>Transitions</td><td class="n">15</td><td class="n">0</td><td class="n">40</td><td class="n">55</td></tr>
+<tr><td><b>All</b></td><td class="n"><b>20</b></td><td class="n"><b>6</b></td><td class="n"><b>97</b></td><td class="n"><b>123</b></td></tr>
+</table></div>
+</div>
+
+<h3>Keying menu (13 entries: 3 Keep, 2 Fix, 8 Remove)</h3>
+<div class="tw"><table id="keying">
+<colgroup><col style="width:17%"><col style="width:36%"><col style="width:10%"><col style="width:37%"></colgroup>
+<tr><th>Entry</th><th>What it does today</th><th>Proposal</th><th>Why</th></tr>
+<tr data-n="1" data-p="keep"><td>Alpha</td><td><b class="exp">Works.</b> Keeps the picture as it is, including its own see-through areas.</td><td class="k">Keep</td><td>Right as it is.</td></tr>
+<tr data-n="1" data-p="fix"><td>Luma Key</td><td><b class="bad">Wrong.</b> Removes only pure black and nothing else (measured on this Mac). The Keying slider, Threshold and Softness do not move it.</td><td class="f">Fix</td><td><b>Likely small fix.</b> Its program likely looks for the cut point and the softness under different names than the app sends, so both stay at zero. Cause read from the code; not tried.</td></tr>
+<tr data-n="1" data-p="fix"><td>Inverted Luma Key</td><td><b class="dim">Same picture as Luma Key.</b> Removes only pure black; nothing is inverted.</td><td class="f">Fix</td><td><b>Likely small fix, but only after Luma Key’s:</b> it likely runs Luma Key’s program with nothing flipping the result.</td></tr>
+<tr data-n="1" data-p="remove"><td>Luma Is Alpha</td><td><b class="dim">Same picture as Max RGB.</b> It fades by the brightest color of each spot, not by brightness as its name says.</td><td class="r">Remove</td><td>The duplicate of Max RGB. A true brightness version would be new work; the code reading shows no small fix.</td></tr>
+<tr data-n="1" data-p="remove"><td>Inverted Luma Is Alpha</td><td><b class="dim">Does nothing.</b> The picture comes out untouched, as with Alpha.</td><td class="r">Remove</td><td>Likely has nothing of its own behind it (the code hands it Alpha’s). A real one would be new work.</td></tr>
+<tr data-n="1" data-p="keep"><td>Chroma Key</td><td><b class="exp">Works</b> (measured on this Mac). Removes green only: the green is fixed and the edge is hard.</td><td class="k">Keep</td><td>Does what its name says. Its color and tolerance do work when set in a show file; the code likely has no on-screen control for them (not tried by hand).</td></tr>
+<tr data-n="1" data-p="keep"><td>Max RGB</td><td><b class="exp">Works.</b> Dark parts become see-through, bright parts stay solid.</td><td class="k">Keep</td><td>Its own recipe fits the picture. It is the original; Luma Is Alpha is the copy (Harmony’s ruling).</td></tr>
+<tr data-n="1" data-p="remove"><td>Saturation Key</td><td><b class="dim">Same picture as Luma Key.</b> Removes only pure black; it does not look at color strength.</td><td class="r">Remove</td><td>Likely borrows Luma Key’s program. A real saturation key would be new work.</td></tr>
+<tr data-n="1" data-p="remove"><td>Edge Detection</td><td><b class="dim">Does nothing.</b> The picture comes out untouched, as with Alpha.</td><td class="r">Remove</td><td>Likely has no edge finding behind it, only Alpha’s program. A real one would be new work.</td></tr>
+<tr data-n="1" data-p="remove"><td>Threshold Mask</td><td><b class="dim">Does nothing.</b> The picture comes out untouched.</td><td class="r">Remove</td><td>Likely has only Alpha’s program behind it. A real one would be new work.</td></tr>
+<tr data-n="1" data-p="remove"><td>Channel Red</td><td><b class="dim">Does nothing.</b> The picture comes out untouched.</td><td class="r">Remove</td><td>Likely has only Alpha’s program behind it. A real one would be new work.</td></tr>
+<tr data-n="1" data-p="remove"><td>Channel Green</td><td><b class="dim">Does nothing.</b> The picture comes out untouched.</td><td class="r">Remove</td><td>Likely has only Alpha’s program behind it. A real one would be new work.</td></tr>
+<tr data-n="1" data-p="remove"><td>Channel Blue</td><td><b class="dim">Does nothing.</b> The picture comes out untouched.</td><td class="r">Remove</td><td>Likely has only Alpha’s program behind it. A real one would be new work.</td></tr>
+</table></div>
+<p class="dim">Count check, Keying: 3 Keep (Alpha, Chroma Key, Max RGB) + 2 Fix (Luma Key, Inverted Luma Key) + 8 Remove (Luma Is Alpha, Inverted Luma Is Alpha, Saturation Key, Edge Detection, Threshold Mask, Channel Red, Channel Green, Channel Blue) = 13.</p>
+<p class="dim">Two more things measured. Luma Key, Chroma Key and Max RGB all ignore a picture’s own see-through areas (see the third keying sheet). Keying and Blend act only on a layer set to “Transparent”: on an “Opaque” layer every entry gave the plain picture (tried with all 13 keying entries and 4 blend entries). The code likely has no on-screen control for that setting; I did not check by hand.</p>
+
+<h3>The keying controls (not counted in the 13)</h3>
+<div class="tw"><table id="controls">
+<colgroup><col style="width:17%"><col style="width:36%"><col style="width:10%"><col style="width:37%"></colgroup>
+<tr><th>Control</th><th>What it does today</th><th>Proposal</th><th>Why</th></tr>
+<tr><td>Keying slider (K, layer strip), Threshold and Softness (layer inspector)</td><td><b class="bad">Does nothing</b> in any of the 13 entries.</td><td class="f">Fix</td><td>The three stand or fall together. Likely cause: no keying entry is wired to these values (Luma Key looks for them under other names). Wired to Luma Key, they would likely set where it cuts and how soft its edge is. Nothing else in the menu has anything for them to control. <b>If you would rather not fix Luma Key, my proposal becomes Remove for all three.</b></td></tr>
+<tr><td>Opacity (“transparency”) slider</td><td><b class="exp">Works</b> under all 13 entries, as a fade of the whole layer.</td><td class="k">Keep</td><td>My suggestion is to leave it as the fade and not use it as the key amount (see question 3).</td></tr>
+<tr><td>F slider (fade time)</td><td><b class="exp">Works.</b></td><td class="k">Keep</td><td>Measured at 2, 4 and 8 seconds. Please confirm it is the right-hand slider you meant.</td></tr>
+</table></div>
+
+<h3>Layer Blend menu, grouped as the menu groups it (55 entries: 2 Keep, 4 Fix, 49 Remove)</h3>
+<p class="dim">“Plain picture” means the same as Alpha: the layer simply lies over the ones below. 18 of the 49 “Does nothing” entries are real photo-editing blend names (Overlay, the Light group, Darker/Lighter Color, Dodge/Burn, Inversion, Component). The other 31 (from Special down) are transition names.</p>
+<div class="tw"><table id="blend">
+<colgroup><col style="width:17%"><col style="width:36%"><col style="width:10%"><col style="width:37%"></colgroup>
+<tr><th>Entry</th><th>What it does today</th><th>Proposal</th><th>Why</th></tr>
+<tr class="g"><td colspan="4">Compositing (5)</td></tr>
+<tr data-n="1" data-p="keep"><td>Alpha</td><td><b class="exp">Works.</b> The layer lies over the ones below, honoring its own see-through areas and the opacity slider.</td><td class="k">Keep</td><td>Right as it is.</td></tr>
+<tr data-n="1" data-p="keep"><td>Add</td><td><b class="exp">Works.</b> Adds the layer’s colors to what is below; the opacity slider fades it.</td><td class="k">Keep</td><td>Right as it is.</td></tr>
+<tr data-n="1" data-p="fix"><td>Screen</td><td><b class="bad">Wrong.</b> Right only for a solid picture at full opacity. The opacity slider does nothing here (three settings gave identical pictures), and a see-through picture shows its color at full strength where it should fade.</td><td class="f">Fix</td><td>Your call whether this is a defect. If you want it to behave this way, it becomes Keep.</td></tr>
+<tr data-n="1" data-p="fix"><td>Multiply</td><td><b class="bad">Wrong.</b> Right only for a solid picture at full opacity. The opacity slider does nothing to the color, and wherever the picture is see-through the result turns black.</td><td class="f">Fix</td><td>Your call whether this is a defect. If you want it to behave this way, it becomes Keep.</td></tr>
+<tr data-n="1" data-p="remove"><td>Overlay</td><td><b class="dim">Does nothing.</b> Plain picture.</td><td class="r">Remove</td><td>No Overlay recipe exists (the code likely sends it to the plain picture). A real one would be new work, and it is a look you may miss.</td></tr>
+<tr class="g"><td colspan="4">Light (6)</td></tr>
+<tr data-n="6" data-p="remove"><td>Soft Light, Hard Light, Vivid Light, Linear Light, Pin Light, Hard Mix</td><td><b class="dim">Does nothing</b> (all six). Plain picture.</td><td class="r">Remove</td><td>No recipe of its own (likely sent to the plain picture). Real ones would be new work.</td></tr>
+<tr class="g"><td colspan="4">Compare (4)</td></tr>
+<tr data-n="1" data-p="fix"><td>Darken</td><td><b class="bad">Wrong.</b> Right only for a solid picture at full opacity. The opacity slider does nothing to the color, and wherever the picture is see-through the result turns black.</td><td class="f">Fix</td><td>Your call whether this is a defect. If you want it to behave this way, it becomes Keep.</td></tr>
+<tr data-n="1" data-p="fix"><td>Lighten</td><td><b class="bad">Wrong.</b> Right only for a solid picture at full opacity. The opacity slider does nothing here, and a see-through picture shows its color at full strength where it should fade.</td><td class="f">Fix</td><td>Your call whether this is a defect. If you want it to behave this way, it becomes Keep.</td></tr>
+<tr data-n="2" data-p="remove"><td>Darker Color, Lighter Color</td><td><b class="dim">Does nothing</b> (both). Plain picture.</td><td class="r">Remove</td><td>No recipe of its own (likely sent to the plain picture). Real ones would be new work.</td></tr>
+<tr class="g"><td colspan="4">Dodge / Burn (2)</td></tr>
+<tr data-n="2" data-p="remove"><td>Color Dodge, Color Burn</td><td><b class="dim">Does nothing</b> (both). Plain picture.</td><td class="r">Remove</td><td>No recipe of its own (likely sent to the plain picture). Real ones would be new work.</td></tr>
+<tr class="g"><td colspan="4">Inversion (3)</td></tr>
+<tr data-n="3" data-p="remove"><td>Difference, Exclusion, Subtract</td><td><b class="dim">Does nothing</b> (all three). Plain picture.</td><td class="r">Remove</td><td>No recipe of its own (likely sent to the plain picture). Real ones would be new work; Difference is a look you may miss.</td></tr>
+<tr class="g"><td colspan="4">Component (4)</td></tr>
+<tr data-n="4" data-p="remove"><td>Hue, Saturation, Color, Luminosity</td><td><b class="dim">Does nothing</b> (all four). Plain picture.</td><td class="r">Remove</td><td>No recipe of its own (likely sent to the plain picture). Real ones would be new work.</td></tr>
+<tr class="g"><td colspan="4">Special (2)</td></tr>
+<tr data-n="2" data-p="remove"><td>Dissolve, Cut</td><td><b class="dim">Does nothing</b> (both). Plain picture.</td><td class="r">Remove</td><td>Transition names, not blends. Both work in the Transition menu.</td></tr>
+<tr class="g"><td colspan="4">Wipe (6)</td></tr>
+<tr data-n="6" data-p="remove"><td>Wipe Left, Wipe Right, Wipe Up, Wipe Down, Wipe Ellipse, Wipe Diagonal</td><td><b class="dim">Does nothing</b> (all six). Plain picture.</td><td class="r">Remove</td><td>Transition names, not blends. Five of the six work in the Transition menu (not Wipe Diagonal).</td></tr>
+<tr class="g"><td colspan="4">Push (4)</td></tr>
+<tr data-n="4" data-p="remove"><td>Push Left, Push Right, Push Up, Push Down</td><td><b class="dim">Does nothing</b> (all four). Plain picture.</td><td class="r">Remove</td><td>Transition names, not blends. All four work in the Transition menu.</td></tr>
+<tr class="g"><td colspan="4">Zoom (2)</td></tr>
+<tr data-n="2" data-p="remove"><td>Zoom In, Zoom Out</td><td><b class="dim">Does nothing</b> (both). Plain picture.</td><td class="r">Remove</td><td>Transition names, not blends. Both work in the Transition menu.</td></tr>
+<tr class="g"><td colspan="4">3D (6)</td></tr>
+<tr data-n="6" data-p="remove"><td>Rotate X, Rotate Y, Spin, Cube, Flip, Fold</td><td><b class="dim">Does nothing</b> (all six). Plain picture.</td><td class="r">Remove</td><td>Transition names, not blends. Only Flip works in the Transition menu.</td></tr>
+<tr class="g"><td colspan="4">Color Fade (2)</td></tr>
+<tr data-n="2" data-p="remove"><td>To Black, To White</td><td><b class="dim">Does nothing</b> (both). Plain picture.</td><td class="r">Remove</td><td>Transition names, not blends. To Black works in the Transition menu; To White does not.</td></tr>
+<tr class="g"><td colspan="4">Creative (9)</td></tr>
+<tr data-n="9" data-p="remove"><td>Pixelate, Blur, Noise, RGB Split, Glitch Blocks, Strobe, Slide, Stretch, Displace</td><td><b class="dim">Does nothing</b> (all nine). Plain picture.</td><td class="r">Remove</td><td>Transition names, not blends. None of them works in the Transition menu either.</td></tr>
+</table></div>
+
+<p class="dim">Count check, Layer Blend: 2 Keep (Alpha, Add) + 4 Fix (Screen, Multiply, Darken, Lighten) + 49 Remove (Overlay 1, Light 6, Darker Color and Lighter Color 2, Dodge/Burn 2, Inversion 3, Component 4, Special 2, Wipe 6, Push 4, Zoom 2, 3D 6, Color Fade 2, Creative 9) = 55.</p>
+
+<h3>Transition menu, the one under the F slider (55 entries: 15 Keep, 40 Remove)</h3>
+<p class="dim">A moment in the middle of a fade cannot be frozen, so each transition was measured on a slow 6-second fade at three moments, and the fade’s position was checked against the clock (always within one percent). “Works” here means the picture matches that entry’s own recipe. Whether a direction matches the word you expect (for example Wipe Up) is for you to judge on the transition sheets.</p>
+<div class="tw"><table id="trans">
+<colgroup><col style="width:17%"><col style="width:36%"><col style="width:10%"><col style="width:37%"></colgroup>
+<tr><th>Entry</th><th>What it does today</th><th>Proposal</th><th>Why</th></tr>
+<tr class="g"><td colspan="4">Compositing (5)</td></tr>
+<tr data-n="5" data-p="remove"><td>Alpha, Add, Screen, Multiply, Overlay</td><td><b class="dim">Same picture as Dissolve</b> (all five).</td><td class="r">Remove</td><td>Blend names, not transitions. They likely have no transition of their own and fall back to Dissolve.</td></tr>
+<tr class="g"><td colspan="4">Light (6)</td></tr>
+<tr data-n="6" data-p="remove"><td>Soft Light, Hard Light, Vivid Light, Linear Light, Pin Light, Hard Mix</td><td><b class="dim">Same picture as Dissolve</b> (all six).</td><td class="r">Remove</td><td>Blend names, not transitions. Likely fall back to Dissolve.</td></tr>
+<tr class="g"><td colspan="4">Compare (4)</td></tr>
+<tr data-n="4" data-p="remove"><td>Darken, Lighten, Darker Color, Lighter Color</td><td><b class="dim">Same picture as Dissolve</b> (all four).</td><td class="r">Remove</td><td>Blend names, not transitions. Likely fall back to Dissolve.</td></tr>
+<tr class="g"><td colspan="4">Dodge / Burn (2)</td></tr>
+<tr data-n="2" data-p="remove"><td>Color Dodge, Color Burn</td><td><b class="dim">Same picture as Dissolve</b> (both).</td><td class="r">Remove</td><td>Blend names, not transitions. Likely fall back to Dissolve.</td></tr>
+<tr class="g"><td colspan="4">Inversion (3)</td></tr>
+<tr data-n="3" data-p="remove"><td>Difference, Exclusion, Subtract</td><td><b class="dim">Same picture as Dissolve</b> (all three).</td><td class="r">Remove</td><td>Blend names, not transitions. Likely fall back to Dissolve.</td></tr>
+<tr class="g"><td colspan="4">Component (4)</td></tr>
+<tr data-n="4" data-p="remove"><td>Hue, Saturation, Color, Luminosity</td><td><b class="dim">Same picture as Dissolve</b> (all four).</td><td class="r">Remove</td><td>Blend names, not transitions. Likely fall back to Dissolve.</td></tr>
+<tr class="g"><td colspan="4">Special (2)</td></tr>
+<tr data-n="1" data-p="keep"><td>Dissolve</td><td><b class="exp">Works.</b> A soft cross-fade from the old clip to the new one. It is also what 40 other entries draw.</td><td class="k">Keep</td><td>Right as it is.</td></tr>
+<tr data-n="1" data-p="keep"><td>Cut</td><td><b class="exp">Works as built.</b> It is not instant: it holds the old clip for the first half of the fade time, then jumps to the new one.</td><td class="k">Keep</td><td>Matches its own recipe. If you want Cut to be instant, say so.</td></tr>
+<tr class="g"><td colspan="4">Wipe (6)</td></tr>
+<tr data-n="4" data-p="keep"><td>Wipe Left, Wipe Right, Wipe Up, Wipe Down</td><td><b class="exp">Work.</b> The new clip comes in from the left edge (Left), the right edge (Right), the top edge going down (Up), the bottom edge going up (Down).</td><td class="k">Keep</td><td>Match their own recipes.</td></tr>
+<tr data-n="1" data-p="keep"><td>Wipe Ellipse</td><td><b class="exp">Works.</b> An ellipse opens from the centre and shows the new clip.</td><td class="k">Keep</td><td>Right as it is.</td></tr>
+<tr data-n="1" data-p="remove"><td>Wipe Diagonal</td><td><b class="dim">Same picture as Dissolve.</b></td><td class="r">Remove</td><td>Likely has no transition of its own. A diagonal wipe would be new work, though four straight wipes already work.</td></tr>
+<tr class="g"><td colspan="4">Push (4)</td></tr>
+<tr data-n="4" data-p="keep"><td>Push Left, Push Right, Push Up, Push Down</td><td><b class="exp">Work.</b> The old clip slides out in the named direction and the new one follows right behind it.</td><td class="k">Keep</td><td>Match their own recipes.</td></tr>
+<tr class="g"><td colspan="4">Zoom (2)</td></tr>
+<tr data-n="1" data-p="keep"><td>Zoom In</td><td><b class="exp">Works.</b> The new clip grows from the centre.</td><td class="k">Keep</td><td>Right as it is.</td></tr>
+<tr data-n="1" data-p="keep"><td>Zoom Out</td><td><b class="exp">Works.</b> The old clip shrinks into the centre.</td><td class="k">Keep</td><td>Right as it is.</td></tr>
+<tr class="g"><td colspan="4">3D (6)</td></tr>
+<tr data-n="4" data-p="remove"><td>Rotate X, Rotate Y, Spin, Cube</td><td><b class="dim">Same picture as Dissolve</b> (all four).</td><td class="r">Remove</td><td>Likely no transition of its own. Real ones would be new work.</td></tr>
+<tr data-n="1" data-p="keep"><td>Flip</td><td><b class="exp">Works.</b> The old clip squeezes to a thin line over black, then the new one opens.</td><td class="k">Keep</td><td>Right as it is.</td></tr>
+<tr data-n="1" data-p="remove"><td>Fold</td><td><b class="dim">Same picture as Dissolve.</b></td><td class="r">Remove</td><td>Likely no transition of its own. A real one would be new work.</td></tr>
+<tr class="g"><td colspan="4">Color Fade (2)</td></tr>
+<tr data-n="1" data-p="keep"><td>To Black</td><td><b class="exp">Works.</b> Fades to black at the middle, then up to the new clip.</td><td class="k">Keep</td><td>Right as it is.</td></tr>
+<tr data-n="1" data-p="remove"><td>To White</td><td><b class="dim">Same picture as Dissolve.</b></td><td class="r">Remove</td><td>Likely no transition of its own. A white fade would be new work.</td></tr>
+<tr class="g"><td colspan="4">Creative (9)</td></tr>
+<tr data-n="9" data-p="remove"><td>Pixelate, Blur, Noise, RGB Split, Glitch Blocks, Strobe, Slide, Stretch, Displace</td><td><b class="dim">Same picture as Dissolve</b> (all nine).</td><td class="r">Remove</td><td>Likely no transition of its own. Real ones would be new work; the audit did not size it.</td></tr>
+</table></div>
+<p class="dim">Count check, Transitions: 15 Keep (Dissolve, Cut, 4 straight wipes, Wipe Ellipse, 4 pushes, Zoom In, Zoom Out, Flip, To Black) + 40 Remove (24 blend names, Wipe Diagonal, Rotate X, Rotate Y, Spin, Cube, Fold, To White, 9 Creative) = 55.</p>
+
+<h2>3. The contact sheets</h2>
+<p class="dim">Click a sheet to see it full size. The small captions on the sheets are the audit’s own words (WORKS, NO-OP = does nothing, ALIAS-OF = same picture as, BROKEN = wrong). One caption is out of date: the keying sheets call Max RGB “same as Luma Is Alpha”, but the ruling is that Max RGB is the original that works and Luma Is Alpha is its copy.</p>
+
+<div class="sh"><b>Keying: a green plate over a checkerboard.</b> Look at Chroma Key (the green is gone, the checkerboard shows through) and Luma Key (only the small black block turns into checkerboard); six tiles are the untouched plate.
+<a href="keying-sheets/sheet-keying-kg.png"><img src="keying-sheets/sheet-keying-kg.png" alt="Keying menu, green plate over checkerboard" loading="lazy"></a></div>
+
+<div class="sh"><b>Keying: strips of ramps over a gradient.</b> Look at Luma Key (one thin line at the far left is all it removes), Chroma Key (cuts the bright end of the green strip and a slice of the rainbow) and Max RGB (every strip fades into the background).
+<a href="keying-sheets/sheet-keying-kr.png"><img src="keying-sheets/sheet-keying-kr.png" alt="Keying menu, ramps over gradient" loading="lazy"></a></div>
+
+<div class="sh"><b>Keying: a picture with its own see-through areas over a checkerboard.</b> Look at Alpha (the soft see-through areas show the checkerboard) against Chroma Key (the picture is solid, and black where it used to be see-through).
+<a href="keying-sheets/sheet-keying-ka.png"><img src="keying-sheets/sheet-keying-ka.png" alt="Keying menu, picture with its own transparency over checkerboard" loading="lazy"></a></div>
+
+<div class="sh"><b>Keying controls.</b> For each keying entry: the left three pictures are the Keying slider at 0, 0.5 and 1, the middle three are Softness at 0, 0.5 and 1 (each set of three is identical, so they do nothing), and the right three are opacity at 25%, 50% and 100% (the layer fades).
+<a href="keying-sheets/sheet-controls-keying-kg.png"><img src="keying-sheets/sheet-controls-keying-kg.png" alt="Keying controls: threshold, softness and opacity sweeps" loading="lazy"></a></div>
+
+<div class="sh"><b>Blend: one gradient over another.</b> Only five of the 55 tiles differ from the plain picture: Add, Screen, Multiply, Darken and Lighten. Every other tile, Creative and 3D included, looks like Alpha.
+<a href="keying-sheets/sheet-blend-bg.png"><img src="keying-sheets/sheet-blend-bg.png" alt="Blend menu, gradient over gradient" loading="lazy"></a></div>
+
+<div class="sh"><b>Blend: color bars over a grey ramp.</b> The same five tiles differ; the bars take on the grey ramp underneath, darker on the left and lighter on the right. The other 50 look the same as Alpha.
+<a href="keying-sheets/sheet-blend-bb.png"><img src="keying-sheets/sheet-blend-bb.png" alt="Blend menu, color bars over grey ramp" loading="lazy"></a></div>
+
+<div class="sh"><b>Blend: a picture with its own see-through areas over a gradient.</b> Look at Multiply and Darken (black wherever the picture should be see-through) and at Screen and Lighten (the picture’s color at full strength where it should fade).
+<a href="keying-sheets/sheet-blend-ba.png"><img src="keying-sheets/sheet-blend-ba.png" alt="Blend menu, picture with transparency over gradient" loading="lazy"></a></div>
+
+<div class="sh"><b>Other controls.</b> Chroma Key color and tolerance (they work when set in a show file), opacity under the blend entries (it fades Alpha, Add and Overlay but changes nothing under Screen, Multiply, Darken and Lighten), and at the bottom a layer set to Opaque ignoring every keying and blend entry.
+<a href="keying-sheets/sheet-controls-other.png"><img src="keying-sheets/sheet-controls-other.png" alt="Other controls: chroma color and tolerance, opacity under blends, opaque layer" loading="lazy"></a></div>
+
+<div class="sh"><b>Transitions: a horizontal gradient into a vertical one, three moments of a 6-second fade.</b> Most tiles are the same soft cross-dissolve; look at Cut, the Wipes, Pushes, Zooms, Flip and To Black for the ones with a look of their own.
+<a href="keying-sheets/sheet-transition-tg.png"><img src="keying-sheets/sheet-transition-tg.png" alt="Transition menu, gradient to gradient" loading="lazy"></a></div>
+
+<div class="sh"><b>Transitions: color bars into ramps, the same three moments.</b> The same result with a picture that is easier to follow; Flip and To Black pass through black, and Zoom Out shows the old clip shrinking into the centre.
+<a href="keying-sheets/sheet-transition-tb.png"><img src="keying-sheets/sheet-transition-tb.png" alt="Transition menu, color bars to ramps" loading="lazy"></a></div>
+
+<h2>4. What I need from you</h2>
+<p class="dim">Nothing is built until you answer. Every Remove is only a proposal. Answer per family: accept the proposals, or name the entries you want kept or fixed instead. For example: “Keying: accept. Blend: accept, but keep Overlay and Difference. Transitions: accept.” Your words are filed as you write them.</p>
+<ol>
+<li><b>Keying</b> (3 Keep, 2 Fix, 8 Remove). Accept, or name entries. One question inside it: fix Luma Key and connect the Keying slider, Threshold and Softness to it, or remove those three controls?</li>
+<li><b>Layer Blend</b> (2 Keep, 4 Fix, 49 Remove). Accept, or name entries. One question inside it: should Screen, Multiply, Darken and Lighten respect the opacity slider and a picture’s own transparency, or are they meant to behave as they do now (then they become Keep)? If you name an entry I proposed to remove, it would be new work whose size the audit did not measure.</li>
+<li><b>Transitions</b> (15 Keep, 40 Remove). Accept, or name entries. Say so if Cut should be instant.</li>
+<li><b>One confirmation:</b> is the right-hand slider in the layer strip the F slider (fade time)?</li>
+</ol>
+
+<h2>5. What was not tested</h2>
+<ul>
+<li><b>Other computers.</b> “Luma Key removes only pure black” and Chroma Key’s hard edge were measured on this Mac only (Apple M1 Pro). The app’s code leaves the exact result open, so another graphics card may draw those four entries (Luma Key, Inverted Luma Key, Saturation Key, Chroma Key) differently.</li>
+<li><b>Partly see-through results on a real output.</b> Multiply and Darken with the opacity below full, or with a see-through picture, leave the finished picture partly transparent. Flip and To Black do too in the middle of their fades. I measured the picture the app draws, not what the preview panel, an Output window, Syphon or a recording shows for it.</li>
+<li><b>Nothing on screen was clicked or dragged.</b> The values were set through show files and the app’s control interface. That the Keying slider writes the value I changed, that the layer strip’s menu re-shows the right entry, and that no on-screen control sets Chroma Key’s color or tolerance or a layer’s Opaque/Transparent setting are read from the code, not tried by hand.</li>
+<li><b>The layer inspector’s three menus</b> (Blend Mode, Keying, Transition) were matched to the same entries by reading the code. Its Blend Mode list likely has only the first 25 of the 55 blends and likely calls the first two “Normal” and “Additive” where the strip says “Alpha” and “Add”. I did not open them.</li>
+<li><b>Left out entirely:</b> clip opacity before keying; keying on a video or a generated source; transitions between pictures with see-through areas; a transition on a keyed layer.</li>
+<li><b>The F slider at 0 seconds.</b> I could not tell an instant change from the half second the app likely substitutes. It was checked at 2, 4 and 8 seconds.</li>
+<li><b>Saved shows.</b> What a saved show that already uses an entry proposed for removal should do was not looked at; I would bring that question with the plan.</li>
+</ul>
+</body></html>

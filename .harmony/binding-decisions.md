@@ -711,3 +711,34 @@ build it; "audio controls the video", all tempo-locked, current UI will be scrap
   created such a text (e.g. the yellow note on a microphone fallback).
 - Edit menu (recorded 2026-10-03 16:06:40) — Boris: "we should have an edit menu." -> the app gets an Edit menu (Undo / Redo); the Undo item
   is where "Undo Remove Deck" is read. Built in the next UI pass.
+- Failure messages — OPEN, NOT A RULING (recorded 2026-10-03 20:58:42, s-rta-1003b) — told "failure messages (e.g. a failed save) — keep or
+  remove? Default: they go with the rest", Boris: "how would a save fail? not sure we need that" -> a question and a lean.
+  The 2026-10-03 15:42:01 ruling ("remove the list entirely and cleanly") stays the binding text; Harmony answered and asked
+  back whether the two save-failed alerts (facts-notices.md B06, B08) are the one exception. Default until he answers: they go.
+- Failure messages — RULED (recorded 2026-10-03 20:59:50, s-rta-1003b) — asked "keep the two \"Save failed\" boxes as the one exception, or
+  remove them too?" after Harmony recommended keeping exactly those two (Save Composition failed, Save Deck failed), Boris:
+  "ok. the only fail message will be a failed save. remove all others" -> the save-failed alert stays (facts-notices.md B06,
+  B08); every other failure text and every event text is removed. AMENDS the 2026-10-03 15:42:01 ruling ("remove the list
+  entirely and cleanly") by this one exception. Open edge (Harmony's default, not his words): a failed TAKE or ROUTINE save
+  message goes with "all others".
+
+## 2026-10-03 (s-rta-1003b) — Boris's answers to the questions page (recorded 2026-10-03 23:46:03; questions as asked: boris-feedback-backlog.md, same stamp)
+- All defaults, except the ones below — Boris: "answer to 12 questions. all defaults except for:"
+- Playhead held still (Q2) — Boris: "2 b" -> while the mouse is down and still, the picture waits on that frame until he lets go.
+- Playhead and the in / out points (Q10) — Boris: "If we set the inpoint and endpoint on the timeline of the clip, I should not be able
+  to drag outside of the points. It should be as if that is the extent of the timeline unless I let go and drag one of the in or out
+  points." -> the playhead cannot be dragged outside in..out; only moving an in or out point changes that extent.
+- Beats, not bars, for a clip (Q4) — Boris: "For setting the clip beat marks, the clips are set with beats not bars. x2 or /2 are beat
+  changes. bars will confuse this. A bar is for beats and is used in places where longer durations make sense and beats are used where
+  exaggerations makes sense. We should be very clear where we are using beats and bars, but they are essentially the same thing like
+  feet and inches" -> a clip's length and marks are in beats; x2 and /2 change beats; every place states its unit.
+- A BPM-synced clip stays on the beat (Q9) — Boris: "9 b" -> the app keeps nudging it back onto the beat by itself.
+- Cmd+Z and the layer strip (Q3) — Boris: "cmd z Does not change anything in the layer strip which is by default live based" -> Undo and
+  Redo never change anything in the layer strip. WIDENS the 2026-10-03 rule "Let's not allow control Z to change anything that is
+  live in the layer strip. It changes anything else".
+- Failed saves (Q12) — Boris: "12 b" -> OPEN: the page's question 12 was rewritten after it was first opened and its B changed
+  meaning; Harmony asked him which he read. Until he answers: every save he presses shows the box when it fails (ruling-notices H-1).
+- Beat lines (new) — Boris: "when the Video is in beats rather than adjust by speed mode, the beats are shown with lines in the play
+  head area whereas if it was speed control, it's just the basic play head and with beats control there are lines for each beat in
+  the play head area and the play head moves past them on time" -> in beats mode: one line per beat in the playhead area, and the
+  playhead crosses them on the beat; in speed mode: the plain playhead.

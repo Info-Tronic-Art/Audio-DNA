@@ -1,0 +1,171 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Audio-DNA — 25 questions before the next builds (Oct 3)</title>
+<style>body{font:16px/1.5 -apple-system,Helvetica,Arial,sans-serif;max-width:860px;margin:32px auto;padding:0 20px;background:#14161a;color:#e6e6e6}
+h1{font-size:26px}h2{font-size:20px;margin-top:34px;border-bottom:1px solid #333;padding-bottom:6px}
+li{margin:14px 0}.exp{color:#9fd3a4}.bad{color:#e3a19a}.dim{color:#9aa0a6}code{background:#23262c;padding:1px 5px;border-radius:4px}
+.box{background:#1c1f25;border:1px solid #2c3038;border-radius:8px;padding:12px 16px;margin:14px 0}
+.a{display:block;margin:4px 0 0 0}.a b{color:#9fd3a4}.b b{color:#d9c58a}</style></head><body>
+<h1>Audio-DNA — 25 questions before the next builds</h1>
+<div class="box"><b>Where this page stands (Oct 4, night).</b><br>
+You answered the first 12 questions: all defaults except 2 (the picture waits while you hold), 3 (Cmd+Z changes nothing in the layer strip),
+4 (clips are set in beats), 9 (the app keeps the clip on the beat), 10 (no dragging outside the in and out points) and 12.<br>
+<b>Question 12:</b> I rewrote it after you had this page open and its A and B swapped meaning &mdash; my mistake. I read your "12 b" against the page you saw:
+<i>a take or a routine that could not be saved also shows the message.</i> Tell me if you meant the opposite.<br>
+<b>What happened overnight:</b> the 10.7 ms take state turned out to be a test artefact, not a timing fault in the app (my own run, 24 takes);
+the dead-knob fix for Sync is built and passed my gate; the fires / Undo plan was re-ruled with your answers; the messages removal is planned and ruled;
+the keying audit is done (its own page is open: keep / fix / remove per entry). Nothing was merged into your app tonight.<br>
+<b>Still open, each with a default:</b> 13&ndash;19 below (added after you read the page) and <b>20&ndash;25 at the end</b> (they come out of your answers).</div>
+<p class="dim">Nothing waits on you. Every question has a default (marked A). If you say nothing, A is built.
+Answer only the ones you would change — for example "2B, 5B". Your words are filed as you write them.</p>
+
+<h2>1. Firing clips</h2>
+<p class="dim">Already decided by you: every fire starts a video from its beginning; firing a column that is already
+playing starts its videos over.</p>
+<ol>
+<li><b>You paused a clip, then you fire it.</b>
+<span class="a"><b>A (default)</b> It plays from its beginning.</span>
+<span class="a b"><b>B</b> It goes to its beginning and stays paused.</span></li>
+
+<li value="6"><b>A clip set to play backwards. You fire it.</b>
+<span class="a"><b>A (default)</b> It starts from its end and runs back.</span>
+<span class="a b"><b>B</b> It starts from its beginning.</span></li>
+</ol>
+
+<h2>2. Dragging the playhead</h2>
+<p class="dim">Already decided by you: after you let go, the clip plays on from that point at the same speed.</p>
+<ol>
+<li value="2"><b>You keep the mouse down on the playhead and hold still.</b>
+<span class="a"><b>A (default)</b> The clip keeps playing from under your hand.</span>
+<span class="a b"><b>B</b> The picture waits on that frame until you let go.</span></li>
+
+<li value="10"><b>You drop the playhead beyond a clip's end marker.</b>
+<span class="a"><b>A (default)</b> It stops at the end marker and the loop starts over.</span>
+<span class="a b"><b>B</b> It plays the part outside the markers once.</span></li>
+</ol>
+
+<h2>3. BPM-synced clips</h2>
+<p class="dim">Already decided by you: a BPM box (starts at 120) and a Beats box, with x2 and /2.</p>
+<ol>
+<li value="4"><b>How the BPM box and the Beats box belong together.</b>
+<span class="a"><b>A (default)</b> They are two ways of saying one thing: change one and the other follows, and the whole clip is stretched to fit.</span>
+<span class="a b"><b>B</b> Beats cuts the loop shorter while BPM stays.</span></li>
+
+<li value="7"><b>The x2 button next to Beats.</b>
+<span class="a"><b>A (default)</b> It doubles the beats: the clip takes twice as long and looks slower.</span>
+<span class="a b"><b>B</b> It makes the clip twice as fast, like x2 next to Speed.</span></li>
+
+<li value="9"><b>A BPM-synced clip left running for many minutes.</b> It follows the tempo. Over a long run it may slide off the beat a little (I have not measured how much yet).
+<span class="a"><b>A (default)</b> To line it up with the beat again, you fire it.</span>
+<span class="a b"><b>B</b> The app keeps nudging it back onto the beat by itself.</span></li>
+</ol>
+
+<h2>4. Cmd+Z</h2>
+<p class="dim">Already decided by you: Cmd+Z never changes what is live in the layer strip; it undoes everything else.
+A clip you fired is no longer an undo step.</p>
+<ol>
+<li value="3"><b>Cmd+Z and a layer that is playing.</b>
+<span class="a"><b>A (default)</b> Bypass, solo, the order of the layers and effects are still undone, as today.</span>
+<span class="a b"><b>B</b> Cmd+Z leaves some of these alone while the layer plays — say which.</span></li>
+
+<li value="5"><b>You remove a layer by mistake and press Cmd+Z.</b>
+<span class="a"><b>A (default)</b> The layer comes back with its clips, not playing until you fire one.</span>
+<span class="a b"><b>B</b> It comes back playing what it was playing.</span></li>
+
+<li value="8"><b>You load a deck that adds 2 layers, fire one of its clips, and press Cmd+Z.</b>
+<span class="a"><b>A (default)</b> The clip keeps playing and both added layers stay.</span>
+<span class="a b"><b>B</b> The added layer that plays nothing goes away.</span></li>
+</ol>
+
+<h2>5. Sync dial</h2>
+<p class="dim">Already decided by you: every show remembers its sync, and opening a show sets the dial to it. No message says so; the SYNC button always shows the current number.</p>
+<ol>
+<li value="11"><b>Opening a show can replace tonight's number.</b> If you never name a room, everything is on "Default".
+You set +55 for the room, then open a show that was saved at 0: the dial goes to 0 and the +55 is gone.
+<span class="a"><b>A (default)</b> That is what "every show remembers its sync" means. No way back; you set it again.</span>
+<span class="a b"><b>B</b> A small button in the sync panel brings back the number the show replaced.</span></li>
+
+<li value="13"><b>Nudging Sync from a controller.</b> "Sync earlier" and "Sync later" can be put on a keyboard key or a controller pad.
+Knobs, faders and some controller buttons talk to the app a different way and cannot be put on Sync in this version
+(in MIDI learn the screen just keeps waiting).
+<span class="a"><b>A (default)</b> A key or a pad is enough.</span>
+<span class="a b"><b>B</b> I want it on a knob or another control — say which controller and which control.</span></li>
+
+<li value="14"><b>You hold a Sync key down.</b>
+<span class="a"><b>A (default)</b> The number keeps moving at the Mac's key-repeat speed, like a held arrow key.</span>
+<span class="a b"><b>B</b> Exactly one step per press.</span></li>
+</ol>
+
+<h2>6. Messages</h2>
+<p class="dim">Already decided by you: the only failure message is a failed save; all other messages go.</p>
+<ol>
+<li value="12"><b>"A failed save" — which saves?</b> A recording, a preset and an FX Save are saves too.
+<span class="a"><b>A (default)</b> Every save you press shows the "Save failed" box when it fails: Save show, Save Deck, Stop Recording (the take), Save preset, FX Save.</span>
+<span class="a b"><b>B</b> Only Save show and Save Deck. A recording, a preset or an FX Save that could not be written then shows nothing.</span></li>
+
+<li value="15"><b>Save Routine is refused</b> (no take loaded, the pads are full, or the take has no bars). No file is written.
+<span class="a"><b>A (default)</b> Nothing shows; simply no new pad appears.</span>
+<span class="a b"><b>B</b> I want a sign.</span></li>
+
+<li value="16"><b>The yellow line "No wired mic found" / "No audio device found".</b>
+<span class="a"><b>A (default)</b> It goes. A dead sound input then shows as flat meters and "---" for the tempo, with no words.</span>
+<span class="a b"><b>B</b> Keep that one line as the sign for "no sound input".</span></li>
+
+<li value="17"><b>MIDI Learn's small text "Last: Note 60 ...".</b>
+<span class="a"><b>A (default)</b> It goes.</span>
+<span class="a b"><b>B</b> Keep it: it shows the controller is alive.</span></li>
+
+<li value="18"><b>The Record tab's one remaining line.</b>
+<span class="a"><b>A (default)</b> Idle, it reads "Ready. Last take: (name)" — only for a take that was really saved. The counts (unresolved / moved / skipped, audio gaps) go, and so does the red "!" on a routine pad.</span>
+<span class="a b"><b>B</b> Something else — say what stays.</span></li>
+
+<li value="19"><b>Record cannot start</b> (the audio folder cannot be written, or less than 2 GB free).
+<span class="a"><b>A (default)</b> Nothing shows; the button simply stays "Record Take".</span>
+<span class="a b"><b>B</b> I want a sign that it did not start.</span></li>
+</ol>
+
+<h2>New questions from your answers (20&ndash;25)</h2>
+<p class="dim">Each has a default. Your own words are beside the ones they come from.</p>
+<ol>
+<li value="20"><b>A clip in beats mode whose Beats number is not whole</b> (the app's own number usually is not: a 7.3-second clip shows 14.6).
+<span class="a"><b>A (default)</b> It plays at a steady speed; its lines pass off the beat until you give it a whole number of beats.</span>
+<span class="a b"><b>B</b> The app pulls it back onto the beat every time the loop comes round, so on every loop it runs a little slow or fast for a few beats.</span>
+<span class="a b"><b>C</b> The app rounds its own number to a whole beat when you switch a clip to beats &mdash; the BPM box then shows a number near 120 instead of 120.</span>
+<span class="dim">Your words: "default all bpms to 120"; "9 b".</span></li>
+
+<li value="21"><b>You add a layer and press Cmd+Z.</b>
+<span class="a"><b>A (default)</b> The empty layer goes away again.</span>
+<span class="a b"><b>B</b> Cmd+Z never takes a layer row away.</span>
+<span class="dim">Your words: "cmd z Does not change anything in the layer strip which is by default live based".</span></li>
+
+<li value="22"><b>After you move a layer up or down.</b>
+<span class="a"><b>A (default)</b> Cmd+Z can no longer step back to edits you made before the move.</span>
+<span class="a b"><b>B</b> Those older steps stay reachable (more work; a later stage).</span></li>
+
+<li value="23"><b>An effect you put on a layer or a clip.</b>
+<span class="a"><b>A (default)</b> Cmd+Z takes it off again, also while the layer plays.</span>
+<span class="a b"><b>B</b> Cmd+Z leaves effects alone while the layer plays.</span></li>
+
+<li value="24"><b>You drop the playhead of a clip in beats mode between two beats.</b>
+<span class="a"><b>A (default)</b> It plays on from there and eases onto the beat within a few seconds, running up to 6 % off its speed meanwhile.</span>
+<span class="a b"><b>B</b> It keeps its exact speed and stays off the beat until you fire it again.</span>
+<span class="dim">Your words: "I wanted to keep playing at the same speed, but play from wherever I drop the play head."; "9 b".</span></li>
+
+<li value="25"><b>In beats mode, the S fader in the layer strip.</b>
+<span class="a"><b>A (default)</b> It is greyed.</span>
+<span class="a b"><b>B</b> It does something there &mdash; for example doubles and halves the beats. Say what.</span></li>
+</ol>
+
+<h2>7. Two things that go away — say so if you want them</h2>
+<ul>
+<li>The <b>Beats / Duration row</b> in the clip panel never did anything. It is gone when the BPM and Beats boxes arrive.</li>
+<li>The <b>"Restart / Continue / Relative" menu</b> beside Loop in the clip panel never did anything. It is gone too.
+Every clip starts from its beginning when it is fired. If some clips should carry on from where they were instead, say so.</li>
+</ul>
+
+<h2>8. Where the builds are</h2>
+<ul>
+<li><b>Sync dial:</b> merged up to today's app and tested; two more build stages are running, then the on-screen SYNC button and the longer Gain.</li>
+<li><b>Fires, playhead drag, BPM boxes, Cmd+Z:</b> planned and ruled; it builds right after the sync dial.</li>
+<li><b>Removing the messages:</b> after those two.</li>
+</ul>
+<p class="dim">Some of my test runs need the machine quiet for about 30 minutes (no video playing). They wait for a gap; they never touch an app you opened.</p>
+</body></html>

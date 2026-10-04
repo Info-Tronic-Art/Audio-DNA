@@ -1,0 +1,6 @@
+00:02:59 lock acquired
+2026-10-04 00:03:38 KEYING sample rc=0 :: out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/00e87ddd-eec9-42a5-94d1-5dc67e66ea7d/scratchpad/gate/k/run1  families: inputs,noise,keying  only: 0,5;noise: 18 captures, 0 failures;
+2026-10-04 00:04:17 BLEND sample rc=0 :: out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/00e87ddd-eec9-42a5-94d1-5dc67e66ea7d/scratchpad/gate/k/run2  families: inputs,noise,blend  only: 0,1,30;noise: 18 captures, 0 failures;
+00:04:17 lock released
+2026-10-04 00:04:33 after batch: Audio-DNA pids [] audio-dna windows 0, Output-named 0
+2026-10-04 00:04:33 END

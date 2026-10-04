@@ -1,0 +1,16 @@
+2026-10-04 00:38:39 START head 9eab9bd; dirty non-build lines 0; src/tests clean rc 0; MUTANT files in src tests: 0
+2026-10-04 00:38:42 BUILD rc=0 :: objects compiled 0
+2026-10-04 00:38:42 top process:   6.2 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServe
+2026-10-04 00:42:04 G1 rc=0 :: 100% tests passed, 0 tests failed out of 1335
+2026-10-04 00:42:04 G1 failed: 
+2026-10-04 00:42:04 test_binding_sync_nudge rc=0 :: All tests passed (84 assertions in 11 test cases)  
+2026-10-04 00:42:04 SELFTEST rc=0 :: probe-sync-selftest: 0 case(s) differ (target /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf2
+00:42:04 lock acquired
+2026-10-04 00:42:27 GREEN arm (lane app) rc=0 :: PASS  R13 the handler case moves the dial: 9 of 9 steps;PASS  R14 MIDI learn refuses a CC on a Sync target and changes nothing else; a note attaches: 8 of 8 states;PASS  R6 GET /api/sync showed persist false on every read (0 reads said otherwise);PASS  R6 settings.json sha256 unchanged (af6fc014e5b60246c9802adb9b4eec5c2476b2867564b585b6ac90ea093bb5e5);probe-sync.sh: 0 FAIL group(s) 2026-10-04 00:42:27;
+00:42:27 lock released
+00:42:27 re-acquire cooldown 45 s
+00:43:12 lock acquired
+2026-10-04 00:43:36 RED arm (mutant app build-mut-r13) rc=1 :: FAIL  R13 step 1: targetMs -1, want 1;FAIL  R13 step 2: targetMs -1, want 1;FAIL  R13 step 4: targetMs -1, want 1;FAIL  R13 step 5: targetMs -4, want 4;FAIL  R13 step 6: targetMs 1, want -1;FAIL  R13 step 7: targetMs 1, want -1;FAIL  R13 step 8: targetMs 499, want 500;FAIL  R13 step 9: targetMs -499, want -500;
+00:43:36 lock released
+2026-10-04 00:43:52 after batch: Audio-DNA pids [] audio-dna windows 0, Output-named 0; UNC 0; settings sha af6fc014e5b6
+2026-10-04 00:43:52 END

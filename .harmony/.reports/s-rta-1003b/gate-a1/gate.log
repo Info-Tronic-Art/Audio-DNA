@@ -1,0 +1,17 @@
+2026-10-03 22:34:54 START head 68abc16; dirty non-build lines: 0
+2026-10-03 22:34:54 top process:  22.1 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+2026-10-03 22:34:57 BUILD rc=0 :: compiled objects: 0 :: [100%] Built target test_analysis_sync_alloc
+2026-10-03 22:38:17 G1 rc=0 :: 100% tests passed, 0 tests failed out of 1330
+2026-10-03 22:38:17 G1 failed: 
+2026-10-03 22:38:17 G1 not-run / skipped lines: 0
+2026-10-03 22:38:18 G3a snapshot_time_lint rc=0 :: All tests passed (28 assertions in 5 test cases)  
+2026-10-03 22:38:18 G3a log_line_lint rc=0 :: All tests passed (58 assertions in 3 test cases)  
+2026-10-03 22:38:35 G3b analysis_sync_alloc rc=0 :: 3 zero-heap lines; All tests passed (8 assertions in 2 test cases) 
+2026-10-03 22:38:45 G2 rc=0 :: probe-tsan-unit: ctest -L tsan finds 12 [tsan] cases (expected 12);100% tests passed, 0 tests failed out of 12;probe-tsan-unit: ctest rc=0 2026-10-03 22:38:45;
+2026-10-03 22:38:45 G2 ThreadSanitizer report lines: 0
+2026-10-03 22:38:45 PROBE-SYNC-SELFTEST rc=0 :: probe-sync-selftest: 0 case(s) differ (target /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf2/.harmony/probe-sync.py)
+2026-10-03 22:38:50 QUIT-SELFTEST (fast) rc=0 :: SELFTEST 57 ok / 0 FAIL
+2026-10-03 22:38:50 test_beat_lead rc=0 :: All tests passed (487 assertions in 11 test cases)  
+2026-10-03 22:38:50 test_binding_sync_nudge rc=0 :: All tests passed (54 assertions in 6 test cases)  
+2026-10-03 22:38:50 test_sync_witness rc=0 :: All tests passed (65 assertions in 5 test cases)  
+2026-10-03 22:38:50 END

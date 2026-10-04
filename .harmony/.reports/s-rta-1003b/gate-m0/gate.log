@@ -1,0 +1,22 @@
+2026-10-03 21:02:16 START head c45b579 branch lane/bf2
+2026-10-03 21:02:16 worktree dirty lines (non-build): 0
+2026-10-03 21:05:36 G1 rc=0 :: 100% tests passed, 0 tests failed out of 1321
+2026-10-03 21:05:36 G1 failed: 
+2026-10-03 21:05:36 G1 not-run / skipped lines: 0
+2026-10-03 21:05:36 G1 top process before:  33.4 07-08:19:06 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+2026-10-03 21:05:37 G3a snapshot_time_lint rc=0 :: =============================================================================== All tests passed (28 assertions in 5 test cases)  
+2026-10-03 21:05:37 G3a log_line_lint rc=0 :: =============================================================================== All tests passed (58 assertions in 3 test cases)  
+2026-10-03 21:05:54 G3b analysis_sync_alloc rc=0 :: [alloc] window D=0 (profile dump at published hop 500): 0 operator-new calls on the analysis thread; applied offset seen inside 40.00 ms;[alloc] window D=250 (profile dump at published hop 1000): 0 operator-new calls on the analysis thread; applied offset seen inside 250.00 ms;[alloc] window D=-250 (profile dump at published hop 1500): 0 operator-new calls on the analysis thread; applied offset se
+2026-10-03 21:06:04 G2 rc=0 :: probe-tsan-unit: ctest -L tsan finds 11 [tsan] cases (expected 11);100% tests passed, 0 tests failed out of 11;probe-tsan-unit: ctest rc=0 2026-10-03 21:06:04;
+2026-10-03 21:06:04 G2 ThreadSanitizer report lines: 0
+21:06:04 lock acquired
+2026-10-03 21:07:00 SWEEP rc=0 :: SELFTEST 96 ok / 0 FAIL
+21:07:03 app up: 54642 
+2026-10-03 21:07:03 SMOKE health 200 sync 200 :: {   "ok": true,   "targetMs": 0,   "appliedMs": 0.0,   "venue": "Default",   "venues": [     {       "name": "Default",       "ms": 0     }   ],   "persist": true,   "analysisRunning": false,   "hopDelayMs": 0.0,   "queuedHops": 0,   "lineOverru
+audio-dna windows 2, Output-named 0
+app running after quit: no
+2026-10-03 21:07:05 SMOKE quit rc=0
+2026-10-03 21:07:05 settings.json sha256 same before / after: yes
+21:07:05 lock released
+after live batch: audio-dna windows 0, Output-named 0, UNC windows 0
+2026-10-03 21:07:21 Audio-DNA pids after batch: []

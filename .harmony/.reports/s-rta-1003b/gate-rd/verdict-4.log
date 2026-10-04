@@ -1,0 +1,7 @@
+INFO  RD launch: 6 valid takes; c0 = 0 in 6, >= 1 block in 0; e' span 64 samples; C span 0 samples -- /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/00e87ddd-eec9-42a5-94d1-5dc67e66ea7d/scratchpad/gate/rd/rd-1/run-20261004-001154-6703/probe-sync.json
+INFO  RD launch: 6 valid takes; c0 = 0 in 6, >= 1 block in 0; e' span 32 samples; C span 0 samples -- /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/00e87ddd-eec9-42a5-94d1-5dc67e66ea7d/scratchpad/gate/rd/rd-2/run-20261004-001429-8066/probe-sync.json
+INFO  RD launch: 6 valid takes; c0 = 0 in 5, >= 1 block in 1; e' span 32 samples; C span 0 samples -- /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/00e87ddd-eec9-42a5-94d1-5dc67e66ea7d/scratchpad/gate/rd/rd-3/run-20261004-001703-8806/probe-sync.json
+INFO  RD launch: 6 valid takes; c0 = 0 in 5, >= 1 block in 1; e' span 64 samples; C span 0 samples -- /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/00e87ddd-eec9-42a5-94d1-5dc67e66ea7d/scratchpad/gate/rd/rd-4/run-20261004-001937-15341/probe-sync.json
+INFO  RD early-stop rule (A3 / HD9: 2 valid takes with c0 >= one block and 2 with c0 = 0): MET
+RD outcome O1 (24 valid takes in 4 launches; c0 = 0 in 22, >= 1 block in 2; e' span 64; C span 0; NMAX 1; EREF 1440)
+INFO  RD ruling for O1: INSTRUMENT ARTEFACT -- on some takes the file starts c0 samples into the take; markers and audio agree. No product change. R7r is built. NMAX = 1, EREF = 1440

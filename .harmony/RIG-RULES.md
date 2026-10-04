@@ -28,6 +28,17 @@ Live copy. History and every older block: .harmony/HANDOFF-ARCHIVE.md. Each rule
   builder -> 5 critics), recon-facts.js, notices-inventory.js, gateA.sh / gateA2.sh / gateB.sh / gateC.sh, lock.sh, wait.sh,
   status.py, check.sh (node --check a workflow script).
 
+## A2. s-rta-1003b additions (2026-10-03 / 04)
+- COUNCIL PAPERS go to the ruling WHOLE: log() their length; never slice them (a 70,000-character cut dropped three attacks and made a ruling PARTIAL).
+- A QUIET ROW needs: no agent running, no video playing. ps shows the claude process itself above 20 % during a turn, so a "nothing above 20 %" row runs from a background script while the session is idle.
+- TWO BUILDERS NEVER SHARE A WORKTREE: a parallel stage of one lane gets its own worktree + branch; a code conflict when merging it back is a builder's step 0, never Harmony's.
+- A DIAGNOSIS (unexplained measurement): instrument first (probe-only stage with selftests and mutated copies), reviewed, THEN Harmony's run with a pre-registered decision table and stop rule. Never re-state a gate around a state nobody has measured.
+- STASH-GUARD scans the whole command line: keep git add / commit in its OWN Bash call; stage report files from inside .harmony (git -C <wt>/.harmony/.reports add -f <session>/<file>); commit with explicit paths.
+- BORIS'S PAGE: a question already shown is never re-lettered or re-worded in place; new questions get new numbers; his quotes carry the recorded stamp.
+- UNATTENDED RUNS: an rm in a command line prompts. Recipe: .harmony/.reports/s-rta-1003b/rm-guard.py + rm-guard-settings-snippet.json (install only with Boris's word; remove at close) and a background watchdog timer. Never load the update-config skill for it (13 % of the context window).
+- Re-configuring an OLD build dir after merging main needs -UprojectM4_DIR.
+- Scripts worth reusing: .harmony/.reports/s-rta-1003b/wf/ — bf2-stage.js (one stage by args), bf2-stops.js / notices-plan.js / transport-delta.js (plan -> seats -> ruling, papers whole), keying-audit.js; gate scripts in gate-m0 / gate-a1 / gate-rd / gate-s4b / gate-keying.
+
 ## B. Verbatim from the s-rta-1002b birth prompt (rig rules + habits; still binding)
 Rig rules that cost runs (binding): df -h /System/Volumes/Data before worktree lanes (8 GB/lane + 20 GB; max 3 build lanes);
 remove each worktree the turn it merges. A user message that arrives mid-turn is RELAYED to every lane started later in that

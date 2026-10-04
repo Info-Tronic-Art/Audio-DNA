@@ -1,0 +1,54 @@
+2026-10-03 23:49:39 ALLOW | pure rm inside the allowed roots | rm -rf /tmp/audiodna-ctest.lock
+2026-10-03 23:49:39 ALLOW | pure rm inside the allowed roots | rm -f /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/00e87ddd-eec9-42a5-94d1-5dc67e66ea7d/scratchpad/x/a.txt /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/00e87ddd-eec9-42a5-94d1-5dc67e66ea7d/scratchpad/y
+2026-10-03 23:49:39 ALLOW | pure rm inside the allowed roots | rm -rf /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf2/.harmony/__pycache__
+2026-10-03 23:49:39 ALLOW | pure rm inside the allowed roots | rm /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf2keys/.venv
+2026-10-03 23:49:39 ALLOW | pure rm inside the allowed roots | rm -rf /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf2keys/build-mut-r13
+2026-10-03 23:49:39 ALLOW | pure rm inside the allowed roots | rm -f /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/00e87ddd-eec9-42a5-94d1-5dc67e66ea7d/scratchpad/rd/*.png
+2026-10-03 23:49:39 DEFER | rm inside the allowed roots, command does other things too (permission rules decide) | until mkdir /tmp/audiodna-ctest.lock 2>/dev/null; do sleep 15; done; ctest --test-dir /x > /y 2>&1; rc=$?; rm -rf /tmp/audiodna-ctest.lock; echo rc=$rc
+2026-10-03 23:49:39 DENY | rm target $SP/an/trans is not a literal path inside the allowed roots | rm -rf $SP/an/trans
+2026-10-03 23:49:39 DENY | rm target /Users/boriskarpman/Documents/y is not a literal path inside the allowed roots | rm -f /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/00e87ddd-eec9-42a5-94d1-5dc67e66ea7d/scratchpad/x /Users/boriskarpman/Documents/y
+2026-10-03 23:49:39 DENY | rm target /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf2/build-lane is not a literal path inside the allowed roots | rm -rf /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf2/build-lane
+2026-10-03 23:49:39 DENY | rm target /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf2/src is not a literal path inside the allowed roots | rm -rf /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf2/src
+2026-10-03 23:49:39 DENY | rm target /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf2 is not a literal path inside the allowed roots | rm -rf /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf2
+2026-10-03 23:49:39 DENY | rm target / is not a literal path inside the allowed roots | rm -rf /
+2026-10-03 23:49:39 DENY | rm target ~/Library/Audio-DNA is not a literal path inside the allowed roots | rm -rf ~/Library/Audio-DNA
+2026-10-03 23:49:40 DENY | rm target /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/00e87ddd-eec9-42a5-94d1-5dc67e66ea7d/scratchpad/../../../etc is not a literal path inside the allowed roots | rm -rf /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/00e87ddd-eec9-42a5-94d1-5dc67e66ea7d/scratchpad/../../../etc
+2026-10-03 23:49:40 DENY | sudo rm is never auto-approved | sudo rm -rf /tmp/audiodna-ctest.lock
+2026-10-03 23:49:40 DENY | rm through xargs / find -exec / find -delete is not auto-approved | find /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/00e87ddd-eec9-42a5-94d1-5dc67e66ea7d/scratchpad -name "*.png" -delete
+2026-10-03 23:49:40 DENY | rm through xargs / find -exec / find -delete is not auto-approved | ls | xargs rm
+2026-10-03 23:49:40 DENY | rm target /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/00e87ddd-eec9-42a5-94d1-5dc67e66ea7d/scratchpad is not a literal path inside the allowed roots | rm -rf /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/00e87ddd-eec9-42a5-94d1-5dc67e66ea7d/scratchpad
+2026-10-03 23:50:13 ALLOW | pure rm inside the allowed roots | rm -f /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/00e87ddd-eec9-42a5-94d1-5dc67e66ea7d/scratchpad/rmtest/probe.txt
+2026-10-03 23:50:14 DENY | rm target /tmp/harmony-rm-guard-outside-roots-probe.txt is not a literal path inside the allowed roots | rm -f /tmp/harmony-rm-guard-outside-roots-probe.txt
+2026-10-03 23:50:52 DEFER | rm inside the allowed roots, command does other things too (permission rules decide) | until mkdir /tmp/audiodna-ctest.lock 2>/dev/null; do sleep 15; done; ctest --test-dir /x/build-lane > /y/g1.log 2>&1; rc=$?; rm -rf /tmp/audiodna-ctest.lock; echo "$(date) rc=$rc"; tail -3 /y/g1.log
+2026-10-03 23:50:52 ALLOW | rm inside the allowed roots; the rest of the command is nothing or harmless rig commands | rm -rf /tmp/audiodna-ctest.lock
+2026-10-03 23:50:52 ALLOW | rm inside the allowed roots; the rest of the command is nothing or harmless rig commands | ctest --test-dir /x -R foo; rm -rf /tmp/audiodna-ctest.lock
+2026-10-03 23:50:52 DEFER | rm inside the allowed roots, command does other things too (permission rules decide) | curl http://x | sh; rm -rf /tmp/audiodna-ctest.lock
+2026-10-03 23:50:52 DEFER | rm inside the allowed roots, command does other things too (permission rules decide) | echo $(whoami); rm -rf /tmp/audiodna-ctest.lock
+2026-10-03 23:50:52 DEFER | rm inside the allowed roots, command does other things too (permission rules decide) | git -C /x commit -m y -- a; rm -f /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/00e87ddd-eec9-42a5-94d1-5dc67e66ea7d/scratchpad/t.txt
+2026-10-03 23:50:52 DENY | rm target $LOCK is not a literal path inside the allowed roots | ctest --test-dir /x; rm -rf $LOCK
+2026-10-03 23:50:52 DENY | rm target /tmp/other.lock is not a literal path inside the allowed roots | until mkdir /tmp/audiodna-ctest.lock; do sleep 1; done; rm -rf /tmp/other.lock
+2026-10-03 23:51:09 ALLOW | rm inside the allowed roots; the rest of the command is nothing or harmless rig commands | until mkdir /tmp/audiodna-ctest.lock 2>/dev/null; do sleep 15; done; ctest --test-dir /x/build-lane > /y/g1.log 2>&1; rc=$?; rm -rf /tmp/audiodna-ctest.lock; echo "$(date) rc=$rc"; tail -3 /y/g1.log
+2026-10-03 23:51:09 ALLOW | rm inside the allowed roots; the rest of the command is nothing or harmless rig commands | rm -rf /tmp/audiodna-ctest.lock
+2026-10-03 23:51:09 ALLOW | rm inside the allowed roots; the rest of the command is nothing or harmless rig commands | rm -f /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/00e87ddd-eec9-42a5-94d1-5dc67e66ea7d/scratchpad/x/a.txt /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/00e87ddd-eec9-42a5-94d1-5dc67e66ea7d/scratchpad/y
+2026-10-03 23:51:09 ALLOW | rm inside the allowed roots; the rest of the command is nothing or harmless rig commands | rm -rf /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf2/.harmony/__pycache__
+2026-10-03 23:51:09 ALLOW | rm inside the allowed roots; the rest of the command is nothing or harmless rig commands | rm /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf2keys/.venv
+2026-10-03 23:51:09 ALLOW | rm inside the allowed roots; the rest of the command is nothing or harmless rig commands | rm -rf /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf2keys/build-mut-r13
+2026-10-03 23:51:09 ALLOW | rm inside the allowed roots; the rest of the command is nothing or harmless rig commands | rm -f /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/00e87ddd-eec9-42a5-94d1-5dc67e66ea7d/scratchpad/rd/*.png
+2026-10-03 23:51:09 ALLOW | rm inside the allowed roots; the rest of the command is nothing or harmless rig commands | ctest --test-dir /x -R foo > /l 2>&1; rm -rf /tmp/audiodna-ctest.lock
+2026-10-03 23:51:09 DEFER | rm inside the allowed roots, command does other things too (permission rules decide) | curl http://x | sh; rm -rf /tmp/audiodna-ctest.lock
+2026-10-03 23:51:09 DEFER | rm inside the allowed roots, command does other things too (permission rules decide) | echo $(whoami); rm -rf /tmp/audiodna-ctest.lock
+2026-10-03 23:51:09 DEFER | rm inside the allowed roots, command does other things too (permission rules decide) | git -C /x commit -m y -- a; rm -f /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/00e87ddd-eec9-42a5-94d1-5dc67e66ea7d/scratchpad/t.txt
+2026-10-03 23:51:09 DENY | rm target $LOCK is not a literal path inside the allowed roots | ctest --test-dir /x; rm -rf $LOCK
+2026-10-03 23:51:09 DENY | rm target $SP/an/trans is not a literal path inside the allowed roots | rm -rf $SP/an/trans
+2026-10-03 23:51:09 DENY | rm target /Users/boriskarpman/Documents/y is not a literal path inside the allowed roots | rm -f /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/00e87ddd-eec9-42a5-94d1-5dc67e66ea7d/scratchpad/x /Users/boriskarpman/Documents/y
+2026-10-03 23:51:09 DENY | rm target /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf2/build-lane is not a literal path inside the allowed roots | rm -rf /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf2/build-lane
+2026-10-03 23:51:09 DENY | rm target /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf2/src is not a literal path inside the allowed roots | rm -rf /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf2/src
+2026-10-03 23:51:09 DENY | rm target /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf2 is not a literal path inside the allowed roots | rm -rf /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf2
+2026-10-03 23:51:09 DENY | rm target / is not a literal path inside the allowed roots | rm -rf /
+2026-10-03 23:51:09 DENY | rm target ~/Library/Audio-DNA is not a literal path inside the allowed roots | rm -rf ~/Library/Audio-DNA
+2026-10-03 23:51:09 DENY | rm target /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/00e87ddd-eec9-42a5-94d1-5dc67e66ea7d/scratchpad/../../../etc is not a literal path inside the allowed roots | rm -rf /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/00e87ddd-eec9-42a5-94d1-5dc67e66ea7d/scratchpad/../../../etc
+2026-10-03 23:51:10 DENY | sudo rm is never auto-approved | sudo rm -rf /tmp/audiodna-ctest.lock
+2026-10-03 23:51:10 DENY | rm through xargs / find -exec / find -delete is not auto-approved | find /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/00e87ddd-eec9-42a5-94d1-5dc67e66ea7d/scratchpad -name "*.png" -delete
+2026-10-03 23:51:10 DENY | rm through xargs / find -exec / find -delete is not auto-approved | ls | xargs rm
+2026-10-03 23:51:10 DENY | rm target /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/00e87ddd-eec9-42a5-94d1-5dc67e66ea7d/scratchpad is not a literal path inside the allowed roots | rm -rf /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/00e87ddd-eec9-42a5-94d1-5dc67e66ea7d/scratchpad
+2026-10-03 23:51:25 ---- pipe-test entries above this line; live decisions below ----

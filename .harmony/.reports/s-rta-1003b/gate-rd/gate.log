@@ -1,0 +1,81 @@
+2026-10-04 00:11:52 START lane head 740b6d6; app binary Oct  3 22:17:41 2026 sha 689a7ffebe9c
+2026-10-04 00:11:54 SELFTEST rc=0 :: probe-sync-selftest: 0 case(s) differ (target /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf2/.harmony/
+00:11:54 lock acquired
+2026-10-04 00:11:54 launch 1: top process   6.6 /Applications/ChatGPT.app/Contents/Frameworks/Codex Framework.fr
+00:13:44 lock released
+2026-10-04 00:13:44 launch 1 rc=0 :: INFO  RD launch: 6 valid takes; c0 = 0 in 6, >= 1 block in 0; e' span 64 samples; C span 0 samples
+INFO  RD take 0: c0 0 samples = 0 blocks (spread 0, 24 clicks); e 1504 / e' 1504 samples over 24 markers; C 0 samples; block 512, rate 48000, opens 1 (+0); gaps 0; hops with applied != 0: 0
+INFO  RD take 0 witness pairing: offset 0 over 24 pairs (SD 190.811 samples); candidates [offset, pairs, SD, median]: [[0, 24, 190.811, 0.0], [1, 24, 232.719, -24064.0], [-1, 23, 237.681, 24064], [2, 23, 295.32
+INFO  RD take 1: c0 0 samples = 0 blocks (spread 0, 24 clicks); e 1440 / e' 1440 samples over 24 markers; C 0 samples; block 512, rate 48000, opens 1 (+0); gaps 0; hops with applied != 0: 0
+INFO  RD take 1 witness pairing: offset 1 over 24 pairs (SD 102.311 samples); candidates [offset, pairs, SD, median]: [[0, 24, 3162.806, 24064.0], [1, 24, 102.311, 0.0], [-1, 23, 3320.229, 48128], [2, 24, 190.8
+INFO  RD take 2: c0 0 samples = 0 blocks (spread 0, 24 clicks); e 1440 / e' 1440 samples over 24 markers; C 0 samples; block 512, rate 48000, opens 1 (+0); gaps 0; hops with applied != 0: 0
+INFO  RD take 2 witness pairing: offset 1 over 24 pairs (SD 0.0 samples); candidates [offset, pairs, SD, median]: [[0, 24, 2958.496, 24064.0], [1, 24, 0.0, 0.0], [-1, 23, 3007.772, 48128], [2, 24, 169.328, -240
+INFO  RD take 3: c0 0 samples = 0 blocks (spread 0, 24 clicks); e 1472 / e' 1472 samples over 24 markers; C 0 samples; block 512, rate 48000, opens 1 (+0); gaps 0; hops with applied != 0: 0
+INFO  RD take 3 witness pairing: offset 1 over 24 pairs (SD 141.509 samples); candidates [offset, pairs, SD, median]: [[0, 24, 3379.836, 24064.0], [1, 24, 141.509, 0.0], [-1, 23, 3438.71, 48128], [2, 24, 207.93
+INFO  RD take 4: c0 0 samples = 0 blocks (spread 0, 24 clicks); e 1440 / e' 1440 samples over 24 markers; C 0 samples; block 512, rate 48000, opens 1 (+0); gaps 0; hops with applied != 0: 0
+INFO  RD take 4 witness pairing: offset 1 over 24 pairs (SD 0.0 samples); candidates [offset, pairs, SD, median]: [[0, 24, 3264.976, 24064.0], [1, 24, 0.0, 0.0], [-1, 23, 3320.229, 48128], [2, 24, 169.328, -240
+INFO  RD take 5: c0 0 samples = 0 blocks (spread 0, 24 clicks); e 1440 / e' 1440 samples over 24 markers; C 0 samples; block 512, rate 48000, opens 1 (+0); gaps 0; hops with applied != 0: 0
+INFO  RD take 5 witness pairing: offset 1 over 24 pairs (SD 0.0 samples); candidates [offset, pairs, SD, median]: [[0, 24, 3367.154, 24064.0], [1, 24, 0.0, 0.0], [-1, 23, 3424.414, 48128], [2, 24, 169.328, -240
+2026-10-04 00:13:44 verdict after 1 launches (exit 3): RD INCOMPLETE (6 valid takes on record (< 24): one more launch)
+INFO  RD early-stop rule (A3 / HD9: 2 valid takes with c0 >= one block and 2 with c0 = 0): not met
+00:13:44 re-acquire cooldown 45 s
+00:14:29 lock acquired
+2026-10-04 00:14:29 launch 2: top process  89.2 /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf2
+00:16:18 lock released
+2026-10-04 00:16:18 launch 2 rc=0 :: INFO  RD launch: 6 valid takes; c0 = 0 in 6, >= 1 block in 0; e' span 32 samples; C span 0 samples
+INFO  RD take 0: c0 0 samples = 0 blocks (spread 0, 24 clicks); e 1440 / e' 1440 samples over 24 markers; C 0 samples; block 512, rate 48000, opens 1 (+0); gaps 0; hops with applied != 0: 0
+INFO  RD take 0 witness pairing: offset 1 over 24 pairs (SD 0.0 samples); candidates [offset, pairs, SD, median]: [[0, 24, 3571.534, 24064.0], [1, 24, 0.0, 0.0], [-1, 23, 3632.821, 48128], [2, 24, 169.328, -240
+INFO  RD take 1: c0 0 samples = 0 blocks (spread 0, 24 clicks); e 1472 / e' 1472 samples over 24 markers; C 0 samples; block 512, rate 48000, opens 1 (+0); gaps 0; hops with applied != 0: 0
+INFO  RD take 1 witness pairing: offset 1 over 24 pairs (SD 102.311 samples); candidates [offset, pairs, SD, median]: [[0, 24, 3271.451, 24064.0], [1, 24, 102.311, 0.0], [-1, 23, 3327.535, 48128], [2, 24, 190.8
+INFO  RD take 2: c0 0 samples = 0 blocks (spread 0, 24 clicks); e 1440 / e' 1440 samples over 24 markers; C 0 samples; block 512, rate 48000, opens 1 (+0); gaps 0; hops with applied != 0: 0
+INFO  RD take 2 witness pairing: offset 1 over 24 pairs (SD 102.311 samples); candidates [offset, pairs, SD, median]: [[0, 24, 3271.451, 24064.0], [1, 24, 102.311, 0.0], [-1, 23, 3327.535, 48128], [2, 24, 190.8
+INFO  RD take 3: c0 0 samples = 0 blocks (spread 0, 24 clicks); e 1472 / e' 1472 samples over 24 markers; C 0 samples; block 512, rate 48000, opens 1 (+0); gaps 0; hops with applied != 0: 0
+INFO  RD take 3 witness pairing: offset 1 over 24 pairs (SD 102.311 samples); candidates [offset, pairs, SD, median]: [[0, 24, 3169.347, 24064.0], [1, 24, 102.311, 0.0], [-1, 23, 3219.91, 48128], [2, 24, 190.81
+INFO  RD take 4: c0 0 samples = 0 blocks (spread 0, 24 clicks); e 1472 / e' 1472 samples over 24 markers; C 0 samples; block 512, rate 48000, opens 1 (+0); gaps 0; hops with applied != 0: 0
+INFO  RD take 4 witness pairing: offset 1 over 24 pairs (SD 102.311 samples); candidates [offset, pairs, SD, median]: [[0, 24, 3271.451, 24064.0], [1, 24, 102.311, 0.0], [-1, 23, 3324.108, 48128], [2, 24, 190.8
+INFO  RD take 5: c0 0 samples = 0 blocks (spread 0, 24 clicks); e 1440 / e' 1440 samples over 24 markers; C 0 samples; block 512, rate 48000, opens 1 (+0); gaps 0; hops with applied != 0: 0
+INFO  RD take 5 witness pairing: offset 1 over 24 pairs (SD 102.311 samples); candidates [offset, pairs, SD, median]: [[0, 24, 3271.451, 24064.0], [1, 24, 102.311, 0.0], [-1, 23, 3327.535, 48128], [2, 24, 190.8
+2026-10-04 00:16:18 verdict after 2 launches (exit 3): RD INCOMPLETE (12 valid takes on record (< 24): one more launch)
+INFO  RD early-stop rule (A3 / HD9: 2 valid takes with c0 >= one block and 2 with c0 = 0): not met
+00:16:18 re-acquire cooldown 45 s
+00:17:03 lock acquired
+2026-10-04 00:17:03 launch 3: top process   7.9 /Applications/ChatGPT.app/Contents/Frameworks/Codex Framework.fr
+00:18:52 lock released
+2026-10-04 00:18:53 launch 3 rc=0 :: INFO  RD launch: 6 valid takes; c0 = 0 in 5, >= 1 block in 1; e' span 32 samples; C span 0 samples
+INFO  RD take 0: c0 0 samples = 0 blocks (spread 0, 24 clicks); e 1472 / e' 1472 samples over 24 markers; C 0 samples; block 512, rate 48000, opens 1 (+0); gaps 0; hops with applied != 0: 0
+INFO  RD take 0 witness pairing: offset 1 over 24 pairs (SD 141.509 samples); candidates [offset, pairs, SD, median]: [[0, 24, 2457.596, 24064.0], [1, 24, 141.509, 0.0], [-1, 23, 2498.975, 48128], [2, 24, 207.9
+INFO  RD take 1: c0 512 samples = 1 blocks (spread 0, 24 clicks); e 1952 / e' 1440 samples over 24 markers; C 0 samples; block 512, rate 48000, opens 1 (+0); gaps 0; hops with applied != 0: 0
+INFO  RD take 1 witness pairing: offset 1 over 24 pairs (SD 0.0 samples); candidates [offset, pairs, SD, median]: [[0, 24, 3264.976, 24064.0], [1, 24, 0.0, 0.0], [-1, 23, 3320.229, 48128], [2, 24, 169.328, -240
+INFO  RD take 2: c0 0 samples = 0 blocks (spread 0, 24 clicks); e 1440 / e' 1440 samples over 24 markers; C 0 samples; block 512, rate 48000, opens 1 (+0); gaps 0; hops with applied != 0: 0
+INFO  RD take 2 witness pairing: offset 1 over 24 pairs (SD 0.0 samples); candidates [offset, pairs, SD, median]: [[0, 24, 3162.806, 24064.0], [1, 24, 0.0, 0.0], [-1, 23, 3216.06, 48128], [2, 24, 169.328, -2406
+INFO  RD take 3: c0 0 samples = 0 blocks (spread 0, 24 clicks); e 1472 / e' 1472 samples over 24 markers; C 0 samples; block 512, rate 48000, opens 1 (+0); gaps 0; hops with applied != 0: 0
+INFO  RD take 3 witness pairing: offset 1 over 24 pairs (SD 190.811 samples); candidates [offset, pairs, SD, median]: [[0, 24, 3487.984, 24064.0], [1, 24, 190.811, 0.0], [-1, 23, 3653.632, 48128], [2, 24, 232.7
+INFO  RD take 4: c0 0 samples = 0 blocks (spread 0, 24 clicks); e 1440 / e' 1440 samples over 24 markers; C 0 samples; block 512, rate 48000, opens 1 (+0); gaps 0; hops with applied != 0: 0
+INFO  RD take 4 witness pairing: offset 1 over 24 pairs (SD 141.509 samples); candidates [offset, pairs, SD, median]: [[0, 24, 3277.775, 24064.0], [1, 24, 141.509, 0.0], [-1, 23, 3334.675, 48128], [2, 24, 207.9
+INFO  RD take 5: c0 0 samples = 0 blocks (spread 0, 24 clicks); e 1440 / e' 1440 samples over 24 markers; C 0 samples; block 512, rate 48000, opens 1 (+0); gaps 0; hops with applied != 0: 0
+INFO  RD take 5 witness pairing: offset 1 over 24 pairs (SD 102.311 samples); candidates [offset, pairs, SD, median]: [[0, 24, 2863.121, 24064.0], [1, 24, 102.311, 0.0], [-1, 23, 2911.327, 48128], [2, 24, 190.8
+2026-10-04 00:18:53 verdict after 3 launches (exit 3): RD INCOMPLETE (18 valid takes on record (< 24) and the early-stop rule is not met (1 valid takes with c0 >= one block, 17 with c0 = 0): one more launch)
+INFO  RD early-stop rule (A3 / HD9: 2 valid takes with c0 >= one block and 2 with c0 = 0): not met
+RD INCOMPLETE (18 valid takes on record (< 24) and the early-stop rule is not met (1 valid takes with c0 >= one block, 17 with c0 = 0): one more launch)
+00:18:53 re-acquire cooldown 44 s
+00:19:37 lock acquired
+2026-10-04 00:19:37 launch 4: top process  12.6 /Applications/ChatGPT.app/Contents/Frameworks/Codex Framework.fr
+00:21:26 lock released
+2026-10-04 00:21:26 launch 4 rc=0 :: INFO  RD launch: 6 valid takes; c0 = 0 in 5, >= 1 block in 1; e' span 64 samples; C span 0 samples
+INFO  RD take 0: c0 0 samples = 0 blocks (spread 0, 25 clicks); e 1472 / e' 1472 samples over 25 markers; C 0 samples; block 512, rate 48000, opens 1 (+0); gaps 0; hops with applied != 0: 0
+INFO  RD take 0 witness pairing: offset 0 over 25 pairs (SD 138.902 samples); candidates [offset, pairs, SD, median]: [[0, 25, 138.902, 0], [1, 24, 255.11, -24064.0], [-1, 24, 232.719, 24064.0], [2, 23, 286.811
+INFO  RD take 1: c0 0 samples = 0 blocks (spread 0, 24 clicks); e 1440 / e' 1440 samples over 24 markers; C 0 samples; block 512, rate 48000, opens 1 (+0); gaps 0; hops with applied != 0: 0
+INFO  RD take 1 witness pairing: offset 0 over 24 pairs (SD 0.0 samples); candidates [offset, pairs, SD, median]: [[0, 24, 0.0, 0.0], [1, 24, 169.328, -24064.0], [-1, 23, 172.432, 24064], [2, 23, 224.824, -4812
+INFO  RD take 2: c0 512 samples = 1 blocks (spread 0, 24 clicks); e 1952 / e' 1440 samples over 24 markers; C 0 samples; block 512, rate 48000, opens 1 (+0); gaps 0; hops with applied != 0: 0
+INFO  RD take 2 witness pairing: offset 1 over 24 pairs (SD 141.509 samples); candidates [offset, pairs, SD, median]: [[0, 24, 2047.556, 24064.0], [1, 24, 141.509, 0.0], [-1, 23, 2184.289, 48128], [2, 24, 207.9
+INFO  RD take 3: c0 0 samples = 0 blocks (spread 0, 24 clicks); e 1472 / e' 1472 samples over 24 markers; C 0 samples; block 512, rate 48000, opens 1 (+0); gaps 0; hops with applied != 0: 0
+INFO  RD take 3 witness pairing: offset 1 over 24 pairs (SD 141.509 samples); candidates [offset, pairs, SD, median]: [[0, 24, 3175.73, 24064.0], [1, 24, 141.509, 0.0], [-1, 23, 3230.665, 48128], [2, 24, 207.93
+INFO  RD take 4: c0 0 samples = 0 blocks (spread 0, 24 clicks); e 1504 / e' 1504 samples over 24 markers; C 0 samples; block 512, rate 48000, opens 1 (+0); gaps 0; hops with applied != 0: 0
+INFO  RD take 4 witness pairing: offset 1 over 24 pairs (SD 169.328 samples); candidates [offset, pairs, SD, median]: [[0, 24, 3280.62, 24064.0], [1, 24, 169.328, 0.0], [-1, 23, 3334.824, 48128], [2, 24, 221.70
+INFO  RD take 5: c0 0 samples = 0 blocks (spread 0, 24 clicks); e 1472 / e' 1472 samples over 24 markers; C 0 samples; block 512, rate 48000, opens 1 (+0); gaps 0; hops with applied != 0: 0
+INFO  RD take 5 witness pairing: offset 1 over 24 pairs (SD 102.311 samples); candidates [offset, pairs, SD, median]: [[0, 24, 2863.121, 24064.0], [1, 24, 102.311, 0.0], [-1, 23, 2911.327, 48128], [2, 24, 190.8
+2026-10-04 00:21:27 verdict after 4 launches (exit 0): RD outcome O1 (24 valid takes in 4 launches; c0 = 0 in 22, >= 1 block in 2; e' span 64; C span 0; NMAX 1; EREF 1440)
+INFO  RD early-stop rule (A3 / HD9: 2 valid takes with c0 >= one block and 2 with c0 = 0): MET
+2026-10-04 00:21:27 STOP RULE: outcome reached after 4 launches
+2026-10-04 00:21:43 after RD: Audio-DNA pids [] audio-dna windows 0, Output-named 0; UNC windows 0
+2026-10-04 00:21:43 END after 4 launches

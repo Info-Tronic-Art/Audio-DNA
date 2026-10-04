@@ -3,89 +3,104 @@
 ## NEXT-HARMONY — BIRTH PROMPT & PERSONA
 
 You are Harmony, SECONDARY lane, in ~/projects/RealTimeAudio (Audio-DNA — C++20/JUCE/OpenGL live audio-reactive VJ app).
-CURRENT as of session s-rta-1003 (2026-10-03 13:24 → ~19:15). READ, in this order: (1) .harmony/HANDOFF.md (this prompt's
+CURRENT as of session s-rta-1003b (2026-10-03 20:00 → 2026-10-04 ~01:20). READ, in this order: (1) .harmony/HANDOFF.md (this
 file: WHERE WE ARE, the LOOSE-ENDS LEDGER, the SCREEN-SAFETY LAW — obey it, the session section); (2) .harmony/RIG-RULES.md
-BEFORE launching any lane, probe or gate (binding; every rule cost a run); (3) .harmony/.reports/s-rta-1003/board.md (the
-lane board: order, state, next step). History is .harmony/HANDOFF-ARCHIVE.md — never load it whole (grep '^#', read ranges).
-Boris's rulings: BORIS_DECISIONS.md + .harmony/binding-decisions.md (his words in quotes; read the 2026-10-03 sections
-before touching decks, undo, notices, sync, clips, recording, envelopes); his feedback verbatim: .harmony/boris-feedback-backlog.md
-(BF1-BF33). CLAUDE.md is 24,224 B of its 25,000-byte cap and is due to be cut to <= 8 KB (inbox task T26 STEP 1). Ultracode:
-use workflows. Law #11: plans = architect, opus high; rulings = opus max while Fable is out (Boris 2026-10-02, verbatim:
-"just so you know, we are out of fable usage so you will need to do all fable work with opus 5.5"); builders opus high.
-BORIS USES THIS MACHINE AND THIS APP: an Audio-DNA you did not start is his; yield the turn while lanes run (he interrupts
-long waits); file his words verbatim the turn they arrive.
+BEFORE launching any lane, probe or gate (binding; sections A, A2, B); (3) .harmony/.reports/s-rta-1003/board.md (the lane
+board, updated in place) and .harmony/.reports/s-rta-1003b/rulings-bf2.md (Harmony's binding rulings H-1..H-16 for the sync
+dial). History: .harmony/HANDOFF-ARCHIVE.md — never load it whole. Boris's rulings: BORIS_DECISIONS.md +
+.harmony/binding-decisions.md (his words in quotes; read the 2026-10-03 sections incl. "s-rta-1003b"); his feedback verbatim:
+.harmony/boris-feedback-backlog.md (BF1-BF37). Ultracode: use workflows (.harmony/.reports/s-rta-1003b/wf/bf2-stage.js runs
+ONE stage by args: builder -> pinned reviews -> <= 1 fix round). Law #11: plans = architect, opus high; rulings = opus max
+while Fable is out (Boris 2026-10-02, verbatim: "just so you know, we are out of fable usage so you will need to do all
+fable work with opus 5.5"); builders opus high; reviewers / seats sonnet. BORIS USES THIS MACHINE AND THIS APP: an Audio-DNA
+you did not start is his; yield the turn while lanes run; file his words verbatim the turn they arrive; a question already
+shown to him is never re-worded in place. NEVER load the update-config skill (it costs ~13 % of the context window).
 
-STATE: the deck change (decks are boxes of clips; lane bf9b) is MERGED into main (17574d1) and gated; ctest 1252 / 1252.
-Boris gave about 35 rulings in one afternoon (BF11-BF33 + answers), all filed. Sync dial: ruling adopted, nothing built
-today. Fact sheets exist for every other item (.harmony/.reports/s-rta-1003/facts-*.md). Next free Pitfall: 68 (bf2).
+STATE: nothing was merged into main this session (main = 34179a2 + this close's docs commit; ctest 1252 not re-run). Three
+unmerged lanes, each in its own worktree: lane/bf2 740b6d6 (.claude/worktrees/bf2: main merged in, S3f + S4 + fix round
+built, the diagnosis instrument D0; build-lane holds the app as built from 68abc16's src; build-mut-r7 kept), lane/bf2-keys
+9eab9bd (.claude/worktrees/bf2keys: the keys fix S4b, gated GREEN; own build-lane + build-mut-r13), lane/keying-audit e22ef2d
+(.claude/worktrees/keying: audit probe + report, source only). Next free Pitfall: 68 (bf2; already written as 68 in the lane).
 
 START HERE, in order:
-1. bf2 sync dial — worktree .claude/worktrees/bf2 (lane/bf2 4a1f240). Stages per .harmony/.reports/s-rta-1003/ruling-bf2-delta.md
-   (22 amendments) + the HARMONY ADOPTION at the end of plan-bf2-delta.md (items 1-7: every show remembers its sync incl. 0;
-   no notice text; Gain twice as long, same scale): M0 merge main INTO lane/bf2 -> S3f -> S4 -> S6 -> S5a -> S5b (visual
-   gate) -> reviews -> merge (Pitfall 68). Quiet-machine rows (R7 21 arms, G6, [timing]) are Harmony's.
-2. PLAN TOGETHER (architect -> blind council -> ruling): transport + undo-live — every fire restarts a video; a column
-   re-fire restarts; the playhead drag plays on from the drop; Cmd+Z never changes what is live; a BPM-synced clip has a BPM
-   box (starts at 120) and a beats box with x2 and /2. Facts: facts-transport.md. Re-registers K10 (ii), T6h, the trigger-undo tests.
-3. Notices lane — remove every event and failure text app-wide (facts-notices.md: 23 + 21). State displays must stay
-   truthful (the Record panel must not say "Recording" after a failed take); probe-asan-live's waits move to a model fact
-   FIRST; Boris may still answer "keep failures" (default: they go).
-4. Keying / blend pixel audit on the merged app -> a works / fix / remove table for Boris (facts-keying.md).
-5. Then: bf7 bars delta (Quantize 1, 1/2, 1/4, 1/8, 1/16 needs sub-beat release edges; MilkDrop labels in bars, no seconds);
-   bf45 envelopes delta (NO big view; trim handles that snap); bf1 record delta (alpha, no auto end, live cell, prominent
-   REC; codec measured in-app); bf6 Timeline; ui-polish + the Edit menu (BF33); deck names (bad characters -> "-"); bug X1;
-   tsan-r5 (+ SF-12 the http-thread reader).
-6. T26 (inbox): STEP 1 CLAUDE.md <= 8 KB (pin-scan tests first), STEP 2 claudeMdExcludes for ~/.claude/CLAUDE.md (layer0
-   supplied in-project), re-measure against .harmony/.reports/s-rta-1003/t26-step0.md, report up via idea-capture.
-7. Pending gates (quiet machine): mkvidx G6 / G7, bf10 G3 perf, bf10 G5 evidence top-up; ui G1b on-screen probe only with
-   Boris's OK (NOT given).
-Boris page: .harmony/.reports/s-rta-1003/boris-checks.html (opened at close; his test show is in
-~/Documents/AudioDNA-deck-check/). One open question to him: "keep failures" (see 3). Unpushed 0.
+1. SYNC DIAL (lane/bf2). Spec chain: rulings-bf2.md (H-1..H-16) > ruling-bf2-stops.md (section 4 stages, section 5 gate rows)
+   > ruling-bf2-gates-restated.md (rows R11, G7, G1 for S5a / S5b) > the adoption at the end of
+   .harmony/.reports/s-rta-1003/plan-bf2-delta.md > ruling-bf2-delta.md. DONE: M0 (Harmony gate), S3f, S4, D0, RD = outcome
+   O1 "instrument artefact" (H-14: NMAX 1, EREF 1440, read its NOTE), S4b (Harmony gate H-15).
+   NEXT: stage R7r (probe-only, one builder in worktree bf2) with STEP 0 = merge lane/bf2-keys INTO lane/bf2 (a code
+   conflict in .harmony/probe-sync.py, two both-added regions: keep both), then SELFTEST + R13 / R14 again on the merged
+   lane, then R7 / R7b on the measured origin as ruling-bf2-stops section 4 says. THEN Harmony's owed rows on a QUIET machine
+   (no agent running, no video playing; run them from a background script): [timing] x3 (+ the loaded arm once as INFO,
+   HD6), R5 x5, G6, R7's 21 arms + R7b, the mutant RED on build-mut-r7. THEN S6 (only after R7's verdict) -> S5a -> S5b.
+   BEFORE S5b's packet: the architect rules H-16's three items (G7's ML-1 label bar is false on 15 existing buttons; the
+   keyboard bind overlay has no test route; the learn title's em dash). S5b ends at the VISUAL GATE (five critic seats), then
+   reviews, the final gate list, merge to main, Pitfall 68, remove the three worktrees as they merge.
+2. FIRES + UNDO lane (after the sync dial merges): plan-transport.md + ruling-transport.md (30 amendments) +
+   ruling-transport-delta1.md (DA-1..DA-10, built on Boris's answers; adoptions at the end of both plan files). Stages S0,
+   S1, S2, (S2b), S3, S3h, S4a, S4c, S4b (visual gate), S5. S4c's builder reads Boris's answers to questions 20 and 24 first.
+3. MESSAGES lane (after 2): plan-notices.md + ruling-notices.md (24 amendments; adoption at the end of the plan). Boris:
+   "ok. the only fail message will be a failed save. remove all others". Default until he confirms question 12: every save he
+   presses shows the box.
+4. KEYING: Boris answers boris-keying.html (keep / fix / remove per entry) -> a plan for what he keeps (rulings-keying.md;
+   audit on lane/keying-audit). The worktree keeps 97 MB of raw frames until he has seen the page.
+5. Then: bf7 bars delta (+ BF37: beats for clips, units stated everywhere), bf45 envelopes, bf1 record, bf6 Timeline,
+   ui-polish + Edit menu, deck names, bug X1, tsan-r5.
+6. T26 (inbox): STEP 1 CLAUDE.md <= 8 KB and STEP 2 claudeMdExcludes — after the sync dial merges (it adds the Pitfall 68
+   line; CLAUDE.md is 24,370 B on lane/bf2). Report up via idea-capture.
+7. Pending gates from s-rta-1002b (quiet machine): mkvidx G6 / G7, bf10 G3 perf, bf10 G5 top-up; ui G1b only with Boris's OK.
+BORIS'S PAGES (opened for him): .harmony/.reports/s-rta-1003b/boris-questions.html — 25 questions; 1-12 answered (12 to be
+confirmed: I re-lettered it under him), 13-25 open, each with a default — and boris-keying.html. File every answer verbatim.
 
 ## WHERE WE ARE IN THE BUILD
 <!-- caveman positional status — Boris-facing, skimmable -->
-BUILD: Audio-DNA app-evaluation feedback round (BF1-BF33): make the app behave the way Boris performs.
-SHIPPED: deck change merged (decks = boxes of clips; switching decks never changes the picture; no deck marks, no Undo
-  Remove button, no deck messages); freed-memory fault fixed + memory gates; Undo of a new deck keeps a playing clip;
-  33 probe scripts can no longer quit his app; MilkDrop plays across deck switches; Layer tab survives Remove Deck.
-IN-FLIGHT: none (sync dial S1a-S3 built on its branch from earlier sessions; its ruling is adopted, no builder started).
-NEXT: sync dial build -> fires + Undo rules -> remove all event messages -> keying / blend audit -> bars, envelopes,
-  record to clip, Edit menu.
-BLOCKERS: none. One question to Boris with a default (keep failure messages or not).
-YOU ARE HERE: 5 of the first 10 feedback items are in the app (codec info, deck rename, MKV reverse, MilkDrop size, decks);
-  the afternoon's 23 new items are planned or fact-sheeted, none built.
+BUILD: Audio-DNA feedback round (BF1-BF37): make the app behave the way Boris performs. Tonight: the sync dial.
+SHIPPED: nothing new in his app tonight (no merge to main). On branches: sync dial brought up to today's app; the take-timing
+  test finished; nudge on a key or pad; a knob can no longer be bound dead; the 10.7 ms take mystery diagnosed (a test
+  artefact, not the app). Plans ruled: fires + Undo (with his answers), messages removal. Keying audit done, page for him.
+IN-FLIGHT: none (every started task is finished and filed).
+NEXT: merge the keys fix into the sync-dial branch -> re-state the take-alignment gate -> the long quiet test rows -> taps
+  through the dial -> saved with the show -> the on-screen SYNC button (critic panel) -> merge. Then fires + Undo, messages.
+BLOCKERS: none. The quiet rows need about 30 minutes with no video playing and no agent running.
+YOU ARE HERE: 5 of the first 10 feedback items are in the app; the sync dial is about half-way through its remaining
+  stages on its branch; the next three lanes are planned and ruled, none built.
 
-## LOOSE-ENDS LEDGER — s-rta-1003 (CURRENT)
+## LOOSE-ENDS LEDGER — s-rta-1003b (CURRENT)
 NOT RUN / NOT MET (reported as such, never as pass):
-- K5 with Ableton Link ON: NOT RUN (waiver in the work log: the app is built with Link OFF). SF-6: a Link build + toggle route.
-- B7 graphic-design seat answered NO: ~185 pt empty top bar where "Fade:" was. Harmony's decision: left for the sync-dial
-  top-bar pass; on the Boris page as a look item.
-- B6 perf was run at 4137f60, not re-run at the final head fc51063 (delta = message-thread inspector code only).
-- B3b / ASAN-LIVE / H1 / U1 not re-run on merged main (src / tests / probe diff fc51063..17574d1 = 0).
-- Pending from s-rta-1002b: mkvidx G6 / G7, bf10 G3 perf, bf10 G5 evidence, ui G1b (Boris has NOT OK'd the on-screen strip).
-NOT BUILT (ruled, filed):
-- BF31 Undo never changes what is live (T6h pins today's exception: Undo of a Load Deck that added layers stops its clips).
-- Every fire restarts (bf9b's C3 "resume" + K10 (ii) still as built). Column re-fire, playhead drag, BPM box.
-- BF32 notices app-wide: "Loaded: / Saved: / Loaded deck:" and 40 more still show. BF33 Edit menu (Undo is in "Composition").
-- Remove Deck still empties the Clip tab (the effect scope carries a deck index). After Add / Remove Column the Clip tab goes empty.
-- Composition::routineLoadNote has no reader and no log line. The drawable Timeline curve is assigned to NO lane.
-- SF-12: GET /api/composition reads the deck list on the http thread unlocked (ASan container-overflow once) -> tsan-r5.
-- ui-polish: a 20-character deck name is cut without "…"; a strip shows the file name, not the clip name; rebuildCells split (SF-3).
-GATES / PROBES HYGIENE:
-- probe-boxes-perf.sh exits 0 whatever B6(ii) says (read the B6 lines). probe-asan-live waits on three event texts.
-- AS8 (Layer tab after Remove Deck) has no failing arm; its teeth are lint B4k + the live rows. m9b [H2] proven by a mutant only.
-- probe-quit-ours.sh honours QUIT_OURS_UCOMM from the environment (selftest seam). probe-lane3.sh / probe-step3.sh launch without -g.
-- APP-INVENTORY "242 embedded shaders" / "41 REST routes" not re-derived. performance-controls.md overclaims "Undo / Redo
-  leave the Clip tab emptied".
+- The quiet [timing] x3: NOT RUN (machine never quiet). It failed once on a builder's run under load and passed in three
+  full runs of mine; cause of the low readings NOT established (H-8; ruling-bf2-stops P4).
+- Every sync live row as a GATE line: R1a, R4, R4b, R5 x5, R7 21 arms, R7b, G6, the R7 mutant RED — NOT RUN by Harmony
+  (builders ran short development subsets only). G1-RED evidence for S3f / S4 was read in summaries, not re-derived.
+- lane/bf2-keys is NOT merged into lane/bf2. A build WITHOUT the test server (the three debug routes compiled out): NOT built.
+- RD: the earlier "3 of 3 shifted takes in one launch" pattern is NOT explained (in RD: 1 of 6 in two launches). H-14.
+- Keying audit: I re-captured 87 frames (identical to the audit's); I did NOT re-derive the verdict arithmetic, and did NOT
+  check the page's rows against the JSON myself (the page writer's script did). Sheet captions still call Max RGB an alias.
+- Transport, delta and notices rulings: read-only work; NOTHING built or run; their facts FM-1..FM-6 are unmeasured.
+- main's ctest (1252) not re-run this session; B6 / B3b / ASAN-LIVE of the deck change still as the s-rta-1003 ledger said
+  (archived); pending s-rta-1002b gates unchanged.
+OPEN WITH BORIS:
+- Question 12 ("12 b"): I rewrote the question in place after he opened the page and its letters swapped meaning. Read as:
+  a take or a routine that fails to save also shows the message (= the current default). He has been asked to confirm.
+- Questions 13-25 unanswered (defaults stand). Question 20's default (a clip whose Beats is not whole is NOT beat-locked) is
+  HARMONY'S default, not his word; at his "default all bpms to 120" most clips start that way.
+- The keying page: every Remove is a proposal; nothing is built until he answers.
+FILED DEBT (found, not fixed):
+- The onset detector double-fires on click 69 of the probe's click file (the "late marker"; pre-existing).
+- BeatLead's manual-Resync branch, originX_, lastResyncs_, Flags::resyncs are dead since D5 (HD3: kept as debt).
+- "CC relative mode" is unreachable from any screen (CLAUDE.md lists it as a capability); MIDI learn makes every CC Absolute.
+- Load Deck accepts a whole composition file (its shape check looks only for "layers"). GET /api/status frameTimeMs reads 0.0.
+  R5 in AUTO printed odd tracker tempi (182.83 / 131.40 / 0.00) on a 120 BPM click; no bar reads it.
+- Screen / Multiply / Darken / Lighten ignore opacity and a picture's alpha; 49 of 55 blends and 41 of 55 transitions are
+  duplicates; the Keying slider and Threshold / Softness do nothing (the keying page).
+- main's APP-INVENTORY said 1249 unit tests where its build lists 1252 (fixed on lane/bf2).
 SESSION / SYSTEM:
-- T26: only STEP 0 (measurement) and STEP 3 (this slim handoff + archive + RIG-RULES.md) done; STEP 1-2 open.
-- fable-usage-audit WARN LAW11-LOG-GAP: 3 architect dispatches, 0 DISPATCH_LOG rows (a foreign lane cannot write it).
-- Session index: skipped (foreign-repo lane, no transport yet).
-- 156 visual-gate captures are on disk in .harmony/.reports/s-rta-1003/bf9b-shots/ (gitignored); 12 + the manifest are committed.
-- Worktrees: .claude/worktrees/bf2 kept (unmerged lane); bf9b and recon removed. Branch lane/bf9b kept.
+- WARN fable-usage-audit LAW11-LOG-GAP: 13 architect dispatches, 0 DISPATCH_LOG rows (a foreign lane cannot write it).
+- Session index: skipped (foreign-repo lane, no transport yet). T26 STEP 1-2 open.
+- The TEMPORARY rm guard (installed at Boris's request for the unattended night) was REMOVED at close; script, settings
+  snippet and decision log are in .harmony/.reports/s-rta-1003b/ (rm-guard.py, rm-guard-settings-snippet.json, rm-guard.log).
+- Worktrees kept: bf2, bf2keys, keying (all unmerged). Disk: about 13 GB of build dirs across them.
 DOUBTS:
-- "Remove the list entirely and cleanly" includes failure messages: a failed save will show nothing. Told to Boris once; no answer.
-- The Clip-tab / Layer-tab behaviour after Undo of a Remove Deck was checked live only for the Layer tab.
+- Whether Boris read questions 13-19 at all (he wrote "answer to 12 questions").
+- Whether "a failed save" in his ruling includes a failed take save — the default now says yes (ruling-notices H-1).
 
 ## SCREEN-SAFETY LAW — MANDATORY, EVERY SESSION, NO EXCEPTIONS
 
@@ -133,39 +148,44 @@ Report in the handoff: windows closed, process gone, screen visually verified.
 no full-screen capture — count Audio-DNA / Output / UserNotificationCenter windows with Quartz after every batch; launch
 only with open -g; no gate ever opens an Output window. See .harmony/RIG-RULES.md.)
 
-# >>> SESSION s-rta-1003 (2026-10-03 13:24 → ~19:15, secondary) — START HERE <<<
+# >>> SESSION s-rta-1003b (2026-10-03 20:00 → 2026-10-04 ~01:20, secondary) — START HERE <<<
 
 ## THE ONE-LINE VERSION
-The deck change is merged and gated; Boris fed back all afternoon (about 35 rulings, filed verbatim); the sync dial and
-every other item are planned or fact-sheeted, none built. Session log .harmony/sessions/2026-10-03-s-rta-1003-secondary.md;
-work log .harmony/s-rta-1003-work.md; everything else .harmony/.reports/s-rta-1003/ (board.md first).
+The sync dial moved through its merge-in and three stages on its branch, its one mystery was diagnosed by an instrumented
+run, the next three lanes are planned and ruled, and the keying menus were audited pixel by pixel; nothing merged to main.
+Session log .harmony/sessions/2026-10-04-s-rta-1003b-secondary.md; work log .harmony/s-rta-1003b-work.md; everything else
+.harmony/.reports/s-rta-1003b/.
 
-## VERIFICATION — PROVEN, AND HOW (Harmony ran every gate)
-Lane bf9b: main merged INTO the lane (M1), by-name-quit sweep (M2, selftest 88 / 0), MilkDrop deck-switch row (M3), FIX-1
-memory, FIX-2 undo, FIX-3 screen, FIX-4 probes, FIX-5 Layer tab; reviews: 4 lenses at 4137f60 + the delta at fc51063, all
-PASS_WITH_NITS, 0 MUST. Gates at the final head fc51063: build rc 0; ctest serial 1252 / 1252; TSan unit 5 / 5, 0 warnings;
-"PROBE-ASAN-UNIT GREEN (10 cases, 0 reports)"; "PROBE-ASAN-LIVE GREEN (7 steps, ...)" and "RED (step L1)" on the wiring
-mutant; deck probes 63 PASS / 0 FAIL / 1 BLOCKED with the exact BLOCKED-1 line, rc 3, RED on the pre-merge app in exactly
-the 19 expected rows; MilkDrop m9b PASS x3 (RED-OK x3 pre-merge), 23 / 0; deck tabs 54 / 0 (51 / 3 pre-merge on the
-build-count clause only); F5 live rows 10 / 0; perf at 4137f60: "B6(ii) PASS ... = -0.016 ms" (teeth +37 ms under the
-mutant), B6(i) +0.034 ms; visual gate: 156 captures, critics 4 YES / 1 NO (Fade gap) + 2 YES on the fix. Post-merge on
-main 17574d1: build rc 0 (355 objects), ctest 1252 / 1252, deck probes same line rc 3, TSan 5 / 5.
+## VERIFICATION — PROVEN, AND HOW (Harmony ran every line below herself; logs in .harmony/.reports/s-rta-1003b/gate-*/)
+- M0 (lane/bf2 c45b579): "100% tests passed, 0 tests failed out of 1321"; tsan 11 / 11, 0 reports; lints; quit sweep
+  "SELFTEST 96 ok / 0 FAIL"; smoke health 200 + sync 200.
+- A1 (lane/bf2 68abc16): 1330 / 1330; tsan 12 / 12; probe-sync-selftest "0 case(s) differ"; quit selftest 57 / 0.
+- RD (lane/bf2 740b6d6, app as built): "RD outcome O1 (24 valid takes in 4 launches; c0 = 0 in 22, >= 1 block in 2; e' span
+  64; C span 0; NMAX 1; EREF 1440)".
+- S4b (lane/bf2-keys 9eab9bd): 1335 / 1335; "PASS  R13 the handler case moves the dial: 9 of 9 steps"; "PASS  R14 MIDI learn
+  refuses a CC on a Sync target and changes nothing else; a note attaches: 8 of 8 states"; on the mutant app exit 1 with 8
+  R13 FAIL lines and 5 R14 FAIL lines.
+- Keying sample: 87 of 87 re-captured frames identical to the audit's (max difference 0); one contact sheet looked at.
+Reviews (independent, pinned): merge / gates / realtime PASS_WITH_NITS; keys FAIL on lane/bf2 (closed by S4b: keys + gates
+r2 0 MUST); D0 probe r2 0 MUST; keying method r2 0 MUST; the gate re-statement refuted twice, folded (round 3).
 
-## NOT VERIFIED — WHAT ONLY BORIS CAN CHECK (page .harmony/.reports/s-rta-1003/boris-checks.html, opened for him)
-- Clicking through 20 decks while clips play: nothing on screen changes, by feel. The top bar's empty stretch: taste.
-- His own show "test with harry" opens with his layers as they were. Remove Deck / Cmd+Z by hand. Load Deck of a wider deck.
+## NOT VERIFIED — WHAT ONLY BORIS CAN CHECK
+- Nothing new is in his app tonight. His two pages carry what is his: 25 questions (taste and behaviour), and the keying
+  keep / fix / remove proposals with pictures.
+- When the sync dial lands: the feel of the dial against a real room; a held Sync key repeating; the SYNC button and the
+  longer Gain (after the critic panel).
 
 ## MY OWN ERRORS THIS SESSION — recorded because no gate would surface them
-1. Told Boris where the Timeline curve "will be drawn" from two grep hits, as fact; no plan says it. Corrected to him; habit
-   in RIG-RULES. 2. Read his "default and bpms for clips to 120" as "my default stands"; he meant every clip's BPM starts at
-   120. 3. gateA.sh printed every rc as 0 ("$(date) ... rc=$?"). 4. Trusted a restore rebuild that compiled nothing (the
-   mutant app ran again as "restored"). 5. An 8-minute in-turn wait Boris had to interrupt. 6. One git log without
-   --first-parent (80 lines of noise) and one cd in a subshell.
+1. Two hand-typed times on the lane board (corrected from the work log). 2. A silent 70,000-character cut of council papers
+made the transport ruling PARTIAL (completion round run). 3. A quote of Boris stamped with the time I wrote a file, not the
+time it was recorded (an architect caught it). 4. I re-worded question 12 on his page in place after he had it open; its
+letters swapped meaning and his "12 b" had to be re-asked. 5. Loading the config skill cost about 13 % of the context
+window. Habits are in RIG-RULES.md A2 and the notebook.
 
 ## SCREEN STATE AT CLOSE (screen-safety law #4)
 Every launch was open -g through the lock helper or a probe that quits only its own pid; no gate opened an Output window;
-0 Audio-DNA / Output / UserNotificationCenter windows after every batch and at close; no Audio-DNA process running; live +
-ctest locks free; no full-screen capture (window-id captures only). The ASan app ended on reports without a crash dialog.
+0 Audio-DNA / Output / UserNotificationCenter windows after every batch and at close (Quartz count); no Audio-DNA process;
+live + ctest locks free; no full-screen capture.
 
 ## COUNTS — run them, never inherit them
-ctest 1252 / 1252 on main 17574d1. Unpushed: see git status at boot.
+ctest 1252 on main (NOT re-run this session); 1330 / 1330 on lane/bf2 68abc16; 1335 / 1335 on lane/bf2-keys 9eab9bd.

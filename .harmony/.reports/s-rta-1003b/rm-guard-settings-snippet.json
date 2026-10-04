@@ -1,0 +1,40 @@
+{
+  "disabledMcpjsonServers": [
+    "graphify-rta",
+    "clangd-rta"
+  ],
+  "permissions": {
+    "allow": [
+      "Bash(rm -rf /tmp/audiodna-ctest.lock)",
+      "Bash(rm -rf /tmp/audiodna-live.lock)",
+      "Bash(rm -rf /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/00e87ddd-eec9-42a5-94d1-5dc67e66ea7d/scratchpad/*)",
+      "Bash(rm -f /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/00e87ddd-eec9-42a5-94d1-5dc67e66ea7d/scratchpad/*)",
+      "Bash(rm /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/00e87ddd-eec9-42a5-94d1-5dc67e66ea7d/scratchpad/*)",
+      "Bash(rm -rf /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf2/.harmony/__pycache__)",
+      "Bash(rm -rf /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf2keys/.harmony/__pycache__)",
+      "Bash(rm -rf /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/keying/.harmony/__pycache__)",
+      "Bash(rm /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf2/.venv)",
+      "Bash(rm /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf2keys/.venv)",
+      "Bash(rm /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/keying/.venv)",
+      "Bash(rm -f /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf2/.venv)",
+      "Bash(rm -f /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf2keys/.venv)",
+      "Bash(rm -f /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/keying/.venv)",
+      "Bash(rm -rf /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf2/build-mut-*)",
+      "Bash(rm -rf /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf2keys/build-mut-*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /Users/boriskarpman/projects/RealTimeAudio/.claude/rm-guard.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

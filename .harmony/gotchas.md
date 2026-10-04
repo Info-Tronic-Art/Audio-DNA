@@ -119,7 +119,7 @@ Promoted: no
 ### 2026-07-17 — Launch Audio-DNA via `open`, NEVER direct binary exec, for behavioral gates
 Source: Harmony Wave-0 behavioral gate — direct exec of `build/AudioDNA_artefacts/Release/Audio-DNA.app/Contents/MacOS/Audio-DNA` from an agent shell hangs pre-UI forever (process alive, ZERO windows, ZERO listening sockets, empty log, 2+ min) — looked exactly like a broken REST server.
 Trigger: Running the app binary directly from a shell/agent context to probe the port-7070 API.
-Rule: Always launch with `open build/AudioDNA_artefacts/Release/Audio-DNA.app` (LaunchServices context); port 7070 binds ~12s after launch. Poll /api/health before probing. Kill with `pkill -f Audio-DNA`.
+Rule: Always launch with `open build/AudioDNA_artefacts/Release/Audio-DNA.app` (LaunchServices context); port 7070 binds ~12s after launch. Poll /api/health before probing. Launch with `open -g` through the lock helper and quit ONLY the pid you launched (`.harmony/probe-quit-ours.sh` / the helper's `quit_app`). NEVER `pkill` / kill by name: an Audio-DNA you did not start is Boris's (RIG-RULES.md). [The 2026-07 text said "Kill with pkill -f Audio-DNA": retired 2026-10-03 22:33:03, s-rta-1003b.]
 Scope: repo
 Promoted: no
 
@@ -133,7 +133,7 @@ Promoted: no
 ### 2026-07-19 — First `open` can transiently stall in CoreAudio/TCC init (looks like the direct-exec hang)
 Source: Undo v1 step-1 builder (fence-validation live run)
 Trigger: First `open` of Audio-DNA.app after a rebuild sometimes stalls inside the ctor at `AudioDeviceManager::initialiseWithDefaultDevices` → CoreAudio/TCC — process alive, no windows, no port 7070, indistinguishable from the direct-exec hang gotcha (2026-07-17).
-Rule: Before concluding the build is broken, run `sample <pid>` to pinpoint the stall; if it's in AudioDeviceManager/CoreAudio init, `pkill -9` and re-`open` — second launch typically binds :7070 in ~4s. Environment flake (TCC/audio permissions), not code.
+Rule: Before concluding the build is broken, wait and poll /api/health again (NEVER `sample` / lldb / dtrace on any binary -- RIG-RULES.md); if the launch YOU started is stalled, quit it by its own pid (`quit_app`) and re-`open -g` [the 2026-07 text advised `sample <pid>` and `pkill -9`: both retired 2026-10-03 22:33:03, s-rta-1003b] — second launch typically binds :7070 in ~4s. Environment flake (TCC/audio permissions), not code.
 Scope: repo
 Promoted: no
 **ROOT CAUSE FOUND 2026-07-25:** see the TCC mic-prompt entry below — the "stall" is the app blocking on an unanswered microphone-permission dialog.
