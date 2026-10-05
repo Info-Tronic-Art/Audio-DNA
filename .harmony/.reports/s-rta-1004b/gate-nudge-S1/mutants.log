@@ -1,0 +1,24 @@
+GREEN  control (no mutation): 22 of 22 case(s) passed
+RED  STUB an apply that writes nothing: 19 of 22 case(s) FAILED; passing: T-N14 real-time text gate | T-N15 never engaged = untouched | the nudge word
+RED  M1 delta's sign flipped: 2 of 2 named case(s) FAILED: T-N1 sign + size | T-N3 edge time
+RED  M2 the hold removed: 2 of 2 named case(s) FAILED: T-N5 Auto, the onset and the wrap apart | T-N5 arm MISSED
+RED  M3 beatInBar' = S's: 1 of 1 named case(s) FAILED: T-N4 bar line, Manual
+RED  M4 the bar counts not carried: 1 of 1 named case(s) FAILED: T-N4 bar line, Manual
+RED  M5 the glide stops 0.01 ms short: 1 of 1 named case(s) FAILED: T-N12 back to zero
+RED  M6 the target read as D + 1: 2 of 2 named case(s) FAILED: T-N2 1 ms | T-N15 never engaged = untouched
+RED  M7 no glide: 1 of 1 named case(s) FAILED: T-N11 glide
+RED  M8 delta from the first hop's bpm: 1 of 1 named case(s) FAILED: T-N7 tempo change
+RED  M9 the origin clamp removed: 1 of 2 named case(s) FAILED: T-N8b a replayed Resync at -250 (the shifted view still in the bar before)
+RED  M10 the cap removed: 1 of 1 named case(s) FAILED: T-N6 none skipped
+RED  M11 apply also writes onsetCount: 3 of 3 named case(s) FAILED: T-N4 bar line, Manual | T-N5 Auto, the onset and the wrap apart | T-N8c the sequence during a hold
+RED  M19 count' in uint32: 1 of 1 named case(s) FAILED: T-N13 a later nudge before the first lock
+RED  M20 a std::vector member: 1 of 1 named case(s) FAILED: T-N14 real-time text gate
+RED  M21 the lag term removed: 2 of 3 named case(s) FAILED: T-N5 Auto, the onset and the wrap apart | T-N5b a bar snap in Auto fires on the shifted downbeat
+RED  M22 the sequence not held: 1 of 1 named case(s) FAILED: T-N8c the sequence during a hold
+RED  M23 the restart removed (the applied value snaps to 0, then the ordinary guards): 2 of 2 named case(s) FAILED: T-N8 the restart | T-N8 the bar counter
+RED  M27 no relabel after a tracker Resync: 1 of 2 named case(s) FAILED: T-N8b a replayed Resync at +250, the tracker on beatInBar 2 (the shifted view already in the Resync's beat)
+RED  M28 the bar fields re-seated on every hop: 1 of 1 named case(s) FAILED: T-N5 arm MISSED
+RED  R1a the lag clamped at 0 from below (its -1 side dropped): 2 of 3 named case(s) FAILED: T-N5 Auto, the onset and the wrap apart | T-N5b a bar snap in Auto fires on the shifted downbeat
+RED  R1b the bar-phase formula's divisor drifted from the tracker's: 2 of 3 named case(s) FAILED: T-N4 bar line, Manual | T-N5 Auto, the onset and the wrap apart
+RED  R1c the phrase formula's bar index drifted from the tracker's: 2 of 3 named case(s) FAILED: T-N4 bar line, Manual | T-N5 Auto, the onset and the wrap apart
+PASS  nudge S1 unit mutants: 21 of 21 RED; the stub arm RED; control GREEN

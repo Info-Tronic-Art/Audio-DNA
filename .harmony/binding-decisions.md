@@ -1039,3 +1039,37 @@ build it; "audio controls the video", all tempo-locked, current UI will be scrap
   says was attached.
 - The tracks — Boris: "I will get you the 3 audio tracks in another session. need to get them from a dj" -> the transport
   lane's first measurement stays blocked until then.
+
+## 2026-10-04 (s-rta-1004b) — Boris clarifies R99: what clip, layer and global actions control; global supersedes layer with a transition slider; an "ignore actions" toggle on every control (recorded 2026-10-04 22:27:57; whole message verbatim: boris-feedback-backlog.md, same stamp)
+- What each kind of action controls — Boris: "the clip actions control clip sliders and buttons within the clip tab which
+  include any effects," / "the layer actions can trigger clips on it's layer and controls sliders and buttons within the
+  layers tab which include any layer effects," -> a clip's actions: sliders AND buttons of its tab and effects (REPLACES
+  reading R99's "only move sliders"); a layer's actions: clip fires on its own layer + sliders and buttons of the layer tab
+  and layer effects.
+- Global over layer — Boris: "the global can trigger clips and supercede the layer actions, so the global controls all
+  sliders and buttons in the global tab, and all the layer with it's own actions and when the global is triggered the layer
+  action is turned off. There is a small transition slider that controls how fast to transition to the global action
+  settings from the layer settings as the global and layer actions do some similar things and this same slider sets the
+  time when going back to layer actions from global." -> a global action fires clips, controls the global tab and the
+  layers; while it is on the layers' actions are off; one transition slider times the change both ways (readings R105,
+  R106).
+- Ignore actions — Boris: "Also, every slider, button, everything needs an ignore actions toggle so the user can turn off
+  action control of something during a show if they want to keep the action but need to cancel something live." -> every
+  control has an "ignore actions" switch (reading R107). Beside his answer 140 (a held slider wins; on letting go the
+  action catches up): the switch is the lasting way, the hand the momentary one.
+
+## 2026-10-04 (s-rta-1004b) — Boris's reference picture for the recording review screen, and where its parts go (recorded 2026-10-04 22:32:45; whole message verbatim + the picture described: boris-feedback-backlog.md, same stamp)
+- The review screen's layout — Boris: "reference for review screen. small sample. place the names of each row and the hierarchy on the
+  left, the audio track across the top and in and out points on the top and all has a grid that can be adjusted, smaller and
+  larger, plus quantize control. [Image #10]" -> rows of curves with keyframe points on a grid as in
+  .harmony/.reports/s-rta-1004b/boris-images/review-screen-reference.png; row names and the hierarchy at the left; the audio
+  track and the in / out points at the top; an adjustable grid; a quantize control. Request RQ-1 is MET.
+
+## 2026-10-04 (s-rta-1004b) — Boris's answers to questions 144-147; his instruction for the close (recorded 2026-10-04 22:40:14; whole message verbatim + the questions as asked: boris-feedback-backlog.md, same stamp)
+- Stop on one press (144) — Boris: "144 a" -> the row's stop acts at once; no hold-to-stop.
+- The nudge text (145) — Boris: "145 b" -> "nudge X ms" sits BETWEEN the two nudge buttons.
+- The Bar text (146) — Boris: "146 b" -> "Bar 1" .. "Bar 4" is taken out; the circle alone shows the beat.
+- Effects after a stop (147) — Boris: "147 a" -> Freeze, Echo and feedback keep doing what they do after a stop.
+- The close — Boris: "give me concrete questions on what is still open when you finish this session in the html page as usual,
+  finish current tasks, don't lose any decisions then run eos" -> done at this session's close (the page, the tasks in
+  flight, every decision filed, then end of session).

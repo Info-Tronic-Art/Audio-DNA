@@ -1,0 +1,18 @@
+app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/onesave/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/31b4c846-ad01-4801-82d9-569a43efdd3b/scratchpad/gate-onesave-S1/runs/onesave.qL9mtF
+ours: pid 56054
+PY-ROWS registered 4
+--- os_l13
+INFO  OS-L13: M-2 the time of writeShow on F-OLD (15694 bytes after the save): first save (target read + parse, copy, write, read-back) 3.541416645050049 ms; plain save (no copy) 1.116958379745483 ms
+PASS  OS-L13: the old-shape show loads (HTTP 200 {"ok": true}); first save: lastSave result 'saved', backup 'made' (want saved / made; ok); backups/old.v0.json has the ORIGINAL's sha256 (copy 8281b6cf3856, original 8281b6cf3856; backups folder: ['old.v0.json']); old.json parses, first key 'version', version 2 (want 'version', 2); plain save: lastSave result 'saved', backup 'not_needed' (want saved / not_needed; ok); the backups folder holds exactly 1 file (['old.v0.json'])
+--- os_l14
+PASS  OS-L14: the old-shape show loads (HTTP 200 {"ok": true}); old.json's sha256 unchanged (now 8281b6cf3856, before 8281b6cf3856); lastSave result 'failed', backup 'failed' (want failed / failed; ok); the plain file 'backups' is as it was; nothing else appeared in the folder (['backups', 'old.json'])
+--- os_l14b
+PASS  OS-L14b: F-A loads (HTTP 200 {"ok": true}); backups/x.other.json holds exactly the 10 bytes (b'not json!!'; backups folder: ['x.other.json']); x.json is a version-2 show (first key 'version', version 2); lastSave result 'saved', backup 'made' (want saved / made; ok)
+PY 3 PASS, 0 FAIL, 0 INFO-only (rows os_l13,os_l14,os_l14b)
+PASS  app terminated
+PASS  no Audio-DNA process after the batch
+PASS  0 on-screen Audio-DNA / UserNotificationCenter windows
+      rows run 3 of 4 (row list given: no row-count pin)
+
+PROBE-ONE-SAVE GREEN

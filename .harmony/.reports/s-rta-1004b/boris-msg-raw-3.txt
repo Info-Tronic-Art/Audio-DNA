@@ -1,0 +1,5 @@
+R99 to clarify, 
+the clip actions control clip sliders and buttons within the clip tab which include any effects, 
+the layer actions can trigger clips on it's layer and controls sliders and buttons within the layers tab which include any layer effects, 
+the global can trigger clips and supercede the layer actions, so the global controls all sliders and buttons in the global tab, and all the layer with it's own actions and when the global is triggered the layer action is turned off. There is a small transition slider that controls how fast to transition to the global action settings from the layer settings as the global and layer actions do some similar things and this same slider sets the time when going back to layer actions from global.
+Also, every slider, button, everything needs an ignore actions toggle so the user can turn off action control of something during a show if they want to keep the action but need to cancel something live.

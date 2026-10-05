@@ -97,3 +97,18 @@ Readings told with this answer (next free reading: R103; next free question: 144
  R102 The review screen: every slider and every trigger button the take recorded has its own row, grouped Global / Layer /
      Clip. You select the rows to include and set In and Out. "Save action" opens a name box that also shows what the
      action is (global, layer or clip) and what it moves.
+
+RECORDED 2026-10-04 22:27:57 (session s-rta-1004b): Boris clarifies R99 (whole message: boris-feedback-backlog.md, same stamp; byte-exact boris-msg-raw-3.txt). Readings told with the answer (next free reading: R108; next free question: 154 after the two deltas' reserved 144-153):
+ R103 A clip's actions move the sliders AND press the buttons of that clip's tab, its effects included. (This replaces
+     R99's "only move sliders".)
+ R104 A layer's actions fire clips on their own layer, and move the sliders and press the buttons of the layer's tab, its
+     layer effects included.
+ R105 A global action fires clips on any layer and moves everything in the global tab; it can also do what the layers'
+     actions do. While a global action is on, the layers' own actions are switched off (all layers); when it goes off,
+     they come back on.
+ R106 One small "transition" slider sets how long that change takes, in both directions: from the layers' settings to the
+     global action's settings, and back.
+ R107 Every slider and every button gets an "ignore actions" switch. On = no action moves that control; the actions
+     themselves stay as they are. It is for use during a show.
+
+RECORDED 2026-10-04 22:32:45: RQ-1 MET -- his reference picture arrived (boris-images/review-screen-reference.png) with where the parts go (backlog, same stamp). Reading R108 told to him (next free reading: R109).

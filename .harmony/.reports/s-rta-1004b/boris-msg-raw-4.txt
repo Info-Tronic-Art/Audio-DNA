@@ -1,0 +1,1 @@
+reference for review screen. small sample. place the names of each row and the hierarchy on the left, the audio track across the top and in and out points on the top and all has a grid that can be adjusted, smaller and larger, plus quantize control. [Image #10]

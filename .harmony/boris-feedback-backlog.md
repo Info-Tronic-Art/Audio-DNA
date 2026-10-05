@@ -841,3 +841,54 @@ BF112 [RULE] The three old top-bar buttons go. The row's play, pause and stop (a
 BF113 [RULE] A clip's BPM panel is modelled on Resolume's Transport panel in BPM Sync (his picture).
 BF114 [NEW, the review screen] Pick a stretch of the take and the sliders or trigger buttons to include; each slider and each trigger button has its own row and can be selected; In and Out points set the duration; a button saves the action; then a name box that shows the details needed to know whether it is global, layer or clip. All parameter changes are displayed in a smart hierarchy: clip, layer or Global. "We need to really think about this to make sure it works very well and there's no confusion".
 BF115 [INFO] The three audio tracks come in another session (from a DJ).
+
+## Boris clarifies R99: what clip, layer and global actions control; global supersedes layer with a transition slider; an "ignore actions" toggle on every control (recorded 2026-10-04 22:27:57, session s-rta-1004b) — the reading he answers: R99 in .harmony/.reports/s-rta-1004b/boris-clarify-135-143.md
+VERBATIM (whole message; byte-exact copy .harmony/.reports/s-rta-1004b/boris-msg-raw-3.txt, taken from the session record line 593, 2026-10-05T02:27:11.162Z UTC):
+"R99 to clarify, 
+the clip actions control clip sliders and buttons within the clip tab which include any effects, 
+the layer actions can trigger clips on it's layer and controls sliders and buttons within the layers tab which include any layer effects, 
+the global can trigger clips and supercede the layer actions, so the global controls all sliders and buttons in the global tab, and all the layer with it's own actions and when the global is triggered the layer action is turned off. There is a small transition slider that controls how fast to transition to the global action settings from the layer settings as the global and layer actions do some similar things and this same slider sets the time when going back to layer actions from global.
+Also, every slider, button, everything needs an ignore actions toggle so the user can turn off action control of something during a show if they want to keep the action but need to cancel something live."
+Harmony's readings (consequence text, not his words; told to him as R103-R107):
+ R103 A clip's actions move the sliders AND press the buttons of that clip's tab, its effects included. (This replaces
+     R99's "only move sliders".)
+ R104 A layer's actions fire clips on their own layer, and move the sliders and press the buttons of the layer's tab, its
+     layer effects included.
+ R105 A global action fires clips on any layer and moves everything in the global tab; it can also do what the layers'
+     actions do. While a global action is on, the layers' own actions are switched off (all layers); when it goes off,
+     they come back on.
+ R106 One small "transition" slider sets how long that change takes, in both directions: from the layers' settings to the
+     global action's settings, and back.
+ R107 Every slider and every button gets an "ignore actions" switch. On = no action moves that control; the actions
+     themselves stay as they are. It is for use during a show.
+BF116 [RULE, actions] Clip actions control the sliders and buttons within the clip tab, including any effects.
+BF117 [RULE, actions] Layer actions can trigger clips on their layer and control the sliders and buttons within the layer tab, including any layer effects.
+BF118 [RULE, actions] The global action can trigger clips and supersedes the layer actions: it controls all sliders and buttons in the global tab and all the layers; when the global is triggered the layer action is turned off. A small transition slider sets how fast the change to the global action's settings from the layer settings is, and the same slider sets the time going back to the layer actions.
+BF119 [NEW] Every slider, button, everything needs an "ignore actions" toggle, so that during a show the user can turn off action control of one thing while keeping the action.
+
+## Boris's reference picture for the recording review screen, and where its parts go (recorded 2026-10-04 22:32:45, session s-rta-1004b) — answers request RQ-1 (.harmony/.reports/s-rta-1004b/boris-clarify-135-143.md)
+VERBATIM (whole message; byte-exact copy .harmony/.reports/s-rta-1004b/boris-msg-raw-4.txt, session record line 644):
+"reference for review screen. small sample. place the names of each row and the hierarchy on the left, the audio track across the top and in and out points on the top and all has a grid that can be adjusted, smaller and larger, plus quantize control. [Image #10]"
+IMAGE (1 arrived; extracted from the session record to .harmony/.reports/s-rta-1004b/boris-images/review-screen-reference.png, 215942 B, 1999 x 449 px; seen by Harmony in the chat): [Image #10] a grey automation view of five stacked rows on a fine vertical grid (thin dotted guide lines inside each row); in each row ONE red curve with small round keyframe points: row 1 flat with two short raised plateaus that rise on a curve and drop straight; row 2 flat, then one curved rise near the right end; row 3 a repeating shape about once per grid group (a steep rise to the top, a straight drop to a middle level, a short flat, a curved rise again), with variations; row 4 flat with repeated narrow spikes and curved ramps; row 5 one long slow curve rising across almost the whole width, then a straight fall. A thin vertical line stands near the right edge. No names, no audio track, no in / out marks are in the picture: he says where those go.
+Harmony's reading (consequence text, not his words; told to him as R108):
+ R108 The review screen looks like your sample: one row per recorded slider or button with its curve and keyframe points on a grid. Added around it: the row names and the Global / Layer / Clip hierarchy down the LEFT; the take's audio across the TOP; the In and Out marks on the top; a grid you can make finer or coarser; and the Quantize control.
+BF120 [NEW, the review screen] Reference picture (a small sample). The names of each row and the hierarchy on the left; the audio track across the top; the in and out points on the top; everything on a grid that can be adjusted smaller and larger; plus a quantize control.
+
+## Boris's answers to questions 144-147; his instruction for the close (recorded 2026-10-04 22:40:14, session s-rta-1004b) — questions as asked: .harmony/.reports/s-rta-1004b/boris-clarify-144-147.md
+VERBATIM (whole message; byte-exact copy .harmony/.reports/s-rta-1004b/boris-msg-raw-5.txt, session record line 725):
+"144 a
+145 b
+146 b
+147 a
+give me concrete questions on what is still open when you finish this session in the html page as usual, finish current tasks, don't lose any decisions then run eos"
+Harmony's readings (consequence text, not his words):
+- 144 "Stop empties every layer at once. One wrong press in a show empties the screen. A (default) One press, at once. B Stop only acts when you hold the button ..." -> A.
+- 145 "The text \"nudge +12 ms\". Your picture has the two nudge buttons side by side, with no text. A (default) ... the text comes right after RESYNC. B The text sits between the two nudge buttons ..." -> B.
+- 146 "Today the words \"Bar 1\" .. \"Bar 4\" sit just left of the beat circle ... A (default) Keep it. B Take it out; the circle alone shows the beat." -> B.
+- 147 "Stop takes every clip off. Some effects hold or trail a picture by themselves ... A (default) They keep doing what they do ... B Stop also wipes what those effects are holding ..." -> A.
+- The last line is an instruction for this session's close: a page of concrete questions on what is still open, in the HTML page as usual; finish the tasks in flight; lose no decision; then end of session.
+BF121 [RULE] The row's stop acts on one press, at once.
+BF122 [RULE] The text "nudge X ms" sits between the two nudge buttons.
+BF123 [RULE] The words "Bar 1" .. "Bar 4" left of the beat circle are taken out; the circle alone shows the beat.
+BF124 [RULE] After a stop, effects that hold or trail a picture (Freeze, Echo, feedback) keep doing what they do.
+BF125 [TASK, this session's close] "give me concrete questions on what is still open when you finish this session in the html page as usual, finish current tasks, don't lose any decisions then run eos"

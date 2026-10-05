@@ -1,0 +1,13 @@
+app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/onesave/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/31b4c846-ad01-4801-82d9-569a43efdd3b/scratchpad/gate-onesave-S1/runs/onesave.iRtOVK
+ours: pid 56540
+PY-ROWS registered 4
+--- os_l21
+PASS  OS-L21: the 208179-byte version-2 show loads from the small disk (HTTP 200 {"ok": true}); free space 102400 bytes is LESS than the show's 208179 bytes; the show's sha256 is unchanged (size before 208179, after 208179; still parses: True); lastSave result 'failed' (want failed; ok); no stray file beside the show ([])
+PY 1 PASS, 0 FAIL, 0 INFO-only (rows os_l21)
+PASS  app terminated
+PASS  no Audio-DNA process after the batch
+PASS  0 on-screen Audio-DNA / UserNotificationCenter windows
+      rows run 1 of 4 (row list given: no row-count pin)
+
+PROBE-ONE-SAVE GREEN

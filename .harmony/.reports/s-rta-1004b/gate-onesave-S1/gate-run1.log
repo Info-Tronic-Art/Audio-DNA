@@ -1,0 +1,90 @@
+2026-10-04 22:35:13 GATE one-save S1 start; lane head 93b49ab; status lines 0
+--- files changed 8b464a6..HEAD
+.gitignore .harmony/.reports/s-rta-1004b/one-save-S1.md .harmony/probe-boxes.py .harmony/probe-one-save-selftest.sh .harmony/probe-one-save-stub.py .harmony/probe-one-save.py .harmony/probe-one-save.sh docs/claude/architecture.md docs/claude/integration.md docs/claude/pitfalls.md src/MainComponent.cpp src/MainComponent.h src/api/ApiServer.cpp src/api/ApiServer.h src/core/SafeFileWrite.h src/core/ShowFile.h src/model/AppSettings.cpp src/model/Composition.h tests/CMakeLists.txt tests/OneSaveFixture.h tests/test_app_settings.cpp tests/test_composition.cpp tests/test_one_save_lint.cpp tests/test_safe_write.cpp tests/test_show_backup.cpp tests/test_show_file.cpp tests/test_show_model.cpp 
+lane build rc=0; compiled objects: 0
+Total Tests: 1278
+full SERIAL ctest rc=0
+100% tests passed, 0 tests failed out of 1278
+Total Test time (real) = 127.87 sec
+ctest rc=0
+unit rows rc=0: 100% tests passed, 0 tests failed out of 24
+lint rows rc=0: All tests passed (350 assertions in 2 test cases)  
+test_app_settings rc=0: All tests passed (124 assertions in 10 test cases)  
+probe self-test rc=0: SELFTEST 36 ok / 0 FAIL
+G-OS4-0 BEFORE the live rows: 5 of 5 checksums equal the baseline; Decks holds 4 file(s), compositions holds 1 entr(ies): test with harry.json,
+settings sha before: af6fc014e5b60246c9802adb9b4eec5c2476b2867564b585b6ac90ea093bb5e5
+=== LIVE ROWS
+22:37:30 lock acquired
+acquire_lock rc=0
+[lane] rc=0: INFO  OS-L13: M-2 the time of writeShow on F-OLD (15694 bytes after the save): first save (target read + parse, copy, write, read-back) 3.541416645050049 ms; plain save (no copy) 1.116958379745483 ms
+PASS  OS-L13: the old-shape show loads (HTTP 200 {"ok": true}); first save: lastSave result 'saved', backup 'made' (want saved / made; ok); backups/old.v0.json has the ORIGINAL's sha256 (copy 8281b6cf3856, original 8281b6cf3856; backups folder: ['old.v0.json']); old.json parses, first key 'version', version 2 (want 'version', 2); plain save: lastSave result 'saved', backup 'not_needed' (want saved / not_needed; ok); 
+PASS  OS-L14: the old-shape show loads (HTTP 200 {"ok": true}); old.json's sha256 unchanged (now 8281b6cf3856, before 8281b6cf3856); lastSave result 'failed', backup 'failed' (want failed / failed; ok); the plain file 'backups' is as it was; nothing else appeared in the folder (['backups', 'old.json'])
+PASS  OS-L14b: F-A loads (HTTP 200 {"ok": true}); backups/x.other.json holds exactly the 10 bytes (b'not json!!'; backups folder: ['x.other.json']); x.json is a version-2 show (first key 'version', version 2); lastSave result 'saved', backup 'made' (want saved / made; ok)
+PROBE-ONE-SAVE GREEN
+[mut-os4] rc=1: INFO  OS-L13: M-2 the time of writeShow on F-OLD (15694 bytes after the save): first save (target read + parse, copy, write, read-back) 1.424458265304565 ms; plain save (no copy) 1.009374976158142 ms
+FAIL  OS-L13: the old-shape show loads (HTTP 200 {"ok": true}); NOT first save: lastSave result 'saved', backup 'not_needed' (want saved / made; ok); NOT backups/old.v0.json has the ORIGINAL's sha256 (copy None, original 09b88f62d84f; backups folder: None); old.json parses, first key 'version', version 2 (want 'version', 2); plain save: lastSave result 'saved', backup 'not_needed' (want saved / not_needed; ok); NOT t
+FAIL  OS-L14: the old-shape show loads (HTTP 200 {"ok": true}); NOT old.json's sha256 unchanged (now 15c09f0d138e, before 09b88f62d84f); NOT lastSave result 'saved', backup 'not_needed' (want failed / failed; ok); the plain file 'backups' is as it was; nothing else appeared in the folder (['backups', 'old.json'])
+FAIL  OS-L14b: F-A loads (HTTP 200 {"ok": true}); NOT backups/x.other.json holds exactly the 10 bytes (None; backups folder: None); x.json is a version-2 show (first key 'version', version 2); NOT lastSave result 'saved', backup 'not_needed' (want saved / made; ok)
+PROBE-ONE-SAVE RED
+[mut-os5] rc=1: FAIL  OS-L14: the old-shape show loads (HTTP 200 {"ok": true}); NOT old.json's sha256 unchanged (now aef075ab4c70, before 85840fb13c7c); NOT lastSave result 'saved', backup 'failed' (want failed / failed; ok); the plain file 'backups' is as it was; nothing else appeared in the folder (['backups', 'old.json'])
+PROBE-ONE-SAVE RED
+[mut-os23] rc=1: FAIL  OS-L14b: F-A loads (HTTP 200 {"ok": true}); NOT backups/x.other.json holds exactly the 10 bytes (None; backups folder: None); x.json is a version-2 show (first key 'version', version 2); NOT lastSave result 'saved', backup 'not_needed' (want saved / made; ok)
+PROBE-ONE-SAVE RED
+[main185147b] rc=1: INFO  OS-L13: M-2 the time of writeShow on F-OLD (15661 bytes after the save): first save (target read + parse, copy, write, read-back) None ms; plain save (no copy) None ms
+FAIL  OS-L13: the old-shape show loads (HTTP 200 {"ok": true}); NOT first save: lastSave result 'None', backup 'None' (want saved / made; show_file HTTP 404 (no lastSave on this app)); NOT backups/old.v0.json has the ORIGINAL's sha256 (copy None, original b3c83d5e1aba; backups folder: None); NOT old.json parses, first key 'name', version None (want 'version', 2); NOT plain save: lastSave result 'None', backup 'None' 
+PROBE-ONE-SAVE RED
+--- OS-L21 = M-1 (a full 2 MB disk image)
+hdiutil create rc=0
+hdiutil attach rc=0
+[l21-lane] rc=0: PASS  OS-L21: the 208179-byte version-2 show loads from the small disk (HTTP 200 {"ok": true}); free space 102400 bytes is LESS than the show's 208179 bytes; the show's sha256 is unchanged (size before 208179, after 208179; still parses: True); lastSave result 'failed' (want failed; ok); no stray file beside the show ([])
+PROBE-ONE-SAVE GREEN
+[l21-main185147b] rc=1: FAIL  OS-L21: the 208179-byte version-2 show loads from the small disk (HTTP 200 {"ok": true}); NOT free space 1703936 bytes is LESS than the show's 208179 bytes
+PROBE-ONE-SAVE RED
+[l21-mut-os21] rc=0: PASS  OS-L21: the 208179-byte version-2 show loads from the small disk (HTTP 200 {"ok": true}); free space 102400 bytes is LESS than the show's 208179 bytes; the show's sha256 is unchanged (size before 208179, after 208179; still parses: True); lastSave result 'failed' (want failed; ok); no stray file beside the show ([])
+PROBE-ONE-SAVE GREEN
+hdiutil detach rc=0; images still attached: 0
+--- probe-boxes K7
+[k7 lane] rc=0: PASS  k7_old_show: exactly one 'old show converted:' logLine for the load (1)
+PASS  k7_old_show save: the saved show has the new shape (top-level layers 2; key 'persistent' False; key 'globalTransitionSpeed' False)
+PASS  k7_old_show save: the saved file is a version-2 show (first key 'version', version 2, keys + layout blocks True); backups folder beside a NEW target: False
+PASS  k7_old_show reload: the saved show reloads with no note (new logLines 0) and the first deck's layer settings [(1.0, 0), (0.8, 0)]
+PASS  k7_old_show: a new-format show loads with no note (new logLines 0)
+PROBE-BOXES GREEN
+[k7 main185147b, RED arm] rc=1: PASS  k7_old_show save: the saved show has the new shape (top-level layers 2; key 'persistent' False; key 'globalTransitionSpeed' False)
+FAIL  k7_old_show save: the saved file is a version-2 show (first key 'name', version None, keys + layout blocks False); backups folder beside a NEW target: False
+PROBE-BOXES RED
+--- G-OS-HIS (copies of his show; taken from my backup copy, checked against his checksum)
+copy 1 sha 5aabe2e2562189d1 copy 2 sha 5aabe2e2562189d1 (his: 5aabe2e2562189d1)
+22:38:49 [A] app up: pid 57195
+load: HTTP 200 {"ok": true}
+composition: HTTP 200 200 | top-level keys 10 | two reads 1 s apart differ at 0 path(s) []
+app running after quit: no
+22:39:01 [B] app up: pid 57410
+copy 2 sha before: 5aabe2e2562189d1f421cf4fe00239e62c94f3c49998c1cd31bfd98c32c6b78b == copy-time sha: True
+load: HTTP 200 {"ok": true}
+composition: HTTP 200 200 | top-level keys 10 | two reads 1 s apart differ at 0 path(s) []
+show_file after load: HTTP 200 {"path": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/31b4c846-ad01-4801-82d9-569a43efdd3b/scratchpad/gate-onesave-S1/his2/test with harry.json", "loadedVersion": 0, "lastSave": {"seq": 0, "result": "", "path": "", "backup": "not_needed", "ms": 0.0}}
+A vs B: 0 differing path(s); beyond {outputDisplay in A, version in B}: 0 []
+FAIL  G-OS-HIS (a): the show loaded by the 185147b app and by the new app is the same, apart from outputDisplay (A) and version (B)
+save_composition plain: HTTP 200 {"ok": true}
+lastSave: {"seq": 1, "result": "saved", "path": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/31b4c846-ad01-4801-82d9-569a43efdd3b/scratchpad/gate-onesave-S1/his2/test with harry.json", "backup": "made", "ms": 8.16225004196167}
+folder now: ['backups', 'test with harry.json'] | backups: ['test with harry.v0.json']
+backup sha: 5aabe2e2562189d1f421cf4fe00239e62c94f3c49998c1cd31bfd98c32c6b78b == copy-time sha: True | saved file first key: version = 2 | saved size 43400
+PASS  G-OS-HIS (b): a plain Save left backups/test with harry.v0.json with the copy-time checksum; the saved file's first key is version = 2; lastSave.result 'saved' backup 'made' ms 8.16225004196167
+app running after quit: no
+22:39:13 [C] app up: pid 57456
+load: HTTP 200 {"ok": true}
+composition: HTTP 200 200 | top-level keys 10 | two reads 1 s apart differ at 0 path(s) []
+show_file after load: HTTP 200 {"path": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/31b4c846-ad01-4801-82d9-569a43efdd3b/scratchpad/gate-onesave-S1/his2/test with harry.json", "loadedVersion": 2, "lastSave":
+B vs C: 0 differing path(s): 0 are a clip id; other: 0 [] | id examples []
+PASS  G-OS-HIS (c): the saved version-2 file, loaded by a fresh new app, is the show that was saved (only clip ids differ)
+app running after quit: no
+copy 1 after (untouched by the 185147b app?): sha 5aabe2e2562189d1; his1 holds: test with harry.json,
+22:39:19 lock released
+=== AFTER
+16 s after the last quit: audio-dna windows 0, Output-named 0, UserNotificationCenter windows 0
+adna after: []; live lock present: 0
+settings sha after:  af6fc014e5b60246c9802adb9b4eec5c2476b2867564b585b6ac90ea093bb5e5
+G-OS4-0 AFTER the live rows: 5 of 5 checksums equal the baseline; Decks holds 4 file(s), compositions holds 1 entr(ies): test with harry.json,
+lane worktree status lines after: 0
+2026-10-04 22:39:35 GATE one-save S1 end
