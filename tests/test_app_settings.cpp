@@ -8,8 +8,10 @@
 #include <catch2/catch_test_macros.hpp>
 #include "model/AppSettings.h"
 #include "output/OutputTargets.h"
+#ifndef _WIN32
 #include <csignal>
 #include <sys/resource.h>
+#endif
 
 namespace
 {
@@ -202,6 +204,7 @@ TEST_CASE("appsettings: when that copy cannot be made the file is left as it is 
     CHECK(t.file.getParentDirectory().findChildFiles(juce::File::findFilesAndDirectories, false).size() == 2);
 }
 
+#ifndef _WIN32   // RLIMIT_FSIZE / SIGXFSZ are POSIX: this case has no Windows form
 TEST_CASE("appsettings: a half-written update leaves the old file and returns false", "[app_settings]")
 {
     TempSettings t;
@@ -213,7 +216,7 @@ TEST_CASE("appsettings: a half-written update leaves the old file and returns fa
     // A REAL half write, no seam: for the length of one update() this process may not write any file past 64 bytes
     // (RLIMIT_FSIZE; the signal that comes with it is ignored), so the kernel cuts the update's temporary file short
     // exactly as a full disk does. juce::File::replaceWithText swaps that cut-off file in and answers true.
-    std::signal(SIGXFSZ, SIG_IGN);
+    const auto oldHandler = std::signal(SIGXFSZ, SIG_IGN);
     struct rlimit old {};
     REQUIRE(getrlimit(RLIMIT_FSIZE, &old) == 0);
     struct rlimit cut = old;
@@ -222,6 +225,7 @@ TEST_CASE("appsettings: a half-written update leaves the old file and returns fa
     const bool ok = s.update("big", juce::String::repeatedString("0123456789", 400));
     const int restored = setrlimit(RLIMIT_FSIZE, &old);
     REQUIRE(restored == 0);
+    std::signal(SIGXFSZ, oldHandler);
 
     CHECK_FALSE(ok);
     juce::MemoryBlock after;
@@ -235,3 +239,4 @@ TEST_CASE("appsettings: a half-written update leaves the old file and returns fa
     CHECK(s.read("big").toString().length() == 4000);
     CHECK(s.read("outputs").toString() == "the set as it was");
 }
+#endif
