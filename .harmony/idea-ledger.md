@@ -631,3 +631,39 @@ status-note:
 artifact:
 history:     NEW(2026-10-04)
 --- /IDEA ---
+
+--- IDEA ---
+id:          idea-2026-10-04-RealTimeAudio-179116864472174160
+raw:         MINIMAL boot runs commands in a project BEFORE that project's rig rules are read: in RealTimeAudio the rule 'never cd' sits in .harmony/RIG-RULES.md, the birth prompt tells the session to read that file second, and my first four Bash calls were already prefixed with cd (the shell's directory drifted into .harmony). Idea: the MINIMAL boot banner prints the first lines of <repo>/.harmony/RIG-RULES.md when the file exists (a 'BOOT RULES' block the project keeps at its top, 5 lines at most), so the rules that bind the very first command are in context before it runs. Cost: a few hundred tokens per foreign boot; the project owns the text.
+context:     s-rta-1004b secondary, RealTimeAudio, 2026-10-04; own error filed in .harmony/s-rta-1004b-work.md (BOOT rows) and RIG-RULES A4
+why:         
+intent:      
+target:      
+constraints: 
+related:     
+priority:    HIGH
+repo:        RealTimeAudio     session:      date: 2026-10-04
+status:      NEW
+status-changed: 2026-10-04
+status-note:
+artifact:
+history:     NEW(2026-10-04)
+--- /IDEA ---
+
+--- IDEA ---
+id:          idea-2026-10-04-RealTimeAudio-17911697598150410414
+raw:         REPORT-UP from RealTimeAudio (Audio-DNA), secondary session s-rta-1004b, 2026-10-04: (1) first product code since 2026-10-03 landed on main -- the show-file protection (one verified writer, a backups copy before an old-shape file is overwritten); my gate measured that main until then emptied the show file to 0 bytes on a full disk. (2) Two more first stages are built and gated in worktrees (output history core, beat-nudge arithmetic). (3) Boris re-modelled 'routines' as 'actions' (on / off buttons per clip, layer, global; a recording review screen with keyframe rows) and renamed 'look' to 'preset': a design page through the critic panel is the next session's first job. (4) Process facts worth the primary's attention: every one of three ruled stages carried at least one pre-registered must-fail arm that could not fail (found by builders told to show each arm RED and by a tests-can-fail review lens); the drain off-ramp left a build slot idle for the rest of the session while gates and intake ran; a planning lane numbered its readings from a number the main loop was already using in chat.
+context:     s-rta-1004b close; details in RealTimeAudio .harmony/HANDOFF.md and .harmony/sessions/2026-10-04-s-rta-1004b-secondary.md
+why:         
+intent:      
+target:      
+constraints: 
+related:     
+priority:    HIGH
+repo:        RealTimeAudio     session:      date: 2026-10-04
+status:      NEW
+status-changed: 2026-10-04
+status-note:
+artifact:
+history:     NEW(2026-10-04)
+--- /IDEA ---

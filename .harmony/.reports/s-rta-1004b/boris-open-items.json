@@ -1,0 +1,730 @@
+{
+ "stamp_note": "Content of the page boris-open.html for the close of session s-rta-1004b (2026-10-04). Written by the architect from the three sweep sheets, each kept item re-read at its source. Paths are relative to .harmony/ unless they start with src/. BD = binding-decisions.md, BL = boris-feedback-backlog.md, RN2 = .reports/s-rta-1004b/ruling-nudge-row2.md, RL2 = .reports/s-rta-1004b/ruling-looks-answers2.md, RS = .reports/s-rta-1004b/rulings-one-save.md, C135 = .reports/s-rta-1004b/boris-clarify-135-143.md, FA = .reports/s-rta-1004b/facts-actions-today.md. Every item carries label VERIFIED (read at the source named) or INFERRED. Questions 150 and 151: 'verbatim_block' holds the ruling's lines character for character; 'text' and 'options' are the same words with only the line wraps removed. Readings R109..R120 are the twelve of RN2:833-852 in their order, line wraps removed, R118 not used. Next free question after this page: 172. Next free reading: R127. Numbers 148, 149, 152, 153 are not used. Nothing was built, run or launched to write this file. RL2 is NOT adopted yet: 150, 151 and R121 come from it at Harmony's instruction.",
+ "questions": [
+  {
+   "n": 150,
+   "area": "Presets",
+   "verbatim": true,
+   "label": "VERIFIED",
+   "text": "You add an effect: its small button reads \"Default\". You move one of its sliders. You have never given this effect a preset.",
+   "options": [
+    {
+     "letter": "A",
+     "text": "It keeps reading \"Default\" -- the same way \"Preset 2\" stays after you change it.",
+     "default": true
+    },
+    {
+     "letter": "B",
+     "text": "It reads \"Presets\", dim, as soon as it is no longer at its defaults, and \"Default\" again when you bring the sliders back."
+    }
+   ],
+   "why": "It decides what the small button on every effect reads all through a show; either way is a small change to build.",
+   "verbatim_block": "150. You add an effect: its small button reads \"Default\". You move one of its sliders. You have never given this effect a\n     preset.\n     A (default) It keeps reading \"Default\" -- the same way \"Preset 2\" stays after you change it.\n     B It reads \"Presets\", dim, as soon as it is no longer at its defaults, and \"Default\" again when you bring the sliders\n       back.",
+   "source": ".reports/s-rta-1004b/ruling-looks-answers2.md:865-869"
+  },
+  {
+   "n": 151,
+   "area": "Presets",
+   "verbatim": true,
+   "label": "VERIFIED",
+   "text": "MilkDrop's list also calls its items \"presets\" (\"Search presets...\", \"12 presets\"). Now effects have presets too.",
+   "options": [
+    {
+     "letter": "A",
+     "text": "Leave MilkDrop's words as they are: they are inside the tab named MilkDrop.",
+     "default": true
+    },
+    {
+     "letter": "B",
+     "text": "Make them say \"MilkDrop presets\" in full, everywhere in that tab."
+    }
+   ],
+   "why": "Two different things on one screen would both be called \"presets\"; B spells the MilkDrop ones out.",
+   "verbatim_block": "151. MilkDrop's list also calls its items \"presets\" (\"Search presets...\", \"12 presets\"). Now effects have presets too.\n     A (default) Leave MilkDrop's words as they are: they are inside the tab named MilkDrop.\n     B Make them say \"MilkDrop presets\" in full, everywhere in that tab.",
+   "source": ".reports/s-rta-1004b/ruling-looks-answers2.md:870-872"
+  },
+  {
+   "n": 154,
+   "area": "Tempo row",
+   "verbatim": false,
+   "label": "VERIFIED",
+   "text": "Quantize leaves the top bar at your word. Today each clip also has its own Snap box, and your picture of Resolume's BPM panel shows none. You fire a clip in the middle of a bar.",
+   "options": [
+    {
+     "letter": "A",
+     "text": "The clip's Snap box goes too. Every clip starts on your press; a BPM Sync clip is put in time on the next \"1\".",
+     "default": true
+    },
+    {
+     "letter": "B",
+     "text": "Keep a Snap box on each clip: a clip you set to wait for the bar line still waits."
+    }
+   ],
+   "why": "I read your picture as \"the clip's Snap goes\" (readings R87, R100); you have not said it in words. If you say nothing, the box goes but the Snap numbers stay in your saved shows, unused, so B can still bring them back; they are dropped for good only when you answer A.",
+   "source": ".reports/s-rta-1004b/ruling-nudge-row2.md:873-876 (the Snap values are kept until he confirms in words); C135:45, C135:91-93 (R87, R100 as told); BD:1025-1027 (his words name the picture, not the Snap)"
+  },
+  {
+   "n": 155,
+   "area": "Actions",
+   "verbatim": false,
+   "label": "VERIFIED",
+   "text": "You switch a global action on while two layers have their own actions running, and the clips playing on those layers have clip actions running too.",
+   "options": [
+    {
+     "letter": "A",
+     "text": "Every layer's actions go off. The clips' own actions keep playing.",
+     "default": true
+    },
+    {
+     "letter": "B",
+     "text": "Everything else goes off, the clips' actions too: only the global action moves things."
+    },
+    {
+     "letter": "C",
+     "text": "Only the layer actions that move the same things as the global one go off; the others play on under it."
+    }
+   ],
+   "why": "Your words say the layer action is turned off; they do not say what happens to the clips' actions, or to a layer action that touches nothing the global one touches.",
+   "source": "BD:1049-1053 (his words); C135:106-108 (reading R105, told: all layers); open-sweep-actions.md item 2"
+  },
+  {
+   "n": 156,
+   "area": "Actions",
+   "verbatim": false,
+   "label": "VERIFIED",
+   "text": "The global action goes off. Two layers had actions on before it came on, each some bars long.",
+   "options": [
+    {
+     "letter": "A",
+     "text": "They come back in step with the beat, at the place they would be if they had never stopped; the sliders glide there over the transition time.",
+     "default": true
+    },
+    {
+     "letter": "B",
+     "text": "They come back from their beginning, on the next \"1\"."
+    }
+   ],
+   "why": "It decides whether a layer's action keeps counting silently under a global one, or is started again each time.",
+   "source": "BD:1051-1053 (his words: the same slider times the way back); BD:1017-1020 (143 a: a layer's action runs on with the beat); open-sweep-actions.md item 3"
+  },
+  {
+   "n": 157,
+   "area": "Actions",
+   "verbatim": false,
+   "label": "INFERRED",
+   "text": "A clip has an action that is 4 beats long, switched on. The clip is not in BPM Sync. You fire it half-way through a bar and it shows at once.",
+   "options": [
+    {
+     "letter": "A",
+     "text": "The action waits and starts from its beginning on the next \"1\".",
+     "default": true
+    },
+    {
+     "letter": "B",
+     "text": "The action starts at once from its beginning, and so stays half a bar off the music while it loops."
+    },
+    {
+     "letter": "C",
+     "text": "The action starts at once, joined in its middle, so it is in step with the bar from the first frame."
+    }
+   ],
+   "why": "It is the timing rule every action is built on. Your words say the actions play when the clip plays, in time with the clip; they do not say which of these three that is. The default is my guess.",
+   "source": "BD:979-985 (his words on R83); BD:960-962 (actions are bpm based); open-sweep-actions.md item 8"
+  },
+  {
+   "n": 158,
+   "area": "Actions",
+   "verbatim": false,
+   "label": "VERIFIED",
+   "text": "An action is moving a slider. You grab the slider, hold it for two bars, and let go. Today you said: \"after I let go it catches up\". Earlier you said two things: for a slider that a signal drives, \"smooth transition back.\"; for a recorded track, \"will snap back to the recorded track as soon as it is let go\".",
+   "options": [
+    {
+     "letter": "A",
+     "text": "It jumps to where the action is by now, at once (your words for a recorded track).",
+     "default": true
+    },
+    {
+     "letter": "B",
+     "text": "It glides there in about one beat (your words for a slider that a signal drives)."
+    }
+   ],
+   "why": "It is what the audience sees each time your hand leaves a slider: a short glide, or a jump.",
+   "source": "BD:1017-1019 (140: \"140 a and after I let go it catches up\"); C135:87-88 (reading R98); open-sweep-actions.md item 7"
+  },
+  {
+   "n": 159,
+   "area": "Actions",
+   "verbatim": false,
+   "label": "INFERRED",
+   "text": "An action has moved a clip's sliders away from where you had set them. You switch the action off.",
+   "options": [
+    {
+     "letter": "A",
+     "text": "The sliders stay where the action left them.",
+     "default": true
+    },
+    {
+     "letter": "B",
+     "text": "The sliders go back to where they were before the action started."
+    }
+   ],
+   "why": "With B every action has to remember what it changed; with A switching an action off never moves the picture.",
+   "source": "BD:501-505 (his rule for the end of a replay: keep playing with the current parameters); open-sweep-actions.md item 7"
+  },
+  {
+   "n": 160,
+   "area": "Actions",
+   "verbatim": false,
+   "label": "INFERRED",
+   "text": "A clip has two actions switched on, and both move the same slider.",
+   "options": [
+    {
+     "letter": "A",
+     "text": "The one you switched on last moves it; when you switch that one off, the other takes the slider again.",
+     "default": true
+    },
+    {
+     "letter": "B",
+     "text": "Switching the second one on switches the first one off."
+    }
+   ],
+   "why": "No word of yours covers it. A is how two routines on one control behave today.",
+   "source": "FA:50 (today: the one that began later wins); open-sweep-actions.md item 10"
+  },
+  {
+   "n": 161,
+   "area": "Actions",
+   "verbatim": false,
+   "label": "VERIFIED",
+   "text": "During a show you want one slider to stop following its actions (your \"ignore actions\" switch). A right-click on a slider already puts it back to its default, so it cannot be a right-click.",
+   "options": [
+    {
+     "letter": "A",
+     "text": "A small lamp beside every slider and every button: click it to ignore; it is lit while ignoring.",
+     "default": true
+    },
+    {
+     "letter": "B",
+     "text": "No extra lamp: hold a key and click the control itself; it wears a coloured ring while ignoring."
+    }
+   ],
+   "why": "A takes a little room on every row of every panel (the layer strip is almost full today); B leaves the screen as it is but you must remember the key.",
+   "source": "BD:1056-1059 (his words); FA:312 row 20 (the strip uses 242 of 250); CLAUDE.md UI Patterns (right-click resets a slider); open-sweep-actions.md item 4"
+  },
+  {
+   "n": 162,
+   "area": "Actions",
+   "verbatim": false,
+   "label": "INFERRED",
+   "text": "During a show you set three sliders to ignore their actions. You save the show and open it again next week.",
+   "options": [
+    {
+     "letter": "A",
+     "text": "Every slider follows its actions again: an ignore is for the night only.",
+     "default": true
+    },
+    {
+     "letter": "B",
+     "text": "The three sliders are still ignoring, as you left them."
+    }
+   ],
+   "why": "You said the switch is to cancel something live during a show; your words do not say whether the show remembers it.",
+   "source": "BD:1056-1059 (his words); open-sweep-actions.md item 4"
+  },
+  {
+   "n": 163,
+   "area": "Actions",
+   "verbatim": false,
+   "label": "VERIFIED",
+   "text": "In the review screen your stretch holds clips being fired on layer 2 and the slider moves of one of those clips. You tick both kinds of rows and press save.",
+   "options": [
+    {
+     "letter": "A",
+     "text": "The app makes one action per owner -- a layer action for the fires, a clip action for the sliders -- and shows you that list before it saves. Each gets its own on / off button.",
+     "default": true
+    },
+    {
+     "letter": "B",
+     "text": "One action holds both. It sits on the layer and plays all its parts together."
+    },
+    {
+     "letter": "C",
+     "text": "The save says no: tick rows of one owner only."
+    }
+   ],
+   "why": "It decides whether an action always belongs to exactly one clip, one layer or the composition. The whole screen and every on / off button are designed around that.",
+   "source": "BD:1028-1036 (his words on R89: the name box shows whether it is global, layer or clip); C135:54-55 (reading R91); open-sweep-actions.md item 6"
+  },
+  {
+   "n": 164,
+   "area": "Actions",
+   "verbatim": false,
+   "label": "INFERRED",
+   "text": "A clip has six actions. About four small on / off buttons fit in the little area above a clip.",
+   "options": [
+    {
+     "letter": "A",
+     "text": "Four numbered buttons and a \"+\" that opens the rest; an action's name shows when you point at its button.",
+     "default": true
+    },
+    {
+     "letter": "B",
+     "text": "One \"Actions\" button above the clip opens a list with a switch for each action."
+    },
+    {
+     "letter": "C",
+     "text": "The area above the clips grows a second row of buttons, and the clip grid moves down."
+    }
+   ],
+   "why": "It decides what you see above every clip. With B you cannot see at a glance which actions are on.",
+   "source": "BD:979-983 (his words: a little area above each clip, toggle buttons for each action); FA:183-184 (a clip cell is 90 wide; 'about four' is my arithmetic); open-sweep-actions.md item 12"
+  },
+  {
+   "n": 165,
+   "area": "Actions",
+   "verbatim": false,
+   "label": "INFERRED",
+   "text": "You copy a clip that has three actions into another cell.",
+   "options": [
+    {
+     "letter": "A",
+     "text": "The copy has the same three actions, with its own on / off buttons.",
+     "default": true
+    },
+    {
+     "letter": "B",
+     "text": "The copy has no actions."
+    }
+   ],
+   "why": "It decides whether actions are part of a clip, like its effects, or something you add to each clip by hand.",
+   "source": "BD:979-981 (his words: each action that was recorded for that clip); open-sweep-actions.md item 11"
+  },
+  {
+   "n": 166,
+   "area": "Actions",
+   "verbatim": false,
+   "label": "INFERRED",
+   "text": "In a show you want to switch an action on and off from your keyboard or a MIDI pad.",
+   "options": [
+    {
+     "letter": "A",
+     "text": "Any action's on / off button can be put on a key or a pad, the way a clip can.",
+     "default": true
+    },
+    {
+     "letter": "B",
+     "text": "Mouse only in the first build."
+    }
+   ],
+   "why": "No word of yours covers it. Today's routine pads can be put on keys and pads, and actions replace them.",
+   "source": "BD:979-986 (toggle buttons; no word on keys); FA:309 row 17 (routines are binding targets today); open-sweep-actions.md item 13"
+  },
+  {
+   "n": 167,
+   "area": "Review screen",
+   "verbatim": false,
+   "label": "VERIFIED",
+   "text": "In the review screen one recorded curve has a wrong bump in it. In September you said \"I think the simpler solution is that we could just draw rather than drag\" and to select a piece and move it left and right with snap to grid. Your flow of today lists picking rows, In and Out, and saving.",
+   "options": [
+    {
+     "letter": "A",
+     "text": "You can mend it there: draw a new shape over the row (on the grid or free hand), and select a piece and move it left or right with snap.",
+     "default": true
+    },
+    {
+     "letter": "B",
+     "text": "Not in the first build: the screen shows, picks, sets In and Out and quantizes; a wrong curve is recorded again."
+    }
+   ],
+   "why": "Drawing and moving is the largest single piece of this screen; nothing like it exists in the app today.",
+   "source": "BD:397-402 (2026-09-05, his words); BD:1028-1036 and BD:1062-1066 (today's flow and picture); FA:311 row 19 (no curve editor exists); open-sweep-actions.md item 15"
+  },
+  {
+   "n": 168,
+   "area": "Review screen",
+   "verbatim": false,
+   "label": "INFERRED",
+   "text": "In the review screen you set In and Out by hand around a 4-bar stretch, and you are a little early with both.",
+   "options": [
+    {
+     "letter": "A",
+     "text": "In and Out snap to the grid, so the action is a whole number of beats and loops in time.",
+     "default": true
+    },
+    {
+     "letter": "B",
+     "text": "They stay exactly where you put them."
+    }
+   ],
+   "why": "An action loops while its clip plays (your \"139 a\"): one that is not a whole number of beats drifts against the bar.",
+   "source": "BD:1017-1018 (139 a); BD:1062-1064 (his words: in and out points, a grid that can be adjusted); open-sweep-actions.md item 14"
+  },
+  {
+   "n": 169,
+   "area": "Review screen",
+   "verbatim": false,
+   "label": "INFERRED",
+   "text": "While a show is being recorded you load \"Preset 2\" on an effect, and eight of its sliders jump. Later, in the review screen:",
+   "options": [
+    {
+     "letter": "A",
+     "text": "There is one row for each slider that moved, like any other slider move. The action sets those sliders.",
+     "default": true
+    },
+    {
+     "letter": "B",
+     "text": "There is one row, \"Preset 2\", with one mark. The action loads Preset 2 again when it plays -- so if you change Preset 2 later, the action changes with it."
+    }
+   ],
+   "why": "It decides whether an action can depend on a preset that lives on this computer, or always carries its own numbers.",
+   "source": "BD:984-985 (his words: automations for any parameters); FA:299 row 7 (a preset load is not recorded today); RL2 check 13 (RL2:833-835: recording these is its own build); open-sweep-actions.md item 1"
+  },
+  {
+   "n": 170,
+   "area": "Recording",
+   "verbatim": false,
+   "label": "VERIFIED",
+   "text": "You are replaying a recorded take, and you press stop on the tempo row.",
+   "options": [
+    {
+     "letter": "A",
+     "text": "The beat stops and the layers empty, but the replay runs on with its own sound and can put clips back.",
+     "default": true
+    },
+    {
+     "letter": "B",
+     "text": "Stop ends the replay too."
+    }
+   ],
+   "why": "A is what the adopted tempo-row ruling builds (reading R110 below); it asks you to say if stop should end a replay as well.",
+   "source": ".reports/s-rta-1004b/ruling-nudge-row2.md:798-800 (B-9) and :834-835 (its reading R104)"
+  },
+  {
+   "n": 171,
+   "area": "Recording",
+   "verbatim": false,
+   "label": "VERIFIED",
+   "text": "You have saved an action out of a take. You said the action itself carries no sound.",
+   "options": [
+    {
+     "letter": "A",
+     "text": "The take and its sound stay in your list of recordings; you can cut more actions out of it later.",
+     "default": true
+    },
+    {
+     "letter": "B",
+     "text": "The take leaves the list once an action has been made from it; its sound file stays on the disk."
+    }
+   ],
+   "why": "It decides whether one recorded show can be mined for many actions over time.",
+   "source": "BD:960-964 (his words: the audio is gone when it has been turned into an action); BD:520-521 (\"never delete\"); open-sweep-actions.md item 16"
+  }
+ ],
+ "readings": [
+  {
+   "r": "R109",
+   "from": "nudge-row2 R103",
+   "label": "VERIFIED",
+   "source": ".reports/s-rta-1004b/ruling-nudge-row2.md:833",
+   "text": "Stop also stops the routines that are playing or waiting on the layers, as a layer's X does."
+  },
+  {
+   "r": "R110",
+   "from": "nudge-row2 R104",
+   "label": "VERIFIED",
+   "source": ".reports/s-rta-1004b/ruling-nudge-row2.md:834-835",
+   "text": "A recording you replay is not stopped, paused or started by the row: it follows its own sound and can put clips back; a Resync inside it does not start a stopped or paused beat."
+  },
+  {
+   "r": "R111",
+   "from": "nudge-row2 R105",
+   "label": "VERIFIED",
+   "source": ".reports/s-rta-1004b/ruling-nudge-row2.md:836-837",
+   "text": "A BPM Sync clip you fire while the beat is paused or stopped appears on its first frame and starts moving when the beat runs (from stop: on your play press, the \"1\"). A clip that is not in BPM Sync plays at once."
+  },
+  {
+   "r": "R112",
+   "from": "nudge-row2 R106",
+   "label": "VERIFIED",
+   "source": ".reports/s-rta-1004b/ruling-nudge-row2.md:838",
+   "text": "Stop is a cut: the clips go at once, like a layer's X. No fade."
+  },
+  {
+   "r": "R113",
+   "from": "nudge-row2 R107",
+   "label": "VERIFIED",
+   "source": ".reports/s-rta-1004b/ruling-nudge-row2.md:839-840",
+   "text": "Stop is not an Undo step. Until the Undo rule for the layer strip is built, Cmd+Z after a stop still undoes your last fire, as it does today, and that can put a clip back."
+  },
+  {
+   "r": "R114",
+   "from": "nudge-row2 R108",
+   "label": "VERIFIED",
+   "source": ".reports/s-rta-1004b/ruling-nudge-row2.md:841-842",
+   "text": "The row's pause and stop never change a clip's own pause: a clip you paused yourself stays paused, a clip that was playing plays when you fire it again, and nothing about the row's pause or stop is saved in the show."
+  },
+  {
+   "r": "R115",
+   "from": "nudge-row2 R109",
+   "label": "VERIFIED",
+   "source": ".reports/s-rta-1004b/ruling-nudge-row2.md:843-844",
+   "text": "Resync while the beat is stopped or paused: your press is the \"1\", the beat runs from it, the nudge reads 0. Tapping a tempo while it is stopped changes the number and starts nothing. (replaces R84)"
+  },
+  {
+   "r": "R116",
+   "from": "nudge-row2 R110",
+   "label": "VERIFIED",
+   "source": ".reports/s-rta-1004b/ruling-nudge-row2.md:845-846",
+   "text": "An old show's Quantize setting is dropped the next time it is saved. An old recording made with Quantize on replays each press at the moment you pressed, not on the line it landed on then."
+  },
+  {
+   "r": "R117",
+   "from": "nudge-row2 R111",
+   "label": "VERIFIED",
+   "source": ".reports/s-rta-1004b/ruling-nudge-row2.md:847-848",
+   "text": "Routine pads keep their own start setting until actions replace them: by default a pad waits for the next bar. A pad you press while the beat is stopped waits, and starts one bar after you press play."
+  },
+  {
+   "r": "R119",
+   "from": "nudge-row2 R113",
+   "label": "VERIFIED",
+   "source": ".reports/s-rta-1004b/ruling-nudge-row2.md:850",
+   "text": "The cells are as tall as the top bar is today -- a little smaller than Resolume's."
+  },
+  {
+   "r": "R120",
+   "from": "nudge-row2 R114",
+   "label": "VERIFIED",
+   "source": ".reports/s-rta-1004b/ruling-nudge-row2.md:851-852",
+   "text": "In the key and pad list the old \"Stop\" reads \"Stop routines\" and the old \"Play / Pause\" reads \"Audio play / pause\", so neither can be taken for the row's \"Beat stop\" or \"Beat play\"."
+  },
+  {
+   "r": "R121",
+   "from": "looks-answers2 section 6, check 19 (the ruling numbers no readings of its own; its section 7 says this rule rests on its reading of your answer 133 and was never told to you; the ruling is not adopted yet)",
+   "label": "VERIFIED",
+   "source": ".reports/s-rta-1004b/ruling-looks-answers2.md:852-855 (the rule) and :885-886 (why it is a reading)",
+   "text": "Rename a preset that several effects carry -> every effect in the open show that carried it reads the new name, whether you had changed it or not. Delete it -> those effects read \"Default\" and keep their settings. One thing to know: a show that was NOT open at that moment still holds the old name. Its effects read \"Presets\", dim, until you load a preset on them -- and if you ever make a new preset under that old name, they will read it as theirs"
+  },
+  {
+   "r": "R122",
+   "from": "new",
+   "label": "INFERRED",
+   "source": "BD:984 (his words: \"When the clip starts playing, if its actions are turned on, they will play.\")",
+   "text": "A clip that is fired by a layer's action or by a global action plays its own actions too, if they are switched on -- the same as when you fire it yourself."
+  },
+  {
+   "r": "R123",
+   "from": "new",
+   "label": "INFERRED",
+   "source": "BD:1044-1055 (his words on what clip, layer and global actions control)",
+   "text": "An action never touches the tempo row (play, pause, stop, the tempo number, the nudge, Tap, Resync): an action fires clips and moves the sliders and buttons of the clip, layer and global tabs, and nothing else."
+  },
+  {
+   "r": "R124",
+   "from": "new",
+   "label": "INFERRED",
+   "source": "BD:850 (his words: \"record all the parameter movements\"); FA:298-299 rows 6 and 7 (what a take misses today)",
+   "text": "A recording will keep everything you move with the mouse as well: sliders, the layer strip's buttons, a preset you load. Today it keeps only what keys, pads and other controllers do, so a show played with the mouse would leave the review screen almost empty. This is part of the actions build."
+  },
+  {
+   "r": "R125",
+   "from": "new",
+   "label": "INFERRED",
+   "source": "BD:979-981 (his words: \"each action that was recorded for that clip\"); FA:301 row 9 (today a routine finds its target by position)",
+   "text": "A clip's actions belong to the clip: move the clip to another cell and they go with it. They never end up driving whatever clip sits in the old place."
+  },
+  {
+   "r": "R126",
+   "from": "new",
+   "label": "VERIFIED",
+   "source": ".reports/s-rta-1004/boris-show-backup/test with harry.json (my read: \"routines\" holds 0 items, \"routineBank\" 0 items); C135:59-60 (reading R94)",
+   "text": "Your show \"test with harry\" holds no routine and nothing in the bank of 8, so nothing of yours is lost when the routine pads go."
+  }
+ ],
+ "void_readings": [
+  {
+   "r": "R118",
+   "from": "nudge-row2 R112",
+   "label": "VERIFIED",
+   "source": ".reports/s-rta-1004b/ruling-nudge-row2.md:849; BD:1070; .reports/s-rta-1004b/plan-nudge-row2.md:821",
+   "text": "The text \"nudge +12 ms\" sits right after RESYNC, so your thirteen cells stay side by side as in your picture.",
+   "why": "Void by your \"145 b\": the text sits between the two nudge buttons. The number R118 is not used."
+  },
+  {
+   "r": "tempo-row R79",
+   "from": "told earlier (boris-clarify-125-129.md)",
+   "label": "VERIFIED",
+   "source": ".reports/s-rta-1004b/ruling-nudge-row2.md:860; BD:1071",
+   "text": "The \"Bar 1..4\" text sits just left of the circle; the LOCKED word sits beside Manual.",
+   "why": "Its first half is void by your \"146 b\": the Bar text is taken out; the circle alone shows the beat."
+  },
+  {
+   "r": "tempo-row R84",
+   "from": "told earlier (boris-clarify-125-129.md)",
+   "label": "VERIFIED",
+   "source": ".reports/s-rta-1004b/ruling-nudge-row2.md:843-844",
+   "text": "Resync while stopped or paused: the beat goes to the \"1\" and the nudge reads 0, as after any Resync.",
+   "why": "Replaced by R115: your press is the \"1\" and the beat runs from it."
+  },
+  {
+   "r": "none",
+   "from": "check",
+   "label": "VERIFIED",
+   "source": "BD:1069, BD:1072",
+   "text": "Your \"144 a\" and \"147 a\" are the defaults the ruling was written on.",
+   "why": "They change none of the readings R109..R120."
+  }
+ ],
+ "told": [
+  {
+   "label": "VERIFIED",
+   "source": "RS:20 (measured by Harmony on a full test disk, old app and new app)",
+   "text": "Measured today: before this build, a Save onto a full disk emptied the show file to 0 bytes and said nothing. In the same test the new build kept the show as it was and said the Save failed (run on the build that was then merged into your app; not run again after the merge)."
+  },
+  {
+   "label": "VERIFIED",
+   "source": "RS:25 (seen on copies of his show); the folder's place is INFERRED from the rule 'next to the show'",
+   "text": "The first time you save your old show \"test with harry\", the app first puts the file exactly as it was into a folder called \"backups\" next to it (as \"test with harry.v0.json\"), and only then writes the show. A second Save makes no second copy."
+  },
+  {
+   "label": "VERIFIED",
+   "source": "RS:27; my read of the copy of his show (deck fade 0.3; 2 decks); boris-clarify-91-94.md (R64, told before)",
+   "text": "That first Save writes the show in the new shape: one set of layers for the whole show (where your two decks differed, Deck 1's layer settings win -- told to you before as R64), and the old deck fade number (0.3 s in your file) is not carried over. The file gets a little smaller (49,367 -> 43,400 bytes). The original stays in \"backups\"."
+  },
+  {
+   "label": "VERIFIED",
+   "source": "src/MainComponent.cpp:3619-3620 (the box's words); open-sweep-lanes.md T9; RS:20",
+   "text": "A Save can now say \"Save failed\" where the old app said nothing: if the copy into \"backups\" cannot be made (a full disk, a locked folder), nothing is written and a box tells you."
+  },
+  {
+   "label": "VERIFIED",
+   "source": "RS:13 (H-S8); HANDOFF.md:98-99",
+   "text": "NOT protected yet: the Deck menu. \"Save Deck As\" can still write over any file you pick -- a show included -- with no copy and no check, and \"Load Deck\" on a show followed by \"Save Deck\" can do the same. Until that is built: do not use Load Deck, Save Deck or Save Deck As on a show file."
+  },
+  {
+   "label": "INFERRED",
+   "source": ".reports/s-rta-1004/ruling-one-save.md:889-891 (the four files are still written the old way: VERIFIED text; that a full disk cuts them off as it did the show is INFERRED, not measured)",
+   "text": "NOT protected yet: four other files are still written the old way -- a recorded take's own file, the list of stored audio, the file browser's favourites and MilkDrop's own data. A full disk could cut them short the way it emptied the show. Keep free space on the disk when you record."
+  },
+  {
+   "label": "VERIFIED",
+   "source": "RS:29 (no later stage is built); src/MainComponent.cpp:3562-3563 as read by open-sweep-lanes.md T5 (INFERRED for the on-screen list: not seen running)",
+   "text": "Nothing else of today is in the app yet. Still as before: your keys and MIDI pads are not saved with the show, the app quits without asking, the list of shows clicks as it did, and the old Save / Load / FX Save buttons and the ten slots are still there."
+  },
+  {
+   "label": "VERIFIED",
+   "source": "BD:996 (\"134 delete them too\"; moved 2026-10-04 21:01:09)",
+   "text": "At your word \"134 delete them too\" your nine quick FX saves were moved to the Trash. If the ten slots still show, they are empty (INFERRED: not looked at on screen)."
+  },
+  {
+   "label": "VERIFIED",
+   "source": "RS:10 (H-S5 d)",
+   "text": "Collect Media writes the show through the same protected Save, but if that write fails it still shows no box. It is on the list."
+  },
+  {
+   "label": "VERIFIED",
+   "source": "plan-nudge-row2.md:814-826 (adoption); rulings-outputs.md and rulings-nudge.md gate blocks; plan-looks-answers2.md:786-788",
+   "text": "Decided and filed today, not in the app: the tempo row with your answers 144-147 (stop on one press; the nudge text between the two nudge buttons; no Bar text; Freeze and Echo keep what they hold after a stop); the first inner parts of the per-screen Delay and of the nudge are built and tested on their own branches -- they are NOT in the app you open. The presets plan came back and waits for your 150 and 151."
+  }
+ ],
+ "checks": [
+  {
+   "label": "INFERRED",
+   "do": "Before anything else: in Finder, make your own copy of \"test with harry.json\" (Harmony also holds one, identical to yours as of tonight).",
+   "expect": "Two copies exist outside the app before you save.",
+   "wrong": "Nothing can go wrong here; it is the safety net for the checks below."
+  },
+  {
+   "label": "INFERRED",
+   "do": "Open the app, open \"test with harry\" from the list on the left, then save it (Cmd+S).",
+   "expect": "It looks and plays as before and says \"Saved: test with harry.json\". In Finder, next to the show, there is now a folder \"backups\" holding \"test with harry.v0.json\", 49,367 bytes; the show itself is a little smaller (about 43,400 bytes).",
+   "wrong": "No \"backups\" folder; a copy of another size; a \"Save failed\" box; \"backups\" listed as a show in the list."
+  },
+  {
+   "label": "INFERRED",
+   "do": "Save again.",
+   "expect": "Still exactly one file in \"backups\".",
+   "wrong": "A new file in \"backups\" at every Save."
+  },
+  {
+   "label": "INFERRED",
+   "do": "Quit (the app still quits without asking), start it again and open \"test with harry\".",
+   "expect": "The same two decks, the same clips in the same columns, the same effects; layer 3 blends as it did in Deck 1.",
+   "wrong": "A clip missing or moved, an effect missing, a layer's blend or opacity changed in Deck 1, a black preview. Known and expected: Deck 2's own layer settings are gone (Deck 1's win)."
+  },
+  {
+   "label": "INFERRED",
+   "do": "Make a new show, drop one picture in, Save As under a new name, then save once more.",
+   "expect": "The file appears; no \"backups\" folder is made for a brand-new show; the second Save says \"Saved\".",
+   "wrong": "A \"backups\" folder beside a new file; \"Save failed\"."
+  },
+  {
+   "label": "VERIFIED",
+   "do": "Do NOT use Deck > Load Deck, Save Deck or Save Deck As on a show file.",
+   "expect": "This is the one place that is not protected yet.",
+   "wrong": "If a show is ever emptied this way: the copy in \"backups\", your own copy and Harmony's copy are the way back."
+  }
+ ],
+ "requests": [
+  {
+   "id": "RQ-0",
+   "label": "VERIFIED",
+   "source": ".reports/s-rta-1004/boris-clarify-71-74.md:32; BD:1040-1041 (\"I will get you the 3 audio tracks in another session. need to get them from a dj\")",
+   "text": "Three tracks you would really play, about 10 minutes each: tell me where the files are. You said they come in another session, from a DJ. Nothing waits on them except the first measurement of the clip transport (how often the picture would cut), which answers your question whether it can be built reliably."
+  }
+ ],
+ "not_on_the_page": [
+  {
+   "what": "Question 73 (old shows that hold BPM-synced clips)",
+   "why": "Never shown to him and still held back: it is asked only if one of his saved shows holds a BPM-synced clip. My read of the copy of his one show: 15 clips, none in BPM Sync (INFERRED from the stored value, the search itself is Harmony's to run). Default A is built."
+  },
+  {
+   "what": "Draft question 152 (what the other effects read after a rename)",
+   "why": "Withdrawn by the ruling (RL2:880-881); he is told the rule as reading R121 instead and corrects it if wrong."
+  },
+  {
+   "what": "Whether loading a preset unplugs a signal (reading R88) and whether presets are dragged from the effect list (R95)",
+   "why": "Both were told to him and he answered 131 and 138 in his own words; a question already shown is not re-worded. If he corrects R88 it is one switch (RL2:883-885). Harmony keeps it as a named doubt (HANDOFF.md:110)."
+  },
+  {
+   "what": "Top bar height (cells 30 or 36), the order in which a narrow window gives up items, whether play and nudge-forward can be told apart",
+   "why": "Only his eye on a built row can judge them: they are checks of the tempo row's visual gate (RN2:792-797, RN2:877-879), not questions today."
+  },
+  {
+   "what": "The transition slider's place and range (seconds or beats), where composition actions sit, how an action is named / renamed / deleted, the grid's list of sizes, the unit a row shows, how the take's sound is drawn",
+   "why": "Layout and wording: they belong on the design page for actions and the review screen that is owed to him (BD:1036), shown as pictures he can point at. Defaults meanwhile: seconds 0 to 4, the corner above the layer strips, a name box holding \"Action 1\", a musical list 1 bar to 1/16."
+  },
+  {
+   "what": "Which rows the review screen shows",
+   "why": "Told to him as R102 (one row per control the take recorded, grouped Global / Layer / Clip) and not corrected; his own words BD:1028-1036 carry it."
+  },
+  {
+   "what": "An action whose effect was removed or re-ordered; what an action does when its layer is deleted",
+   "why": "Harmony's to decide (follow the effect, never the position; rows of a removed effect do nothing). No performer's choice in it."
+  },
+  {
+   "what": "Converting old routines into actions",
+   "why": "His show holds none (told as R126), so there is nothing of his to convert."
+  },
+  {
+   "what": "Questions 30, 34, 37, 38 (stand at their defaults without his naming them)",
+   "why": "Each was shown and told again as a default (R20, R23); a question already shown is not asked twice."
+  },
+  {
+   "what": "Request RQ-3 (Speed's click step in Timeline mode) and closing Resolume Arena for a few minutes for one output measurement",
+   "why": "Nothing waits on either; the step is built as 0.1 until he says otherwise, and the Arena measurement is asked for when the outputs lane reaches it."
+  },
+  {
+   "what": "Transport lane: a BPM Sync clip fired before any tempo is known; whether a replay restores a clip's pause",
+   "why": "They are checks of a lane that is not built (ruling-transport-answers.md section 6); the second is re-stated inside the actions design."
+  },
+  {
+   "what": "The 20 checks of the presets ruling and the check lists of the other rulings",
+   "why": "Each describes a build that does not exist yet; by the rulings' own rule nothing of them is shown before that lane's visual gate."
+  },
+  {
+   "what": "A take that cannot be saved during a quit; Collect Media's silent failure; who mends the four unprotected files; protecting the Deck menu sooner; the two nudge findings for the architect; the presets ruling's own decisions and its adoption",
+   "why": "Harmony's homework, ruled by his existing words (\"If the user is recording the show, that is not saved, and that should be shown. Nothing else.\", BL:389) or purely technical."
+  }
+ ]
+}

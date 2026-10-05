@@ -1,0 +1,20 @@
+2026-10-04 22:44:49 MERGE-1 GREEN arm start; main head fbbf125; app sha before build 5d3d91d612711b75
+main build rc=0; compiled objects: 160; errors: 0; app sha after b0d37d7c24602656
+Total Tests: 1278
+full SERIAL ctest rc=0
+100% tests passed, 0 tests failed out of 1278
+Total Test time (real) = 132.62 sec
+ctest rc=0
+22:48:15 lock acquired
+[merged main: OS-L13, L14, L14b] rc=0: PASS  OS-L13: the old-shape show loads (HTTP 200 {"ok": true}); first save: lastSave result 'saved', backup 'made' (want saved / made; ok); backups/ol
+PASS  OS-L14: the old-shape show loads (HTTP 200 {"ok": true}); old.json's sha256 unchanged (now 33370457fca3, before 33370457fca3); lastSave result '
+PASS  OS-L14b: F-A loads (HTTP 200 {"ok": true}); backups/x.other.json holds exactly the 10 bytes (b'not json!!'; backups folder: ['x.other.json']); x
+PROBE-ONE-SAVE GREEN
+[merged main: K7] rc=0: PASS  k7_old_show save: the saved file is a version-2 show (first key 'version', version 2, keys + layout blocks True); backups folder beside a NEW target: False
+PROBE-BOXES GREEN
+22:48:33 lock released
+16 s after the last quit: audio-dna windows 0, Output-named 0, UserNotificationCenter windows 0
+adna: []; lock present: 0
+settings sha: af6fc014e5b60246c9802adb9b4eec5c2476b2867564b585b6ac90ea093bb5e5
+his show sha: 5aabe2e2562189d1f421cf4fe00239e62c94f3c49998c1cd31bfd98c32c6b78b; compositions holds: test with harry.json,; Decks holds 4 files; decks sha set: 09bb64c76bc957c8
+2026-10-04 22:48:49 MERGE-1 GREEN arm end
