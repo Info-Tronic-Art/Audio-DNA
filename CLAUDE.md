@@ -221,6 +221,7 @@ the named area; this index is triage-only.
 65. Rename box over a rebuilt row -- before a double-click or in-place editor.
 66. MilkDrop draws only through `projectm_opengl_render_frame_fbo` into its canvas FBO -- before touching ProjectMSource or libprojectM.
 67. The shown deck is the grid, never the screen -- before resolving what a layer plays (`Composition::playing(i)`, never `getActiveDeck()->rows[i]`).
+68. The show file has a version and ONE verified writer (read back before the swap; a copy to backups/ before any old-shape file is written over) -- before touching `saveToFile`, `writeShow`, a file-shape test or a settings write.
 
 ---
 
