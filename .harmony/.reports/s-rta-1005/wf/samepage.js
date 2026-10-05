@@ -47,8 +47,7 @@ D. BRIEF CONTEXT (at most 12 lines): does Resolume have anything like a recorded
 
 phase('Facts')
 log('s-rta-1005 same-page: ' + TOPICS.length + ' fact sheets, each re-read; then questions -> seats -> ruling -> page -> check. Nothing is built.')
-const facts = await pipeline(TOPICS,
-  T => agent(`${WHO}
+const factsOf = T => agent(`${WHO}
 WHY THIS SHEET EXISTS. ${T.why}
 ESTABLISH (answer every lettered or numbered point; a point you cannot settle is listed as UNKNOWN with the cheapest way to settle it -- "Boris has Arena on this machine: one click of his answers it" is a valid way; operating Arena yourself is not):
 ${T.ask}
@@ -57,8 +56,8 @@ ${HIS}
 ${RULES}
 OUTPUT. The sheet, in plain sentences a planner can build on: one fact per line, each with its label and its source; a short "SURPRISES" list (anything that contradicts what the questions above assume); a closing "WHAT I COULD NOT ESTABLISH" list. No design, no recommendation, no question for Boris.
 REPORT_FILE: ${T.file}
-RETURN: status, report_path, lines_verified, lines_inferred, unknowns (<= 12, each <= 220 characters), surprises (<= 8, each <= 220 characters), summary <= 500 characters.`, { agentType: T.type, model: 'sonnet', effort: 'high', schema: FS, phase: 'Facts', label: 'facts:' + T.key }),
-  (f, T) => agent(`ADVERSARIAL RE-READ of a fact sheet (read-only except the sheet itself). The sheet: ${T.file} -- read it whole. Harmony will put questions to the app's owner and architects will plan on it: your job is to find the lines that are WRONG before they do. ${T.code ? 'Re-open the cited file:line of EVERY line labelled VERIFIED that names source code or a ruling, and of at least fifteen load-bearing lines in all; a citation that does not say what the line claims is WRONG.' : (T.type === 'researcher' ? 'Re-fetch the cited page of the fifteen most load-bearing lines (the ones on what "Save" and "Manage..." do, on name against thumbnail clicks, on what a layer in a monitor shows, on Beat Snap and BPM Sync, on the tempo bar): a line whose source does not say it is WRONG; a line labelled VERIFIED whose source is not Resolume\'s own manual, staff or video is re-labelled INFERRED.' : 'Re-open the cited line of EVERY quotation of Boris (binding-decisions.md, boris-feedback-backlog.md): a quotation that is not verbatim is WRONG; a pair listed as disagreeing that does not disagree is WRONG; then look for a disagreeing pair or an uncovered point the sheet MISSED.')} Also check that nothing in the sheet is a design, a recommendation or a question for the owner (flag it).
+RETURN: status, report_path, lines_verified, lines_inferred, unknowns (<= 12, each <= 220 characters), surprises (<= 8, each <= 220 characters), summary <= 500 characters.`, { agentType: T.type, model: 'sonnet', effort: 'high', schema: FS, phase: 'Facts', label: 'facts:' + T.key })
+const rereadOf = (f, T) => agent(`ADVERSARIAL RE-READ of a fact sheet (read-only except the sheet itself). The sheet: ${T.file} -- read it whole. Harmony will put questions to the app's owner and architects will plan on it: your job is to find the lines that are WRONG before they do. ${T.code ? 'Re-open the cited file:line of EVERY line labelled VERIFIED that names source code or a ruling, and of at least fifteen load-bearing lines in all; a citation that does not say what the line claims is WRONG.' : (T.type === 'researcher' ? 'Re-fetch the cited page of the fifteen most load-bearing lines (the ones on what "Save" and "Manage..." do, on name against thumbnail clicks, on what a layer in a monitor shows, on Beat Snap and BPM Sync, on the tempo bar): a line whose source does not say it is WRONG; a line labelled VERIFIED whose source is not Resolume\'s own manual, staff or video is re-labelled INFERRED.' : 'Re-open the cited line of EVERY quotation of Boris (binding-decisions.md, boris-feedback-backlog.md): a quotation that is not verbatim is WRONG; a pair listed as disagreeing that does not disagree is WRONG; then look for a disagreeing pair or an uncovered point the sheet MISSED.')} Also check that nothing in the sheet is a design, a recommendation or a question for the owner (flag it).
 ${WHO}
 ${T.code ? CODE : ''}
 ${HIS}
@@ -67,7 +66,11 @@ WRITE: append to the END of the sheet a block headed "## CORRECTIONS (adversaria
 REPORT_FILE: ${T.file}
 The author's own summary of the sheet: ${cut(f && f.summary, 600)} Unknowns he listed: ${JSON.stringify((f && f.unknowns) || [])}
 RETURN: verdict (SOUND = nothing wrong; SOUND_WITH_CORRECTIONS = wrong lines found and all are in your block; UNRELIABLE = the sheet cannot be planned on), checked, wrong, corrections (<= 12, each <= 260 characters), summary <= 400 characters.`, { agentType: T.type, model: 'sonnet', effort: 'high', schema: VS, phase: 'Re-read', label: 'reread:' + T.key })
-    .then(v => ({ key: T.key, file: T.file, facts: f, reread: v })))
+    .then(v => ({ key: T.key, file: T.file, facts: f, reread: v }))
+// RESUME NOTE (run wf_684eec91-661): a call's cache key depends on the ORDER of the agent() calls, not only on its prompt. The first leg ran as a pipeline: facts in TOPICS order, re-reads in the order the facts came back (REREAD_ORDER). Issuing the ten calls in that same order makes the resume serve all ten from the cache.
+const fres = await parallel(TOPICS.map(T => () => factsOf(T)))
+const REREAD_ORDER = ['resolume', 'presets-delta', 'actions-open', 'takes-bpm-fire', 'cue-today']
+const facts = await parallel(REREAD_ORDER.map(k => () => { const i = TOPICS.findIndex(T => T.key === k); return rereadOf(fres[i], TOPICS[i]) }))
 const sheets = facts.filter(Boolean)
 log('fact sheets back: ' + sheets.map(s => s.key + '=' + (s.facts ? s.facts.status : 'none') + '/' + (s.reread ? s.reread.verdict : 'none')).join(', '))
 const SHEETLIST = TOPICS.map(T => { const s = sheets.find(x => x.key === T.key); return `- ${T.file} (${T.key}): author ${s && s.facts ? s.facts.status : 'NO RESULT'}; re-read ${s && s.reread ? s.reread.verdict + ', ' + s.reread.wrong + ' wrong of ' + s.reread.checked + ' checked' : 'NO RESULT'}. Unknowns: ${JSON.stringify((s && s.facts && s.facts.unknowns) || [])}. Surprises: ${JSON.stringify((s && s.facts && s.facts.surprises) || [])}. Corrections: ${JSON.stringify((s && s.reread && s.reread.corrections) || [])}` }).join('\n')
