@@ -667,3 +667,39 @@ status-note:
 artifact:
 history:     NEW(2026-10-04)
 --- /IDEA ---
+
+--- IDEA ---
+id:          idea-2026-10-05-RealTimeAudio-17912366144386428318
+raw:         WORKFLOW RESUME: a call's cache key depends on the ORDER of the agent() calls, not only on (prompt, opts). A pipeline starts its second-stage calls in the order the first stage comes back; on a resume the cached first stage returns in list order, so byte-identical second-stage prompts get new keys and re-run (seen in journal.jsonl: same label and prompt, different v2: key; four of five re-reads restarted). Rule: a workflow that may be stopped and resumed issues agent() calls in a FIXED order -- parallel() over a literal list per stage, never a pipeline whose later stages start in completion order; before a resume copy the journal's started-order into the script; after it check that the journal's first NEW started record is the stage that was edited. The Workflow tool text says unchanged (prompt, opts) calls replay from cache; the skill text says longest unchanged prefix: the prefix reading is the true one.
+context:     RealTimeAudio s-rta-1005, run wf_684eec91-661: stop and resume to put Boris's new term into later stages
+why:         
+intent:      
+target:      workflow-authoring guidance / HARMONY_GOTCHAS agents-and-dispatch
+constraints: 
+related:     
+priority:    medium
+repo:        RealTimeAudio     session: s-rta-1005     date: 2026-10-05
+status:      NEW
+status-changed: 2026-10-05
+status-note:
+artifact:
+history:     NEW(2026-10-05)
+--- /IDEA ---
+
+--- IDEA ---
+id:          idea-2026-10-05-RealTimeAudio-17912366144387918749
+raw:         A BLIND SEAT GIVEN TOO MUCH TO READ FAILS SILENTLY: two of three seats, each told to read fifteen sheets (about 600 KB) plus a 250 KB list, ended with 'subagent completed without calling StructuredOutput'; the ruling then ran on ONE paper and only its own honest PARTIAL status exposed it. The same seats worked with five sheets. Rules: (1) a seat reads ONE sheet or ONE slice -- a check over N sheets is N seats; (2) every seat writes its paper to a file as well as returning it, so a lost return loses nothing; (3) the orchestration script counts returned papers and STOPS before the ruling when fewer came back than were sent, instead of ruling on what arrived; (4) a list for the owner that was checked by fewer seats than planned is not shown to him.
+context:     RealTimeAudio s-rta-1005, run wf_183ba79c-128 (merge leg), fixed by run wf_5c27a231-ee9 (fifteen small seats)
+why:         
+intent:      
+target:      council / blind-seat doctrine (agent-casting, decision-council)
+constraints: 
+related:     
+priority:    medium
+repo:        RealTimeAudio     session: s-rta-1005     date: 2026-10-05
+status:      NEW
+status-changed: 2026-10-05
+status-note:
+artifact:
+history:     NEW(2026-10-05)
+--- /IDEA ---
