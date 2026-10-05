@@ -16,7 +16,7 @@ READ, in this order: (1) .harmony/HANDOFF.md (this file: WHERE WE ARE, the two L
 it, the session section); (2) .harmony/RIG-RULES.md BEFORE launching any workflow (binding; sections A, A2, A3, A4, A5, B);
 (3) .harmony/.reports/s-rta-1003/board.md, the rows under "s-rta-1005 LIVE STATE" (the newest); (4) what is in front of him:
 .harmony/.reports/s-rta-1005/boris-clarify-all.md = every question AS ASKED and every reading — NEVER load it or
-boris-all-items.json whole (110 KB / 400 KB): print one item by its number with python3 from the JSON (keys questions[n],
+boris-all-items.json whole (286 KB / 349 KB): print one item by its number with python3 from the JSON (keys questions[n],
 readings[r], decided_not_asked, design_page, still_unsure, notes_for_harmony). The adoption blocks at the END of the plans
 (.harmony/.reports/s-rta-1004/plan-*.md, s-rta-1004b/plan-nudge-row2.md, plan-looks-answers2.md) are read only when their lane
 is touched: every lane is ON HOLD and three are RE-OPENED on paper by his words (quantize-out; the tempo row;
