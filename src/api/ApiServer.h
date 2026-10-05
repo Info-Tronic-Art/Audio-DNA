@@ -203,7 +203,12 @@ public:
     // Lane bf9b fix round (TEST-ONLY): POST /api/debug/save_composition {path} = File > Save As... to that absolute
     // path (no chooser) -- the live driver of K7 / B5's "save + reload". Marshalled to the message thread; answers at
     // once (the caller polls for the file).
+    // Lane one-save S1 (TEST-ONLY): {"plain": true} = File > Save (a plain Save of the show's own file), passed to
+    // the same callback as an EMPTY juce::File. The route answers before the write, so its result is read from
+    // GET /api/debug/show_file -> {path, loadedVersion, lastSave{seq, result: "saved"|"failed"|"cancelled", path,
+    // backup: "not_needed"|"made"|"already_there"|"failed", ms}} (onDebugShowFile, called on the message thread).
     std::function<void(juce::File)> onDebugSaveComposition;
+    std::function<juce::var()> onDebugShowFile;
     std::function<juce::String()> onDebugUiText;
     // s-rta-0929b btguard (TEST-ONLY): /api/debug/ui_text "audio_notice" -- the no-input / no-device notice beside the
     // file label ("" when hidden), read in the same message-thread hop as file_label.
@@ -313,6 +318,7 @@ private:
     void handleDebugCancelLoad(const httplib::Request& req, httplib::Response& res);
     void handleDebugRemoveDeck(const httplib::Request& req, httplib::Response& res);   // lane bf9b
     void handleDebugSaveComposition(const httplib::Request& req, httplib::Response& res);   // lane bf9b fix round
+    void handleDebugShowFile(const httplib::Request& req, httplib::Response& res);          // lane one-save S1
     void handleDebugAudioDevices(const httplib::Request& req, httplib::Response& res);   // s-rta-0929b btguard
     void handleDebugAudioDeny(const httplib::Request& req, httplib::Response& res);      // s-rta-0930 bt2
     void handleDebugAudioStop(const httplib::Request& req, httplib::Response& res);      // s-rta-0930 bt2

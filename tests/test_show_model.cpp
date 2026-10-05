@@ -1302,6 +1302,7 @@ juce::var legacyShow(const std::vector<juce::var>& decks, double fadeSeconds)
     juce::var v = base.toVar();
     auto* obj = v.getDynamicObject();
     obj->removeProperty("layers");
+    obj->removeProperty("version");   // lane one-save S1: toVar now writes "version": 2; a pre-bf9b file never had one
     juce::Array<juce::var> arr;
     for (const auto& d : decks)
         arr.add(d);

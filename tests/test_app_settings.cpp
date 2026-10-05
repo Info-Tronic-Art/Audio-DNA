@@ -8,13 +8,19 @@
 #include <catch2/catch_test_macros.hpp>
 #include "model/AppSettings.h"
 #include "output/OutputTargets.h"
+#ifndef _WIN32
+#include <csignal>
+#include <sys/resource.h>
+#endif
 
 namespace
 {
 struct TempSettings
 {
+    // Lane one-save S1: a name of its own per PROCESS (ctest runs the cases as parallel processes; two asking for "the
+    // next free name" at once got the same folder, and the new cases count the folder's entries).
     juce::File dir = juce::File::getSpecialLocation(juce::File::tempDirectory)
-                         .getNonexistentChildFile("audiodna-test-app-settings", "", false);
+                         .getChildFile("audiodna-test-app-settings-" + juce::Uuid().toString());
     juce::File file = dir.getChildFile("Audio-DNA").getChildFile("settings.json");
     TempSettings() { REQUIRE(dir.createDirectory()); }
     ~TempSettings() { dir.deleteRecursively(); }
@@ -138,3 +144,99 @@ TEST_CASE("AppSettings: the default file is <userApplicationDataDirectory>/Audio
     CHECK(f.getParentDirectory().getParentDirectory()
           == juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory));
 }
+
+// ---- lane one-save S1 (ruling-one-save A-15, A-1; rows AS-2..AS-4): the settings.json mend and the verified write.
+// update() used to rewrite a file it could not read as a fresh object -- every other key in it was gone for good --
+// and wrote through juce::File::replaceWithText, which swaps a cut-off temporary file in and reports success.
+
+TEST_CASE("appsettings: an unreadable file is copied to settings.json.unreadable before the rewrite", "[app_settings]")
+{
+    TempSettings t;
+    REQUIRE(t.file.getParentDirectory().createDirectory());
+    const juce::File kept = t.file.getSiblingFile("settings.json.unreadable");
+    const AppSettings s(t.file);
+
+    const juce::String first = "{\"outputs\": [1, 2, 3], \"milkDropPresetDir\": \"/a/b\"";   // cut off: no closing brace
+    REQUIRE(t.file.replaceWithText(first));
+    REQUIRE(s.update("a", 1));
+    REQUIRE(kept.existsAsFile());
+    CHECK(kept.loadFileAsString() == first);              // the file as it was, to mend by hand
+    REQUIRE(t.parsed().getDynamicObject() != nullptr);    // and settings.json is a valid object again
+    CHECK(static_cast<int>(t.parsed()["a"]) == 1);
+
+    // A readable file is never copied: the kept copy stays what it was.
+    REQUIRE(s.update("b", 2));
+    CHECK(kept.loadFileAsString() == first);
+    CHECK(static_cast<int>(s.read("a")) == 1);
+
+    // Unreadable again (a root that is not an object): the OLDER copy is replaced by the newer file.
+    const juce::String second = "[\"not\", \"an\", \"object\"]";
+    REQUIRE(t.file.replaceWithText(second));
+    REQUIRE(s.update("c", 3));
+    CHECK(kept.loadFileAsString() == second);
+    CHECK(static_cast<int>(s.read("c")) == 3);
+
+    // A missing file and an empty file are not "unreadable": nothing to keep.
+    TempSettings fresh;
+    const AppSettings s2(fresh.file);
+    REQUIRE(s2.update("a", 1));
+    REQUIRE(fresh.file.replaceWithText(""));
+    REQUIRE(s2.update("a", 2));
+    CHECK_FALSE(fresh.file.getSiblingFile("settings.json.unreadable").exists());
+}
+
+TEST_CASE("appsettings: when that copy cannot be made the file is left as it is and update returns false", "[app_settings]")
+{
+    TempSettings t;
+    REQUIRE(t.file.getParentDirectory().createDirectory());
+    const juce::String bad = "{not json";
+    REQUIRE(t.file.replaceWithText(bad));
+    // Where the copy would go there is a folder that is not empty: no file can take that name.
+    const juce::File blocker = t.file.getSiblingFile("settings.json.unreadable");
+    REQUIRE(blocker.createDirectory());
+    REQUIRE(blocker.getChildFile("x").replaceWithText("x"));
+
+    const AppSettings s(t.file);
+    CHECK_FALSE(s.update("a", 1));
+    CHECK(t.file.loadFileAsString() == bad);              // not rewritten
+    CHECK(blocker.isDirectory());
+    CHECK(blocker.getChildFile("x").loadFileAsString() == "x");
+    CHECK(t.file.getParentDirectory().findChildFiles(juce::File::findFilesAndDirectories, false).size() == 2);
+}
+
+#ifndef _WIN32   // RLIMIT_FSIZE / SIGXFSZ are POSIX: this case has no Windows form
+TEST_CASE("appsettings: a half-written update leaves the old file and returns false", "[app_settings]")
+{
+    TempSettings t;
+    const AppSettings s(t.file);
+    REQUIRE(s.update("outputs", "the set as it was"));
+    juce::MemoryBlock before;
+    REQUIRE(t.file.loadFileAsData(before));
+
+    // A REAL half write, no seam: for the length of one update() this process may not write any file past 64 bytes
+    // (RLIMIT_FSIZE; the signal that comes with it is ignored), so the kernel cuts the update's temporary file short
+    // exactly as a full disk does. juce::File::replaceWithText swaps that cut-off file in and answers true.
+    const auto oldHandler = std::signal(SIGXFSZ, SIG_IGN);
+    struct rlimit old {};
+    REQUIRE(getrlimit(RLIMIT_FSIZE, &old) == 0);
+    struct rlimit cut = old;
+    cut.rlim_cur = 64;
+    REQUIRE(setrlimit(RLIMIT_FSIZE, &cut) == 0);
+    const bool ok = s.update("big", juce::String::repeatedString("0123456789", 400));
+    const int restored = setrlimit(RLIMIT_FSIZE, &old);
+    REQUIRE(restored == 0);
+    std::signal(SIGXFSZ, oldHandler);
+
+    CHECK_FALSE(ok);
+    juce::MemoryBlock after;
+    REQUIRE(t.file.loadFileAsData(after));
+    CHECK(after == before);                               // the old file, byte for byte
+    CHECK(s.read("outputs").toString() == "the set as it was");
+    CHECK(t.file.getParentDirectory().findChildFiles(juce::File::findFilesAndDirectories, false).size() == 1);
+
+    // With the limit gone the same update goes through.
+    REQUIRE(s.update("big", juce::String::repeatedString("0123456789", 400)));
+    CHECK(s.read("big").toString().length() == 4000);
+    CHECK(s.read("outputs").toString() == "the set as it was");
+}
+#endif

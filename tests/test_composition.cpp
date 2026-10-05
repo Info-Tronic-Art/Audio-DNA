@@ -889,7 +889,7 @@ TEST_CASE("Composition saveToFile/loadFromFile round-trips through a real file a
     clip.mediaType = Clip::MediaType::Image;
     comp.decks[0].setClip(0, 0, clip);
 
-    REQUIRE(comp.saveToFile(file));
+    REQUIRE(comp.saveToFile(file, {}));
 
     Composition loaded;
     REQUIRE(loaded.loadFromFile(file));
@@ -1274,7 +1274,7 @@ TEST_CASE("compload::reconcileSourceParams brings an old file's source clips to 
     // Round-trip through a real file: the old file must still load and validate.
     const auto file = juce::File::getSpecialLocation(juce::File::tempDirectory)
                           .getChildFile("reconcile-old-" + juce::String(juce::Time::getMillisecondCounter()) + ".json");
-    REQUIRE(old.saveToFile(file));
+    REQUIRE(old.saveToFile(file, {}));
     Composition incoming;
     REQUIRE(incoming.loadFromFile(file));
     file.deleteFile();

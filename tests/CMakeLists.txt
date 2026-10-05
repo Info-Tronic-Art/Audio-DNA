@@ -3877,3 +3877,52 @@ if(NOT MSVC)
 endif()
 apply_sanitizers(test_clip_inspector_media)
 catch_discover_tests(test_clip_inspector_media)
+
+# ---- lane one-save S1 (ruling-one-save sections 4 / 5): the show file -----------------------------------------------
+# test_safe_write (SW-1..4): the verified writer of src/core/SafeFileWrite.h -- bytes read back equal BEFORE the swap.
+add_executable(test_safe_write test_safe_write.cpp)
+target_include_directories(test_safe_write PRIVATE ${SRC_DIR})
+target_link_libraries(test_safe_write PRIVATE Catch2::Catch2WithMain juce::juce_core)
+target_compile_definitions(test_safe_write PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_DISPLAY_SPLASH_SCREEN=0)
+apply_sanitizers(test_safe_write)
+catch_discover_tests(test_safe_write)
+
+# test_show_file (SF-1..10: the version, the keys / layout blocks) and test_show_backup (SB-1..7: the copy kept before
+# an older file is written over). Linked like test_composition; fixtures in OneSaveFixture.h; temp folders only.
+foreach(one_save_test test_show_file test_show_backup)
+    add_executable(${one_save_test}
+        ${one_save_test}.cpp
+        ${SRC_DIR}/model/Clip.cpp
+        ${SRC_DIR}/model/Layer.cpp
+        ${SRC_DIR}/connect/ConnSerialization.cpp
+    )
+    target_include_directories(${one_save_test} PRIVATE ${SRC_DIR})
+    target_link_libraries(${one_save_test} PRIVATE
+        Catch2::Catch2WithMain
+        juce::juce_core
+        juce::juce_events
+        juce::juce_graphics
+    )
+    target_compile_definitions(${one_save_test} PRIVATE
+        _USE_MATH_DEFINES
+        JUCE_WEB_BROWSER=0
+        JUCE_USE_CURL=0
+        JUCE_DISPLAY_SPLASH_SCREEN=0
+    )
+    if(NOT MSVC)
+        target_compile_options(${one_save_test} PRIVATE
+            -Wno-old-style-cast
+            -Wno-conversion
+            -Wno-sign-conversion
+        )
+    endif()
+    apply_sanitizers(${one_save_test})
+    catch_discover_tests(${one_save_test})
+endforeach()
+
+# test_one_save_lint (LINT-1, LINT-7; later stages add theirs): source greps over src/ (precedent test_output_law).
+add_executable(test_one_save_lint test_one_save_lint.cpp)
+target_link_libraries(test_one_save_lint PRIVATE Catch2::Catch2WithMain)
+target_compile_definitions(test_one_save_lint PRIVATE AUDIODNA_SRC_DIR="${SRC_DIR}")
+apply_sanitizers(test_one_save_lint)
+catch_discover_tests(test_one_save_lint)

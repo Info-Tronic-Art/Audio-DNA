@@ -326,6 +326,7 @@ void ApiServer::setupRoutes()
     server_.Post("/api/debug/remove_deck", [this](const httplib::Request& req, httplib::Response& res) { handleDebugRemoveDeck(req, res); });
     // Lane bf9b fix round (TEST-ONLY, same build path): Save As... to an absolute path, no chooser (K7 / B5 save half).
     server_.Post("/api/debug/save_composition", [this](const httplib::Request& req, httplib::Response& res) { handleDebugSaveComposition(req, res); });
+    server_.Get("/api/debug/show_file", [this](const httplib::Request& req, httplib::Response& res) { handleDebugShowFile(req, res); });
     // s-rta-0929b btguard (TEST-ONLY, same build path): the audio device policy's last scan and the opened devices.
     server_.Get("/api/debug/audio_devices", [this](const httplib::Request& req, httplib::Response& res) { handleDebugAudioDevices(req, res); });
     // s-rta-0930 bt2 (TEST-ONLY, same build path): swap the denied device names at runtime (the plug / unplug stand-in)
@@ -2175,14 +2176,20 @@ void ApiServer::handleDebugRemoveDeck(const httplib::Request& req, httplib::Resp
 }
 
 // Lane bf9b fix round (TEST-ONLY): {"path": "<absolute .json>"} -> File > Save As... to that file, no chooser.
+// Lane one-save S1: {"plain": true} -> File > Save (the show's own file; no chooser is ever opened). The answer comes
+// BEFORE the write: read the result from GET /api/debug/show_file.
 void ApiServer::handleDebugSaveComposition(const httplib::Request& req, httplib::Response& res)
 {
     auto json = juce::JSON::parse(juce::String(req.body));
+    const juce::var plainVar = json.getProperty("plain", juce::var());
+    const bool plain = plainVar.isBool() && static_cast<bool>(plainVar);
     const juce::String path = json.getProperty("path", "").toString();
-    if (path.isEmpty() || !juce::File::isAbsolutePath(path) || !juce::File(path).getParentDirectory().isDirectory())
+    if (!plain
+        && (path.isEmpty() || !juce::File::isAbsolutePath(path) || !juce::File(path).getParentDirectory().isDirectory()))
     {
         res.status = 400;
-        res.set_content(jsonError("path (an absolute file in an existing folder) required"), "application/json");
+        res.set_content(jsonError("path (an absolute file in an existing folder) or \"plain\": true required"),
+                        "application/json");
         return;
     }
     if (!onDebugSaveComposition)
@@ -2191,9 +2198,34 @@ void ApiServer::handleDebugSaveComposition(const httplib::Request& req, httplib:
         res.set_content(jsonError("save_composition not wired"), "application/json");
         return;
     }
-    const juce::File f(path);
+    const juce::File f = plain ? juce::File() : juce::File(path);
     juce::MessageManager::callAsync([this, f]() { onDebugSaveComposition(f); });
     res.set_content(jsonOk(), "application/json");
+}
+
+// Lane one-save S1 (TEST-ONLY): the show's file, the version it was loaded as, and the last save's result -- read ON
+// the message thread (the handleDebugUiText pattern); the JSON text is made there, only the text crosses threads.
+void ApiServer::handleDebugShowFile(const httplib::Request&, httplib::Response& res)
+{
+    if (!onDebugShowFile)
+    {
+        res.status = 503;
+        res.set_content(jsonError("show_file not wired"), "application/json");
+        return;
+    }
+    struct Box { juce::WaitableEvent done; std::string json; };
+    auto box = std::make_shared<Box>();
+    const bool posted = juce::MessageManager::callAsync([this, box]() {
+        box->json = juce::JSON::toString(onDebugShowFile()).toStdString();
+        box->done.signal();
+    });
+    if (!posted || !box->done.wait(2000))
+    {
+        res.status = 503;
+        res.set_content(jsonError("message thread did not answer within 2 s"), "application/json");
+        return;
+    }
+    res.set_content(box->json, "application/json");
 }
 
 // s-rta-0929b btguard (TEST-ONLY): reads ONLY the mutex-guarded copy AudioEngine publishes on the message thread.

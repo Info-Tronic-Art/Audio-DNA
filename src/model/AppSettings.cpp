@@ -1,4 +1,5 @@
 #include "model/AppSettings.h"
+#include "core/SafeFileWrite.h"
 
 juce::File AppSettings::defaultFile()
 {
@@ -34,8 +35,17 @@ juce::var AppSettings::read(const juce::String& key) const
 
 bool AppSettings::update(const juce::String& key, const juce::var& value) const
 {
+    // Lane one-save S1 (ruling-one-save A-15): a file that is there, is not empty and does not parse to an object
+    // would be rewritten below WITHOUT its other keys. It is first copied beside itself as "settings.json.unreadable"
+    // (replacing an older copy; the copy is verified); when that copy cannot be made the file is left as it is.
+    if (file_.existsAsFile() && file_.getSize() > 0
+        && juce::JSON::parse(file_.loadFileAsString()).getDynamicObject() == nullptr
+        && !safewrite::copyVerified(file_, file_.getSiblingFile(file_.getFileName() + ".unreadable")))
+        return false;
+
     auto root = readRoot();
     root.getDynamicObject()->setProperty(juce::Identifier(key), value);
     file_.getParentDirectory().createDirectory();
-    return file_.replaceWithText(juce::JSON::toString(root));
+    // The verified writer (A-1): the bytes are read back before the swap -- a write cut short leaves the old file.
+    return safewrite::writeTextVerified(file_, juce::JSON::toString(root));
 }
