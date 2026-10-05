@@ -2148,7 +2148,14 @@ MainComponent::MainComponent(bool testMode, int testPort)
     // Lane bf9b (ruling-bf9b amendment 4(g)): the tab menu's Remove Deck, by REST (Undo: the ui lane's onDebugUndo).
     apiServer_->onDebugRemoveDeck = [this](int deckIndex) { removeDeck(deckIndex); };
     // Lane bf9b fix round: File > Save As... to a given file, no chooser (K7 / B5 "save + reload").
-    apiServer_->onDebugSaveComposition = [this](juce::File f) { saveCompositionTo(f); };
+    // Lane one-save S1: an empty file = {"plain": true}, a plain Save; the result is read from /api/debug/show_file.
+    apiServer_->onDebugSaveComposition = [this](juce::File f) {
+        if (f == juce::File())
+            debugPlainSave();
+        else
+            saveCompositionTo(f);
+    };
+    apiServer_->onDebugShowFile = [this] { return showFileVar(); };
     apiServer_->onDebugUiText = [this] { return fileLabel_.getText(); };
     apiServer_->onDebugAudioNotice = [this] {   // s-rta-0929b btguard
         return audioDeviceNotice_.isVisible() ? audioDeviceNotice_.getText() : juce::String();
@@ -3543,12 +3550,63 @@ void MainComponent::loadComposition(const juce::File& file, std::shared_ptr<Load
     beginStagedOpen(std::move(s));
 }
 
+bool MainComponent::showHasFile() const
+{
+    return composition_.filePath != juce::File()
+        && composition_.filePath.getParentDirectory().isDirectory();
+}
+
+bool MainComponent::writeShow(const juce::File& file)
+{
+    const double t0 = juce::Time::getMillisecondCounterHiRes();
+    // S1: the "keys" and "layout" blocks are written empty; their live snapshots arrive with the keys and layout stages.
+    const showfile::ShowExtras extras;
+    const auto outcome = showfile::saveWithBackup(
+        file, [this, &extras](const juce::File& f) { return composition_.saveToFile(f, extras); });
+    ++lastSave_.seq;
+    lastSave_.result = outcome.saved ? "saved" : "failed";
+    lastSave_.path = file.getFullPathName();
+    lastSave_.backup = showfile::backupName(outcome.backup);
+    lastSave_.ms = juce::Time::getMillisecondCounterHiRes() - t0;
+    return outcome.saved;
+}
+
+void MainComponent::debugPlainSave()
+{
+    if (showHasFile())
+    {
+        saveComposition();
+        return;
+    }
+    // A show with no file sends a plain Save to the Save As chooser; a test route never opens one.
+    ++lastSave_.seq;
+    lastSave_.result = "cancelled";
+    lastSave_.path = {};
+    lastSave_.backup = showfile::backupName(showfile::Backup::NotNeeded);
+    lastSave_.ms = 0.0;
+}
+
+juce::var MainComponent::showFileVar() const
+{
+    auto* last = new juce::DynamicObject();
+    last->setProperty("seq", lastSave_.seq);
+    last->setProperty("result", lastSave_.result);
+    last->setProperty("path", lastSave_.path);
+    last->setProperty("backup", lastSave_.backup);
+    last->setProperty("ms", lastSave_.ms);
+    auto* obj = new juce::DynamicObject();
+    obj->setProperty("path", composition_.filePath == juce::File() ? juce::String()
+                                                                   : composition_.filePath.getFullPathName());
+    obj->setProperty("loadedVersion", composition_.loadedVersion);
+    obj->setProperty("lastSave", juce::var(last));
+    return juce::var(obj);
+}
+
 void MainComponent::saveComposition()
 {
-    if (composition_.filePath != juce::File()
-        && composition_.filePath.getParentDirectory().isDirectory())
+    if (showHasFile())
     {
-        if (composition_.saveToFile(composition_.filePath))
+        if (writeShow(composition_.filePath))
         {
             setFileLabel("Saved: " + composition_.filePath.getFileName());
             if (browserPanel_)
@@ -3571,11 +3629,10 @@ void MainComponent::saveComposition()
 bool MainComponent::saveCompositionTo(const juce::File& saveFile)
 {
     // Save As's success path (the chooser's and /api/debug/save_composition's).
-    if (!composition_.saveToFile(saveFile))
+    if (!writeShow(saveFile))
         return false;
-    // saveToFile() is const and never sets filePath — only
-    // loadFromFile() does. Save As must set it here, or a later
-    // plain Save cannot find it.
+    // writeShow() never sets filePath — only loadFromFile() does.
+    // Save As must set it here, or a later plain Save cannot find it.
     composition_.filePath = saveFile;
     composition_.name = saveFile.getFileNameWithoutExtension().toStdString();
     setFileLabel("Saved: " + saveFile.getFileName());
@@ -6691,7 +6748,7 @@ void MainComponent::handleMenuCommand(int commandId)
                     // Also save composition JSON
                     auto compFile = destDir.getParentDirectory().getChildFile(
                         juce::String(composition_.name) + ".json");
-                    composition_.saveToFile(compFile);
+                    writeShow(compFile);   // one-save S1: the one writer (verified; the copy rule applies)
                     DBG("Collected " + juce::String(copied) + " media files to " + destDir.getFullPathName());
                 });
             break;

@@ -148,6 +148,26 @@ private:
     void saveCompositionAs();
     // Save As's success path to a chosen file (the chooser and /api/debug/save_composition); false = not written.
     bool saveCompositionTo(const juce::File& saveFile);
+    // Lane one-save S1 (ruling-one-save A-1 / A-2; docs/claude/integration.md "The show file"): the ONE writer of a
+    // show file -- the only caller of Composition::saveToFile. Any existing `file` that is not a version-2 show is
+    // first copied to <its folder>/backups/ (verified; when that copy cannot be made NOTHING is written), then the
+    // show is written through the verified writer. Fills lastSave_. Message thread only. False = not written.
+    bool writeShow(const juce::File& file);
+    // True when the show has a file a plain Save can write to (else Save goes to Save As).
+    bool showHasFile() const;
+    // TEST-ONLY targets of POST /api/debug/save_composition {"plain": true} and GET /api/debug/show_file.
+    void debugPlainSave();
+    juce::var showFileVar() const;
+    // The last save any path asked for (read by GET /api/debug/show_file; the route answers before the write).
+    struct LastSave
+    {
+        int seq = 0;                         // 0 = none yet
+        juce::String result;                 // "saved" | "failed" | "cancelled"
+        juce::String path;
+        juce::String backup = "not_needed";  // showfile::backupName
+        double ms = 0.0;                     // the whole of writeShow: target read + parse, copy, write, read-back
+    };
+    LastSave lastSave_;
     void swapCompositionModel(const std::function<void()>& mutation);
     void refreshUiAfterModelSwap();
     // plan6 §7: "replace everything playing?" before the library row click and New Composition.

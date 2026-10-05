@@ -3,6 +3,7 @@
 #include "model/Layer.h"
 #include "model/ClipRef.h"
 #include "model/ShowMigration.h"
+#include "core/ShowFile.h"
 #include "model/Routine.h"
 #include "connect/ParamConnection.h"
 #include "connect/LiveValue.h"
@@ -43,6 +44,14 @@ struct Composition
     // === Identity ===
     std::string name = "Untitled";
     juce::File filePath; // Where this composition is saved
+
+    // Lane one-save S1 (ruling-one-save A-3; src/core/ShowFile.h): what the file this show was read from said.
+    // loadedVersion = showfile::versionOf(file): 0 = an old-shape file (converted in memory), 1 = the bf9b shape with
+    // no version key, 2 = this build's, 3+ = a later build's (read best-effort). loadedExtras = the file's raw "keys"
+    // and "layout" blocks (void = absent), for MainComponent to take at the cut. MESSAGE THREAD ONLY: never
+    // serialized by toVar (which also runs on the HTTP thread), never read by the render or analysis threads.
+    int loadedVersion = showfile::kShowVersion;
+    showfile::ShowExtras loadedExtras;
 
     // === The shared layer stack (lane bf9b) ===
     // Every layer's settings and its playing tuple; no clips (row N of every deck feeds layer N). Index 0 = bottom.
@@ -193,7 +202,6 @@ struct Composition
     // === Output Settings ===
     int outputWidth = 1920;
     int outputHeight = 1080;
-    int outputDisplay = -1; // -1 = no external output
 
     // === Initialization ===
     // 3 shared layers (ids 0, 1, 2; layer 0 Opaque, the others Transparent) and one deck "Deck 1" with 3 rows.
@@ -201,6 +209,8 @@ struct Composition
     {
         name = "Untitled";
         filePath = juce::File();
+        loadedVersion = showfile::kShowVersion;
+        loadedExtras = {};
         layers.clear();
         for (int i = 0; i < Deck::kDefaultLayers; ++i)
         {
@@ -735,6 +745,9 @@ struct Composition
     juce::var toVar() const
     {
         auto* obj = new juce::DynamicObject();
+        // Lane one-save S1: the FIRST key, always. A reader takes it as a version only when it is an integer >= 2
+        // (showfile::versionOf); from 2 on, no reader tells a file's shape by a key's presence.
+        obj->setProperty("version", showfile::kShowVersion);
         obj->setProperty("name", juce::String(name));
         obj->setProperty("activeDeckIndex", activeDeckIndex.load());
         obj->setProperty("masterOpacity", static_cast<double>(masterOpacity));
@@ -742,7 +755,6 @@ struct Composition
         obj->setProperty("quantizeMode", static_cast<int>(quantizeMode));
         obj->setProperty("outputWidth", outputWidth);
         obj->setProperty("outputHeight", outputHeight);
-        obj->setProperty("outputDisplay", outputDisplay);
 
         // Composition master + video
         obj->setProperty("masterSpeed", static_cast<double>(masterSpeed));
@@ -889,7 +901,6 @@ struct Composition
                 outputWidth = 1920;
                 outputHeight = 1080;
             }
-            outputDisplay = static_cast<int>(obj->getProperty("outputDisplay"));
 
             // Composition master + video (guarded for backward compatibility with old presets)
             if (obj->hasProperty("masterSpeed"))
@@ -992,7 +1003,11 @@ struct Composition
             decks.clear();
             retiredDecks_.clear();
             migrationNote.clear();
-            if (ShowMigration::isLegacyShow(v))
+            // Lane one-save S1 (ruling-one-save A-3): the version is read ONCE. 0 = the old shape, converted; 1 or
+            // more = the "layers" / "decks" reader -- a file that states a version of 2 or more is never converted
+            // by key presence, whatever keys it has.
+            loadedVersion = showfile::versionOf(v);
+            if (loadedVersion == 0)
             {
                 migrationNote = ShowMigration::convertShow(v, layers, decks, nextLayerId_);
             }
@@ -1150,10 +1165,17 @@ struct Composition
     }
 
     // === File I/O ===
-    bool saveToFile(const juce::File& file) const
+    // Lane one-save S1 (ruling-one-save A-1): the file = toVar() plus the two blocks toVar never carries, "keys" and
+    // "layout" (always written; a void block is written as an empty object), through the VERIFIED writer -- the
+    // bytes are read back before the swap, so a write cut short leaves the old file in place and answers false.
+    // Called ONLY by MainComponent::writeShow, which runs the copy-before-overwrite rule first (test_one_save_lint).
+    bool saveToFile(const juce::File& file, const showfile::ShowExtras& extras) const
     {
-        auto json = juce::JSON::toString(toVar());
-        return file.replaceWithText(json);
+        juce::var root = toVar();
+        auto* obj = root.getDynamicObject();
+        obj->setProperty("keys", extras.keys.isVoid() ? juce::var(new juce::DynamicObject()) : extras.keys);
+        obj->setProperty("layout", extras.layout.isVoid() ? juce::var(new juce::DynamicObject()) : extras.layout);
+        return safewrite::writeTextVerified(file, juce::JSON::toString(root));
     }
 
     bool loadFromFile(const juce::File& file)
@@ -1164,7 +1186,17 @@ struct Composition
         if (parsed.isVoid()) return false;
         fromVar(parsed);
         filePath = file;
+        loadedExtras.keys = parsed.getProperty("keys", juce::var());
+        loadedExtras.layout = parsed.getProperty("layout", juce::var());
         return true;
+    }
+
+    // The loaded file's two blocks, handed over once (the members are left void).
+    showfile::ShowExtras takeLoadedExtras()
+    {
+        showfile::ShowExtras out = std::move(loadedExtras);
+        loadedExtras = {};
+        return out;
     }
 
     // Every deck at exactly layers.size() rows: a deck with MORE rows than the show has layers adds shared layers
