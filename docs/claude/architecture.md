@@ -244,7 +244,7 @@ AudioDNA/
 │   │   ├── Deck.h                        # A box of clips: rows (one per shared layer) × columns; the grid shows one at a time
 │   │   ├── Composition.h                 # Top container: the shared layers, decks (boxes) + retired decks, master, crossfader, per-type/smart autopilot
 │   │   ├── Autopilot.h/cpp               # Beat / end-of-video / per-type / smart-energy clip advancement
-│   │   └── AppSettings.h/cpp         ✅ # [s-rta-0927 outputs-c3] settings.json read-modify-write (milkDropPresetDir, outputs); never clobbers a key
+│   │   └── AppSettings.h/cpp         ✅ # [s-rta-0927 outputs-c3] settings.json read-modify-write (milkDropPresetDir, outputs); never clobbers a key; [one-save S1] verified write, an unreadable file kept as settings.json.unreadable
 │   ├── signal/                          # [v2] Signal system (feeds RoutingEngine)
 │   │   ├── Signal.h + AudioSignal/OscillatorSignal/EnvelopeSignal/ClipPositionSignal.h  # Concrete signal types
 │   │   ├── ChainedSignal.h/cpp           # REMOVED 2026-07-17 (Wave 0) — was ghost (never instantiated); SignalRegistry wiring removed
@@ -263,6 +263,8 @@ AudioDNA/
 │   ├── core/                            # [v2] Undo/redo scaffold
 │   │   ├── Command.h                     # Abstract command base — DEAD: zero concrete subclasses
 │   │   └── UndoManager.h/cpp             # History stack — DEAD: perform() never called; undo/redo keys are no-ops
+│   │   ├── SafeFileWrite.h           ✅ # [one-save S1] The verified writer: writeTextVerified / copyVerified read the bytes back BEFORE the swap (show file, backups, settings.json)
+│   │   └── ShowFile.h                ✅ # [one-save S1] The show file's version (versionOf: an integer >= 2, else 0 / 1), ShowExtras (keys, layout), the copy to backups/ before an older file is written over
 │   ├── sources/                         # [P10+] Procedural sources
 │   │   ├── SourceRegistry.h/cpp          # 108 sources across 18 categories, 678 params (ground truth)
 │   │   ├── ProceduralSource.h/cpp        # Shader-backed source w/ ping-pong FBOs for stateful sims
