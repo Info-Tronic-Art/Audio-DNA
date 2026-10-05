@@ -4,6 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include "OneSaveFixture.h"
 #include "core/ShowFile.h"
+#include <limits>
 
 using namespace OneSaveFixture;
 
@@ -331,6 +332,24 @@ TEST_CASE("showfile: a version of 0, 1, -3, \"x\", true or 2.5 is no version -- 
     CHECK(showfile::versionOf(juce::JSON::parse(R"({"version": 2, "decks": []})")) == 2);
     CHECK(showfile::versionOf(juce::JSON::parse(R"({"version": 2.0, "decks": []})")) == 0);
     CHECK(showfile::versionOf(juce::JSON::parse(R"({"version": "2", "layers": [], "decks": []})")) == 1);
+
+    // An integer too large for an int is still a version of 2 or more: it is never cut down to 0 (an old-shape
+    // conversion), to 2 (no copy before an overwrite) or to a negative number.
+    for (const char* big : { "2147483648", "3000000000", "4294967296", "4294967298" })
+    {
+        INFO("version = " << big);
+        const juce::var parsed = juce::JSON::parse("{\"version\": " + juce::String(big) + ", \"decks\": []}");
+        REQUIRE(parsed.getDynamicObject()->getProperty("version").isInt64());
+        CHECK(showfile::versionOf(parsed) == std::numeric_limits<int>::max());
+        CHECK(showfile::backupTagFor(parsed) == "v2147483647");
+
+        juce::var oldShape = oldShowVar();
+        oldShape.getDynamicObject()->setProperty("version", juce::var(juce::String(big).getLargeIntValue()));
+        Composition c;
+        c.fromVar(oldShape);
+        CHECK(c.loadedVersion == std::numeric_limits<int>::max());
+        CHECK(c.migrationNote.empty());                   // stated 2 or more: not converted by key presence
+    }
 
     // Not an object at all: no version to state, and nothing of the old shape either.
     CHECK(showfile::versionOf(juce::var()) == 1);

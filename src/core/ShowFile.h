@@ -16,19 +16,22 @@
 #include "model/ShowMigration.h"
 #include <juce_core/juce_core.h>
 #include <functional>
+#include <limits>
 
 namespace showfile
 {
 inline constexpr int kShowVersion = 2;
 
 // The version a parsed show file states (see the header: an integer >= 2), else 0 (old shape) or 1 (bf9b shape).
+// A stated integer too large for an int answers the largest int.
 inline int versionOf(const juce::var& root)
 {
     if (auto* obj = root.getDynamicObject())
     {
         const juce::var v = obj->getProperty("version");
         if ((v.isInt() || v.isInt64()) && static_cast<juce::int64>(v) >= 2)
-            return static_cast<int>(static_cast<juce::int64>(v));
+            return static_cast<int>(juce::jmin(static_cast<juce::int64>(v),          // never cut down to 0, 2 or < 0
+                                               static_cast<juce::int64>(std::numeric_limits<int>::max())));
     }
     return ShowMigration::isLegacyShow(root) ? 0 : 1;
 }
