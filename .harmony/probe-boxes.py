@@ -1161,6 +1161,23 @@ def k7_old_show():
     check(n2 == n1, f"k7_old_show: a new-format show loads with no note (new logLines {n2 - n1})")
 
 
+def k7_saved_shape(txt):
+    """Lane one-save S1 (ruling-one-save section 0 (1), A-12; plan-one-save Table 2 "probe-boxes K7"): the saved show's
+    FILE shape -- its first key is "version" with the integer value 2, and the "keys" and "layout" blocks are there
+    (objects). Pure: takes the file's text, returns (ok, facts). Self-test: .harmony/probe-one-save-selftest.sh part 2."""
+    try:
+        pairs = json.loads(txt, object_pairs_hook=list)
+    except Exception as e:  # noqa: BLE001
+        return False, f"unreadable ({e})"
+    if not isinstance(pairs, list) or not pairs or not isinstance(pairs[0], (list, tuple)):
+        return False, "not a JSON object"
+    first, d = pairs[0][0], json.loads(txt)
+    ver = d.get("version")
+    blocks = isinstance(d.get("keys"), dict) and isinstance(d.get("layout"), dict)
+    ok = first == "version" and type(ver) is int and ver == 2 and blocks
+    return ok, f"first key '{first}', version {ver!r}, keys + layout blocks {blocks}"
+
+
 def k7_save_reload(pat, n_before):
     # gates-r2 NIT 5 (ruling-bf9b-merge AM-18) -- Boris: "when I switch between decks, do not change the clips playing
     # in the layers or how they are playing. treat the decks as just a box of clips"
@@ -1192,6 +1209,12 @@ def k7_save_reload(pat, n_before):
     check(nl == 2 and not has_persist and not has_fade,
           f"k7_old_show save: the saved show has the new shape (top-level layers {nl}; key 'persistent' {has_persist}; "
           f"key 'globalTransitionSpeed' {has_fade})")
+    # Lane one-save S1: the file starts with "version": 2 and carries the keys / layout blocks. The target is a NEW
+    # file (k7_saved.json did not exist), so the copy-before-overwrite rule has nothing to keep: no backups folder.
+    shape_ok, shape_facts = k7_saved_shape(txt)
+    check(shape_ok and not os.path.exists(os.path.join(OUT, "backups")),
+          f"k7_old_show save: the saved file is a version-2 show ({shape_facts}); backups folder beside a NEW target: "
+          f"{os.path.exists(os.path.join(OUT, 'backups'))}")
     try:
         r = S.post(A + "/api/load_composition", json={"path": saved}, timeout=15)
         good = r.ok and r.json().get("ok") is True
