@@ -973,3 +973,10 @@ BF146 [RULE] Do not worry about routine versus action: just replace with action.
 BF147 [TASK, presets] R121: read and understand what he said about the effect name display and preset naming, revise it, and tell him where we are.
 BF148 [RULE, actions] R123 yes: an action is controlled by the tempo because it is locked to the grid; when the tempo increases the action plays faster, so that its grid lines line up exactly with the bars of the live clock.
 BF149 [INFO] The DJ tracks come later today.
+ADDED 2026-10-05 14:18:40 -- A SECOND MESSAGE OF HIS (session s-rta-1005; session record line 312, type user, 2026-10-05T18:16:52.815Z UTC; byte-exact copy .harmony/.reports/s-rta-1005/boris-msg-raw-2.txt). Filed INSIDE this section so that it stays the file's last section while the page workflow reads it.
+VERBATIM (whole message):
+"r120 we call it keyboard and midi 'mapping' lets use this term
+ask me questions about anything that is unclear when you are ready"
+Harmony's reading (consequence text, not his words; it gets its number on his page -- the page workflow owns R148 onward): the list where functions are put on keys and MIDI pads is called "keyboard and MIDI mapping"; every text he reads uses that term from now on, the R120 block included.
+BF150 [RULE, naming] The key and pad list is called keyboard and MIDI "mapping": use this term.
+BF151 [INFO] He asks to be asked about anything that is unclear, when Harmony is ready.
