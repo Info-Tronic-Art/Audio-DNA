@@ -1,0 +1,5 @@
+   3 Test #848: AppSettings: update is read-modify-write -- two keys, both kept ...........................***Faile
+   1 Test #849: AppSettings: a missing file or key reads as void, and reading never creates the file ......***Faile
+   2 Test #850: AppSettings: a corrupt file reads as empty and the next update rewrites a valid object ....***Faile
+   1 Test #851: AppSettings: the MilkDrop folder and the output set coexist, whichever is written last ....***Faile
+   1 Test #852: AppSettings: keys this build does not know survive every write ............................***Faile

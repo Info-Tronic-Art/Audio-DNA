@@ -774,3 +774,70 @@ BF103 [RULE] After a change the effect's button may keep the look's name; nothin
 BF104 [RULE, DONE] The nine quick FX saves are deleted (Trash, 2026-10-04 21:01:09).
 BF105 [ASK] Explain better what the three tracks are for -- answered in chat 2026-10-04 (s-rta-1004b).
 BF106 [FACT, Resolume] Beat Repeat's row: Off, 4, 2, 1, 1/2, 1/4, 1/8, 1/16, 1/3, 1/6, and "Catch up". Random in BPM Sync: rows Speed, Interval, Distance, Beats (with /2 and x2); "this is essentially jumping to random 1's on the beat". One click: "time" jumps 1 bpm; Duration in Timeline mode moves up 0.1.
+
+## Boris's answers to questions 135-143, his words on readings R85, R87, R89, two questions back (R76; the review-screen picture), the tracks, two Resolume screenshots (recorded 2026-10-04 21:33:30, session s-rta-1004b) — questions as asked: .harmony/.reports/s-rta-1004b/boris-clarify-135-143.md
+VERBATIM (whole message; byte-exact copy .harmony/.reports/s-rta-1004b/boris-msg-raw-2.txt, taken from the session record):
+"ok what is your question about r76 having to do with manaul?
+what is the recording review screen that you are looking for?
+I will get you the 3 audio tracks in another session. need to get them from a dj
+135 the beat stops but tempo is not lost, just not playing
+136 b
+137 the plus moves the main bpm 1 bpm number regardless of bpm or timeline mode. the plus moves 1 beat in the clip that is in bpm mode
+138 look is an effect preset. change the name look to preset to avoid further confusion.
+139 a
+140 a and after I let go it catches up
+141 a
+142 a and a layers actions can trigger clips
+143 a
+r85 go with the defined stop play pause that we discussed in 135 and place them at the top. use this similar layout across the top row where it fits: [Image #8]
+r87 this is the resolume bpm clip menu, lets model ours based on this: [Image #9]
+r89 pick a stretch of the take and the sliders or trigger buttons to include. The sliders and trigger buttons will each have their own row, and I could select them. I could select In and Out points for the duration, and then I can push a button to save the action. Then I will have an opportunity to name the action and it will show me exactly the details of the action that are needed to know whether it is global layer or clip. We need to really think about this to make sure it works very well and there's no confusion so in the displaywhere all of the parameter changes are displayed, they are displayed in a very smart hierarchy so depending on what they are, they could be put into the right hierarchy, meaning clip, layer or Global."
+IMAGES (2 arrived with the message; extracted from the session record line 389 to .harmony/.reports/s-rta-1004b/boris-images/; each seen by Harmony in the chat; sizes by sips):
+- [Image #8] resolume-tempo-bar.png (18,642 B, 1198 x 80 px): Resolume's tempo bar, ONE row of square dark cells side by side, left to right: the beat circle (a disc in four quarters); play (lit, light green); pause; stop; "BPM  256"; "-"; "+"; nudge back (an arrow pointing left onto a bar); nudge forward (a bar with an arrow pointing right); "/2"; "x2"; "TAP"; "RESYNC".
+- [Image #9] resolume-bpm-sync-panel.png (29,873 B, 862 x 344 px): Resolume's clip panel "Transport" with the mode menu "BPM Sync"; a timeline with tick marks, the playhead near the middle, the time "04.07"; buttons back, pause, play (play lit); at the right a loop-mode menu (a loop symbol) and a play-out menu; rows: Speed "1/4" with "-" "+" and a slider; Beats "16" with "-" "+" "/2" "x2". No Interval or Distance row (the loop menu is not on Random); no snap setting.
+The chat also carried two lines naming the files he dragged in: "[Image: source: /Users/boriskarpman/Desktop/Screenshot 2026-10-04 at 2.17.31 PM.png]" and "[Image: source: /Users/boriskarpman/Desktop/Screenshot 2026-10-04 at 9.22.30 PM.png]".
+Harmony's readings (consequence text, not his words):
+- "ok what is your question about r76 having to do with manaul?" -> he took R76 for a question. It is a statement of what the app will do; nothing is asked. Answered in chat.
+- "what is the recording review screen that you are looking for?" -> he asks which picture I meant by RQ-1. Answered in chat: the picture his message of 21:03:09 says was attached ("I have attached an image of what it should roughly look like").
+- "I will get you the 3 audio tracks in another session. need to get them from a dj" -> RQ-0 stays open; the transport lane's SM-a stays BLOCKED.
+- 135 "The row's stop ... Does the beat stop as well? A (default) Yes. Stop takes every clip off every layer and the beat stops (the circle stands still; the tempo number stays) ... B No ..." -> A.
+- 136 "The row's pause ... Which clips? A (default) Every clip on every layer holds ... B Only BPM-synced clips hold, with the beat; a clip that is not BPM-synced plays on ..." -> B.
+- 137 "\"one click on time jumps 1 bpm\" -- which row did you click, and in which mode ..." -> the tempo row's "+" moves the main tempo by 1 BPM in every mode; in a clip in BPM mode "+" moves 1 beat (reading R96).
+- 138 "Looks and the effect list ... A (default) Keep it so ... B Looks are also listed under their effect in the effect list ..." -> no letter picked; he explains his wording and RENAMES: a look is called a "preset". Read as A (reading R95).
+- 139 -> A (an action loops in time while its clip plays). 141 -> A (actions are made only in the review screen). 143 -> A (a layer's action runs on across clip changes).
+- 140 "... A (default) Your hand wins while you hold it; when you let go, the action takes over again. B ..." -> A, and after he lets go "it catches up" (reading R98).
+- 142 "... A (default) A clip's and a layer's actions only move sliders; a composition action can also fire clips ... B Sliders only, everywhere." -> A, changed by his words: a LAYER's actions can also trigger clips (reading R99).
+- R85 (told to him: the three old buttons leave the top bar; the row's own play, pause and stop take their place) -> confirmed; they sit at the top; the top row is laid out like Resolume's tempo bar in his picture, where it fits (reading R101).
+- R87 (told to him: each clip's own beat-snap setting goes too) -> he answers with Resolume's BPM Sync clip panel as the model for ours (reading R100: it has no snap setting; R87 stands).
+- R89 (told to him: his first sentence on actions read as "I have a new idea ...") -> he describes how an action is made in the review screen (reading R102) and asks for careful design: no confusion; a smart hierarchy clip / layer / Global.
+- Not named by him: R86, R88, R90, R91, R92, R93, R94 stand as told (INFERRED consent).
+New readings told with this answer (he corrects only what is wrong):
+ R95 "Look" becomes "preset" everywhere you see it: the "Presets" button on an effect, "Preset 2", 'Save over "Preset 2"'.
+     A preset is still picked from that button on an effect that is in your show; it is not dragged from the effect list
+     (138's default A, which you did not change).
+ R96 The tempo row's "-" and "+" move the main tempo by 1 BPM whatever mode a clip is in. In a clip in BPM Sync, "-" and
+     "+" on Beats move by 1 beat. Duration in Timeline mode moves by 0.1 (your earlier line).
+ R97 Stop: the beat stops and every clip comes off the layers, BPM-synced or not; the tempo number stays. Pause: the beat
+     holds and the BPM-synced clips hold with it; clips that are not BPM-synced play on. Play: the beat runs again.
+ R98 While you hold a slider, its action keeps running underneath; when you let go, the slider goes to where the action is
+     by then.
+ R99 A clip's actions only move sliders. A layer's action can also fire clips on its own layer. A composition action can
+     fire clips anywhere.
+ R100 A clip's BPM panel is modelled on your picture of Resolume's Transport in BPM Sync: the timeline, back / pause / play,
+     the loop menu, the play-out menu, Speed, Beats with "-" "+" "/2" "x2". It has no snap setting, so R87 stands: the
+     clip's own Snap goes.
+ R101 The top row is laid out like your picture of Resolume's bar: square cells side by side in this order -- beat circle,
+     play, pause, stop, "BPM" with the number, "-", "+", nudge back, nudge forward, "/2", "x2", TAP, RESYNC -- as far as it
+     fits beside what else is in the top bar. The three old buttons are gone.
+ R102 The review screen: every slider and every trigger button the take recorded has its own row, grouped Global / Layer /
+     Clip. You select the rows to include and set In and Out. "Save action" opens a name box that also shows what the
+     action is (global, layer or clip) and what it moves.
+BF107 [RULE] The row's stop: the beat stops; the tempo is not lost, it is just not playing (with BF93: stop clears all clips from the layer strips).
+BF108 [RULE] The row's pause: only BPM-synced clips hold, with the beat; a clip that is not BPM-synced plays on.
+BF109 [RULE] The tempo "+" moves the main BPM by 1, whatever mode a clip is in. In a clip in BPM mode "+" moves 1 beat.
+BF110 [NEW, naming] A "look" is called a "preset" (an effect preset).
+BF111 [RULE, actions] An action that reaches its end while its clip plays starts over in time. A hand on a slider wins while it holds; after letting go the action catches up. Actions are made only in the review screen. A clip's actions move sliders; a layer's actions can also trigger clips; a composition action can fire clips. A layer's action runs on with the beat across clip changes.
+BF112 [RULE] The three old top-bar buttons go. The row's play, pause and stop (as defined: BF93, BF107, BF108) sit at the top; the top row is laid out like Resolume's tempo bar (his picture) where it fits.
+BF113 [RULE] A clip's BPM panel is modelled on Resolume's Transport panel in BPM Sync (his picture).
+BF114 [NEW, the review screen] Pick a stretch of the take and the sliders or trigger buttons to include; each slider and each trigger button has its own row and can be selected; In and Out points set the duration; a button saves the action; then a name box that shows the details needed to know whether it is global, layer or clip. All parameter changes are displayed in a smart hierarchy: clip, layer or Global. "We need to really think about this to make sure it works very well and there's no confusion".
+BF115 [INFO] The three audio tracks come in another session (from a DJ).

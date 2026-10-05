@@ -1,0 +1,39 @@
+# Reviewer Verdict -- outputs S1, lens ruling-tests, round 1
+STATUS: DONE
+VERDICT: PASS_WITH_NITS (no MUST)
+REVIEWED: lane/outputs-core head a364bad (code head 0f4c73c), base 8b464a6; read through git objects only; nothing built or run.
+FILES: src/output/FrameHistory.h, src/output/OutputLook.h, src/output/SharedFrameSet.h (pool part), src/output/SurfacePool.cpp,
+       tests/test_frame_history.cpp, tests/test_output_look.cpp, tests/test_surface_pool.cpp, tests/CMakeLists.txt,
+       report outputs-S1.md, outputs-S1-mutants.py / .log
+
+## Conformance (VERIFIED = read / grepped by me at the pinned head)
+- Fence: `git diff 8b464a6 0f4c73c --name-only` = exactly the 8 Owns files (VERIFIED). The report commit adds only 3 files under .harmony/.reports/s-rta-1004b/. No stray mutant, no instrumentation, no .venv link (VERIFIED, source read).
+- Constants: kMaxDelayMs 100, kSizingHz 120, kDeepExtra 14, kSlots 4, kMaxSlots 18, 640 MiB (FrameHistory.h:20-27) = A-1 and G0/M1 (VERIFIED). extraSlots / reachMs arithmetic re-derived by hand: 14/14/14/14/11/5; 233/116/97/91/83/41 (VERIFIED).
+- Test names: all 20 are the ruling's section 5 strings verbatim (VERIFIED by reading each TEST_CASE). ctest count: 10 + 4 + 6 = 20 new cases; catch_discover_tests one entry per TEST_CASE; report F-1 `Total Tests: 1272` = 1252 + 20 (report raw line, INFERRED consistent; not re-run). No pre-existing case name starts with "frame history" / "output look" / "surface pool" (grep of 8b464a6 tests, VERIFIED).
+- A-4 FrameLog: 32 entries, word-zero / stamp / word in offer(), seq_cst defaults, window [max(floor, m-(slots-3)), m], newest <= now-delay else oldest, serial floor, clear, gap clear: all match (FrameHistory.h:79-160). Deviation D-2 (noteWrite zeroes the entry BEFORE publishing the index) is correct and better than the ruling's order: with the index first, entry m would hold the pair from write m-32 inside the window. D-3 (gap clear inside offer) keeps the ruled behaviour and makes U-H7 testable.
+- A-5 DepthPolicy: 600 quiet publishes, deep at once, reset (FrameHistory.h:166-190) (VERIFIED).
+- A-3 pool: ensure(w,h,slots) -> Unchanged/Created/Failed, slot count per generation, lastGen_ own counter, two failure memos / 300 ticks, trimRetired(keepGen) keeps newest retired + kept, allocBytes/retiredBytes/slotCount, releaseAll, create fn, no new mutex (SurfacePool.cpp, SharedFrameSet.h) (VERIFIED). Only caller of ensure is SharedFrameSet.cpp:19 (two args => 4 slots); no product caller of the new functions (git grep, VERIFIED) => app behaviour unchanged by construction; the one ruled difference is the failure memo.
+- A-8 word: Delay 9 bits, Opacity 7 (stored 100-opacity), five rows of 8; default look = zero word; settingsStateText "", "N ms", "adjusted", "N ms, adjusted" (OutputLook.h) (VERIFIED). The only on-screen-text function is the ruled state text; no event or failure text added.
+- Docs: none touched; S1 owns none (VERIFIED).
+
+## RED arms (log outputs-S1-mutants.log, report items table)
+Named mutant turns its named case RED for 21 of 22 rows (VERIFIED in the log, mutant specs read in the runner; each edit applies exactly once; runner works on a $TMPDIR-style copy and never touches the worktree). U-P1: TREE-BEFORE compile failure, raw line in the report only. U-H10: stepwise part asserts the property first (word == 0 between stores, size == 3 last), M-H10 fails on `0x10000000101 == 0`; M-H10b needs TSan (runner builds -fsanitize=thread, 3 reports, rc 66).
+
+## Findings
+SHOULD-1 tests/test_surface_pool.cpp (U-P2) vs ruling section 5: the ruling's RED arm M-P2 (`slot >= g->slots` -> `slot >= kMaxSlots`) does NOT turn U-P2 RED (log: `M-P2 NOT RED (EQUIVALENT)`). Cause (VERIFIED in the diff): retainSurface keeps the pre-existing `g->s[slot] == nullptr` refusal, and slots beyond a generation's count are null by construction, so no public call tells the two bounds apart. The builder disclosed it (concern 1) and offered M-P2x (`slot >= kSlots`), which turns U-P2 RED (and U-P6). Not a MUST: the case can fail, the named arm is unsatisfiable, nothing was loosened. Fix: Harmony rules M-P2x the arm of U-P2 (amend section 5) and records the equivalence; the `slot >= g->slots` clause stays (it is the array-bound guard for slot 18..255 before `g->s[slot]`).
+SHOULD-2 outputs-S1-mutants.py: the runner's exit code 0 is defined to include "NOT RED: M-P2" (EQUIVALENT set), so a gate script that checks only rc passes a pre-registered arm that did not bite. Harmony's re-witness must read the printed line, not the rc. Fix: after SHOULD-1 is ruled, either move M-P2x into the MUTANTS table as the row's arm and delete M-P2, or print the equivalence as INFO.
+NIT-1 "exactly its named case RED" (ruling section 5 preamble) is not met by 10 mutants (M-H1 +4, M-H2 +3, M-H3 +4, M-H4/H5/H6/H6b +1 = the U-H2 oracle, M-P5 +U-P3, M-L1 +U-L4, M-P2x +U-P6). Inherent: the oracle case covers every pick change and U-P3 / U-L4 call the mutated function. Every named case is RED in each; accept.
+NIT-2 Mutants compiled by raw `clang++ -O1` against the lane build's Catch2 (and CATCH_SRC hard-coded to the main checkout's build/_deps, read-only), not by CMake; the ruling's "after a mutant revert >= 1 object recompiled" cannot be shown because there is no revert (report concern 3). The clean arm of the same procedure is green and CMake's build of the same sources is green. Accept; the runner breaks if main's build/_deps is cleaned.
+NIT-3 SharedFrameSet.h touched outside "the SurfacePool part": one #include and one static_assert on packFront (report concern 7). Disclosed; the assert pins the word layout FrameLog depends on.
+NIT-4 `ensure` returns an EnsureResult shim with a non-explicit operator bool (decision D-1) instead of a plain 3-valued enum: a deliberate bridge so SharedFrameSet.cpp:19 (S2's file) still compiles. Keep until S2 rewrites that line, then drop it (EXCESS_VESTIGIAL then).
+NIT-5 `OutputLook::isDefault(uint64_t)` unpacks and clamps, so a non-canonical word (the 8 unused high bits set, or an out-of-range field that clamps to a default) is not "exact"; irrelevant to every word `pack` makes (injective after clamp, VERIFIED by U-L1/U-L5). S2's default-path test is on a packed word, so no defect.
+NIT-6 Report concern 5 (one AppSettings case failed once under ctest -j 4): consistent with tests/test_app_settings.cpp:14-17 (`getNonexistentChildFile` picks a name before it creates the dir: a check-then-create race between parallel processes), pre-existing and outside this stage (INFERRED). Run the full ctest serially, as the report says.
+NIT-7 `releaseAll` leaves the two failure memos standing (a memo from before an idle trim can still answer Failed for up to 300 ticks after the tap restarts). Ruled A-3 does not say to clear them; S2 can decide.
+
+## SLIM
+- EXCESS_VESTIGIAL (temporary): EnsureResult::operator bool, SurfacePool.h ~:80-86 -- JUSTIFIED_KEEP reason="load-bearing bridge: SharedFrameSet.cpp:19 reads ensure() as a bool and is S2's file; delete when S2 changes that line".
+- Unreferenced by product code today: OutputLook.h (whole), FrameHistory.h's FrameLog/DepthPolicy/reachMs/deepSlots, SurfacePool::trimRetired/releaseAll(outside dtor)/setCreateFn/allocBytes/retiredBytes/slotCount. Not under hooks/ or a config-referenced surface (no harness-wiring check applies); consumers are S2/S3/S5 of the same lane -- JUSTIFIED_KEEP reason="stage S1 is the pure half; S2/S3/S5 call them, tests exercise them".
+- No test file content removed or flagged REMOVED.
+
+SUMMARY: 11 files (8 Owns + 3 report files), 9 issues (0 blocking, 2 should-fix, 7 nits). Confidence: VERIFIED by reading source, tests, diff, log and runner; INFERRED for the 1272 count and the green runs (not re-run: read-only brief).
+METADATA: reviewer=Reviewer, builder_packet=outputs-S1, date=2026-10-04

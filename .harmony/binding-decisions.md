@@ -1002,3 +1002,40 @@ build it; "audio controls the video", all tempo-locked, current UI will be scrap
   [Image #7]"; "one click on time jumps 1 bpm, duration in timeline mode moves up 0.1" -> the pictures are
   .harmony/.reports/s-rta-1004b/boris-images/resolume-beat-repeat.png, resolume-random-1.png, resolume-random-2.png.
   OPEN: 137 (which row "time" is).
+
+## 2026-10-04 (s-rta-1004b) — Boris's answers to questions 135-143, his words on readings R85, R87, R89, two questions back (R76; the review-screen picture), the tracks, two Resolume screenshots (recorded 2026-10-04 21:33:30; whole message verbatim + the questions as asked + the pictures: boris-feedback-backlog.md, same stamp)
+- The row's stop (135) — Boris: "135 the beat stops but tempo is not lost, just not playing" -> stop takes every clip off the
+  layer strips (his words of 21:03:09) AND stops the beat; the tempo number stays.
+- The row's pause (136) — Boris: "136 b" -> the beat holds and only BPM-synced clips hold with it; a clip that is not
+  BPM-synced plays on. With his words of 21:03:09 ("pause stops them") this settles which clips "them" are.
+- Steps (137) — Boris: "137 the plus moves the main bpm 1 bpm number regardless of bpm or timeline mode. the plus moves 1
+  beat in the clip that is in bpm mode" -> the tempo row's "+" / "-" = 1 BPM always; a BPM-synced clip's Beats "+" / "-" = 1
+  beat.
+- "Look" becomes "preset" (138) — Boris: "138 look is an effect preset. change the name look to preset to avoid further
+  confusion." -> everywhere he sees or says "look", the app says "preset". REPLACES the name "look" of the 2026-10-04
+  sections above (the rules themselves stand). No letter of 138 was picked: read as A (reading R95).
+- Actions (139-143) — Boris: "139 a"; "140 a and after I let go it catches up"; "141 a"; "142 a and a layers actions can
+  trigger clips"; "143 a" -> an action loops in time while its clip plays; a hand on a slider wins while it holds, then
+  the action catches up; actions are made only in the review screen; a clip's actions move sliders, a layer's actions can
+  also trigger clips, a composition action can fire clips; a layer's action runs on across clip changes.
+- The top row (on reading R85) — Boris: "r85 go with the defined stop play pause that we discussed in 135 and place them at
+  the top. use this similar layout across the top row where it fits: [Image #8]" -> the three old buttons go; the row's
+  play, pause, stop sit at the top; the top row is laid out like Resolume's tempo bar
+  (.harmony/.reports/s-rta-1004b/boris-images/resolume-tempo-bar.png), where it fits.
+- A clip's BPM panel (on reading R87) — Boris: "r87 this is the resolume bpm clip menu, lets model ours based on this:
+  [Image #9]" -> modelled on .harmony/.reports/s-rta-1004b/boris-images/resolume-bpm-sync-panel.png (Speed, Beats, back /
+  pause / play, the loop menu, the play-out menu). It shows no snap setting: reading R87 stands (reading R100).
+- Making an action in the review screen (on reading R89) — Boris: "r89 pick a stretch of the take and the sliders or trigger
+  buttons to include. The sliders and trigger buttons will each have their own row, and I could select them. I could select
+  In and Out points for the duration, and then I can push a button to save the action. Then I will have an opportunity to
+  name the action and it will show me exactly the details of the action that are needed to know whether it is global layer
+  or clip. We need to really think about this to make sure it works very well and there's no confusion so in the
+  displaywhere all of the parameter changes are displayed, they are displayed in a very smart hierarchy so depending on what
+  they are, they could be put into the right hierarchy, meaning clip, layer or Global." -> the review screen's flow: a row
+  per slider and per trigger button, selectable; In and Out; a save button; a name box that shows the action's scope; the
+  rows shown in a hierarchy clip / layer / Global. A DESIGN is owed to him before any plan (a page he opens).
+- Two questions back — Boris: "ok what is your question about r76 having to do with manaul?"; "what is the recording review
+  screen that you are looking for?" -> answered in chat: R76 asks nothing; the picture meant is the one his 21:03:09 message
+  says was attached.
+- The tracks — Boris: "I will get you the 3 audio tracks in another session. need to get them from a dj" -> the transport
+  lane's first measurement stays blocked until then.

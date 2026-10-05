@@ -1,0 +1,90 @@
+CLEAN test_frame_history   GREEN {'red': [], 'rc': 0, 'races': 0}
+CLEAN test_output_look     GREEN {'red': [], 'rc': 0, 'races': 0}
+CLEAN test_surface_pool    GREEN {'red': [], 'rc': 0, 'races': 0}
+CLEAN test_frame_history (ThreadSanitizer) GREEN {'red': [], 'rc': 0, 'races': 0}
+M-H1    RED      [pick returns the oldest] 
+          named: frame history: delay 0 picks the newest pickable entry
+          named case RED; other RED cases: 4
+          + frame history: pick agrees with a brute-force oracle
+          + frame history: a raised delay never shows a lower serial
+          + frame history: a lowered delay jumps forward at once
+          + frame history: a clear leaves nothing pickable until the next offer; a gap over one second clears
+M-H2    RED      [compares stamp < instead of <=] 
+          named: frame history: pick agrees with a brute-force oracle
+          named case RED; other RED cases: 3
+          + frame history: delay 0 picks the newest pickable entry
+          + frame history: a raised delay never shows a lower serial
+          + frame history: a clear leaves nothing pickable until the next offer; a gap over one second clears
+M-H3    RED      [the fallback returns the newest] 
+          named: frame history: while filling, the oldest pickable entry is held
+          named case RED; other RED cases: 4
+          + frame history: pick agrees with a brute-force oracle
+          + frame history: a raised delay never shows a lower serial
+          + frame history: a lowered delay jumps forward at once
+          + frame history: an entry within two writes of being rewritten is never picked, counted in writes
+M-H4    RED      [the serial floor dropped] 
+          named: frame history: a raised delay never shows a lower serial
+          named case RED; other RED cases: 1
+          + frame history: pick agrees with a brute-force oracle
+M-H5    RED      [the floor entry returned although a newer one qualifies] 
+          named: frame history: a lowered delay jumps forward at once
+          named case RED; other RED cases: 1
+          + frame history: pick agrees with a brute-force oracle
+M-H6    RED      [the guard counts offers] 
+          named: frame history: an entry within two writes of being rewritten is never picked, counted in writes
+          named case RED; other RED cases: 1
+          + frame history: pick agrees with a brute-force oracle
+M-H6b   RED      [slots - 3 -> slots - 1] 
+          named: frame history: an entry within two writes of being rewritten is never picked, counted in writes
+          named case RED; other RED cases: 1
+          + frame history: pick agrees with a brute-force oracle
+M-H7    RED      [the gap compare removed] 
+          named: frame history: a clear leaves nothing pickable until the next offer; a gap over one second clears
+          named case RED; other RED cases: 0
+M-H8    RED      [the budget counts total slots] 
+          named: frame history: depth and reach
+          named case RED; other RED cases: 0
+M-H9    RED      [hold 600 -> 0] 
+          named: frame history: deep is dropped only after 600 publishes with nobody asking, and returns at once
+          named case RED; other RED cases: 0
+M-H10   RED      [the stamp stored first and the word never zeroed] 
+          named: frame history: a half-written entry is never accepted
+          named case RED; other RED cases: 0
+M-H10b  RED      [word and stamp in one plain struct (ThreadSanitizer must report it)] 
+          named: frame history: a half-written entry is never accepted
+          ThreadSanitizer data-race reports=4 rc=66
+M-P2    NOT RED  (EQUIVALENT, as recorded) [bound = kMaxSlots] 
+          named: surface pool: retainSurface refuses a slot beyond its generation's count
+          named case GREEN; other RED cases: 0
+M-P2x   RED      [bound = kSlots, the tree-before bound (the builder's own arm: see the report)] 
+          named: surface pool: retainSurface refuses a slot beyond its generation's count
+          named case RED; other RED cases: 1
+          + surface pool: after releaseAll the next generation number is new
+M-P3    RED      [counts kSlots] 
+          named: surface pool: allocBytes is at least slots x w x h x 4 and at most 2 % more
+          named case RED; other RED cases: 0
+M-P4    RED      [no memo] 
+          named: surface pool: a failed create keeps the current generation and is not retried for 300 ticks
+          named case RED; other RED cases: 0
+M-P5    RED      [trimRetired does nothing] 
+          named: surface pool: after a new generation only the newest retired one and the kept one remain
+          named case RED; other RED cases: 1
+          + surface pool: allocBytes is at least slots x w x h x 4 and at most 2 % more
+M-P6    RED      [the number restarts from the current generation] 
+          named: surface pool: after releaseAll the next generation number is new
+          named case RED; other RED cases: 0
+M-L1    RED      [opacity 6 bits] 
+          named: output look: pack / unpack round trip over every range edge
+          named case RED; other RED cases: 1
+          + output look: out-of-range input is clamped
+M-L4    RED      [no clamp] 
+          named: output look: out-of-range input is clamped
+          named case RED; other RED cases: 0
+M-L5    RED      [ignores delay] 
+          named: output look: isDefault is exact
+          named case RED; other RED cases: 0
+M-L6    RED      [colour rows ignored] 
+          named: output look: the settings text
+          named case RED; other RED cases: 0
+MUTANTS AS RECORDED; ran 22; NOT RED: M-P2
+EXIT 3: as recorded, but M-P2 did NOT turn its named case RED -- not a pass of that arm

@@ -683,3 +683,18 @@ too". His words outrank the ruling. Consequences, binding for every packet of th
 NOT CHANGED: S1a, S1b, SE (store, format, the engine line). They may be built as ruled once the one-save lane's S7 is in.
 OWED BEFORE the packets of S2, S3 and the visual gate: an architect delta "looks-answers2" (opus max) attacked by two blind
 seats (gates, stage-hands) on (3) and on 138's answer or its default. No builder re-cuts LM-3 or MU-EL-17 by himself.
+
+## HARMONY ADOPTION, UPDATE ON BORIS'S ANSWER TO 138: "LOOK" BECOMES "PRESET" (2026-10-04 21:33:30, session s-rta-1004b)
+Boris, verbatim (binding-decisions.md, the second section headed "2026-10-04 (s-rta-1004b)", recorded 2026-10-04 21:33:30; his whole message: boris-feedback-backlog.md, same stamp): "138 look is an effect preset. change the name look to preset to avoid further confusion."
+Consequences, binding for every packet of the effect-looks lane:
+(1) NAMING: every on-screen and documented "look" reads "preset" (the button, the default names "Preset N", the Save over
+    text, the menu, the name box, the docs, Boris's checks). Code identifiers are the builder's. Whether a stored name
+    changes (a folder, a file extension, a JSON key) is the delta's to rule: nothing has shipped and nothing of it is on
+    his disk.
+(2) 138's letters were not picked: read as A (reading R95, told to him): a preset is picked from the button on an effect
+    in the show; it is not dragged from the effect list.
+(3) "Preset" is already a word in this app: MilkDrop's presets (on screen) and the old PresetManager (removed by the
+    one-save lane's S7). The delta says where the two meet on screen; no builder words it.
+CHANGED against the block of 21:04:04: S1a, S1b and SE are NO LONGER free to start as ruled -- (1) may change a stored
+name. The WHOLE lane waits for the architect delta "looks-answers2" (opus max; two blind seats: gates, stage-hands) on
+133 (the name stays, no mark), the rename, and (3). It is launched from the turn after this one.

@@ -1,0 +1,71 @@
+2026-10-04 22:16:48 GATE outputs S1 start
+head: aa7bc8e  branch: lane/outputs-core
+status lines (expect 0): 0
+--- files changed 8b464a6..HEAD
+.harmony/.reports/s-rta-1004b/outputs-S1-mutants-r1.log
+.harmony/.reports/s-rta-1004b/outputs-S1-mutants.log
+.harmony/.reports/s-rta-1004b/outputs-S1-mutants.py
+.harmony/.reports/s-rta-1004b/outputs-S1.md
+src/output/FrameHistory.h
+src/output/OutputLook.h
+src/output/SharedFrameSet.h
+src/output/SurfacePool.cpp
+tests/CMakeLists.txt
+tests/test_frame_history.cpp
+tests/test_output_look.cpp
+tests/test_surface_pool.cpp
+--- build (expect nothing to compile: the code head was built by the builder)
+build rc=0; compiled objects: 0; last: [100%] Built target test_clip_inspector_media
+--- ctest -N
+Total Tests: 1272
+--- full serial ctest through the mutex
+ctest-mutex rc=0
+100% tests passed, 0 tests failed out of 1272
+Total Test time (real) = 128.29 sec
+ctest rc=0
+--- stage cases
+stage ctest rc=0
+100% tests passed, 0 tests failed out of 20
+--- existing GL cases
+gl rc=0
+All tests passed (90 assertions in 8 test cases)
+
+--- mutants re-witnessed (the builder's runner; expected today: 22 ran, NOT RED = M-P2 only, EXIT 3)
+mutant runner rc=3
+M-H1    RED      [pick returns the oldest] 
+M-H2    RED      [compares stamp < instead of <=] 
+M-H3    RED      [the fallback returns the newest] 
+M-H4    RED      [the serial floor dropped] 
+M-H5    RED      [the floor entry returned although a newer one qualifies] 
+M-H6    RED      [the guard counts offers] 
+M-H6b   RED      [slots - 3 -> slots - 1] 
+M-H7    RED      [the gap compare removed] 
+M-H8    RED      [the budget counts total slots] 
+M-H9    RED      [hold 600 -> 0] 
+M-H10   RED      [the stamp stored first and the word never zeroed] 
+M-H10b  RED      [word and stamp in one plain struct (ThreadSanitizer must report it)] 
+M-P2    NOT RED  (EQUIVALENT, as recorded) [bound = kMaxSlots] 
+M-P2x   RED      [bound = kSlots, the tree-before bound (the builder's own arm: see the report)] 
+M-P3    RED      [counts kSlots] 
+M-P4    RED      [no memo] 
+M-P5    RED      [trimRetired does nothing] 
+M-P6    RED      [the number restarts from the current generation] 
+M-L1    RED      [opacity 6 bits] 
+M-L4    RED      [no clamp] 
+M-L5    RED      [ignores delay] 
+M-L6    RED      [colour rows ignored] 
+MUTANTS AS RECORDED; ran 22; NOT RED: M-P2
+EXIT 3: as recorded, but M-P2 did NOT turn its named case RED -- not a pass of that arm
+worktree clean after mutants (expect 0): 0
+--- tsan (the stage's [tsan] cases)
+tsan build rc=0
+tsan ctest rc=0
+100% tests passed, 0 tests failed out of 10
+ThreadSanitizer warnings in log: 0
+--- residue check: AppSettings cases side by side on MAIN's build, 5 runs with -j 4 (the builder saw 1 failure in one -j 4 full run)
+run 1 rc=8: 57% tests passed, 3 tests failed out of 7  3 failed lines
+run 2 rc=8: 71% tests passed, 2 tests failed out of 7  2 failed lines
+run 3 rc=8: 86% tests passed, 1 tests failed out of 7  1 failed lines
+run 4 rc=0: 100% tests passed, 0 tests failed out of 7  0 failed lines
+run 5 rc=8: 71% tests passed, 2 tests failed out of 7  2 failed lines
+2026-10-04 22:21:36 GATE outputs S1 end

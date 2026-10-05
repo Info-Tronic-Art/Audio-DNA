@@ -64,3 +64,36 @@ two of the Random transport). Please send it again.
 
 ## ANSWERS
 (none yet)
+
+RECORDED 2026-10-04 21:33:30 (session s-rta-1004b). Boris's whole message verbatim: boris-feedback-backlog.md, same stamp. His lines for this file:
+"135 the beat stops but tempo is not lost, just not playing"
+"136 b"
+"137 the plus moves the main bpm 1 bpm number regardless of bpm or timeline mode. the plus moves 1 beat in the clip that is in bpm mode"
+"138 look is an effect preset. change the name look to preset to avoid further confusion."
+"139 a"
+"140 a and after I let go it catches up"
+"141 a"
+"142 a and a layers actions can trigger clips"
+"143 a"
+and his words on R85, R87, R89 (in the backlog entry). Harmony's reading: 135 A; 136 B; 137 = reading R96; 138 no letter (read as A) + the rename "look" -> "preset"; 139 A; 140 A + catch up; 141 A; 142 A + a layer's actions can trigger clips; 143 A. RQ-1 (the picture): he asks which picture is meant; answered in chat.
+Readings told with this answer (next free reading: R103; next free question: 144):
+ R95 "Look" becomes "preset" everywhere you see it: the "Presets" button on an effect, "Preset 2", 'Save over "Preset 2"'.
+     A preset is still picked from that button on an effect that is in your show; it is not dragged from the effect list
+     (138's default A, which you did not change).
+ R96 The tempo row's "-" and "+" move the main tempo by 1 BPM whatever mode a clip is in. In a clip in BPM Sync, "-" and
+     "+" on Beats move by 1 beat. Duration in Timeline mode moves by 0.1 (your earlier line).
+ R97 Stop: the beat stops and every clip comes off the layers, BPM-synced or not; the tempo number stays. Pause: the beat
+     holds and the BPM-synced clips hold with it; clips that are not BPM-synced play on. Play: the beat runs again.
+ R98 While you hold a slider, its action keeps running underneath; when you let go, the slider goes to where the action is
+     by then.
+ R99 A clip's actions only move sliders. A layer's action can also fire clips on its own layer. A composition action can
+     fire clips anywhere.
+ R100 A clip's BPM panel is modelled on your picture of Resolume's Transport in BPM Sync: the timeline, back / pause / play,
+     the loop menu, the play-out menu, Speed, Beats with "-" "+" "/2" "x2". It has no snap setting, so R87 stands: the
+     clip's own Snap goes.
+ R101 The top row is laid out like your picture of Resolume's bar: square cells side by side in this order -- beat circle,
+     play, pause, stop, "BPM" with the number, "-", "+", nudge back, nudge forward, "/2", "x2", TAP, RESYNC -- as far as it
+     fits beside what else is in the top bar. The three old buttons are gone.
+ R102 The review screen: every slider and every trigger button the take recorded has its own row, grouped Global / Layer /
+     Clip. You select the rows to include and set In and Out. "Save action" opens a name box that also shows what the
+     action is (global, layer or clip) and what it moves.

@@ -853,3 +853,20 @@ OWED BEFORE any packet of S1r, S2, S2r, S3a, VG-0, S3m, S3r, S4, S4r, VG: (a) hi
 if a packet is needed first; (b) the fact sheet on Quantize / beat snap (what is on screen and in the engine today; which
 adopted rows of every lane rest on it); (c) an architect delta "nudge-row2" (opus max) attacked by two blind seats (gates,
 stage-hands). No builder designs the row.
+
+## HARMONY ADOPTION, UPDATE ON BORIS'S ANSWERS TO 135-137 AND R85 (2026-10-04 21:33:30, session s-rta-1004b)
+Boris, verbatim (binding-decisions.md, the second section headed "2026-10-04 (s-rta-1004b)", recorded 2026-10-04 21:33:30; his whole message: boris-feedback-backlog.md, same stamp): "135 the beat stops but tempo is not lost, just not playing"; "136 b"; "137 the plus moves the main
+bpm 1 bpm number regardless of bpm or timeline mode. the plus moves 1 beat in the clip that is in bpm mode"; "r85 go with
+the defined stop play pause that we discussed in 135 and place them at the top. use this similar layout across the top row
+where it fits: [Image #8]". Consequences, binding for every packet of the beat-nudge lane:
+(1) STOP = every clip comes off the layer strips AND the beat stops; the tempo number stays (135 A with his words of
+    21:03:09). PAUSE = the beat holds and only BPM-synced clips hold with it; a clip that is not BPM-synced plays on (136 B).
+(2) The tempo "-" / "+" = 1 BPM in every mode (137; agrees with 125 A).
+(3) The three old buttons left of the wheel GO (R85 confirmed). The row's play, pause, stop sit at the top; the top row is
+    laid out like Resolume's tempo bar, where it fits: .harmony/.reports/s-rta-1004b/boris-images/resolume-tempo-bar.png
+    (square cells side by side: beat circle, play, pause, stop, "BPM" + number, "-", "+", nudge back, nudge forward, "/2",
+    "x2", TAP, RESYNC). This re-opens VG-0 / VG and the widths the ruling assumed.
+(4) The fact sheet is in: .harmony/.reports/s-rta-1004b/facts-quantize.md (re-read: SOUND_WITH_CORRECTIONS). It names S2,
+    S2r, S3m, S3r of this lane as resting on live Quantize.
+OWED items (a) and (b) of the block above are MET. STILL OWED before any packet of S1r, S2, S2r, S3a, VG-0, S3m, S3r, S4,
+S4r, VG: the architect delta "nudge-row2" (opus max; two blind seats), launched from the turn after this one.

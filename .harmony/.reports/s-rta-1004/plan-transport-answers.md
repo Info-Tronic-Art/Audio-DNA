@@ -873,3 +873,19 @@ Consequences, binding for every packet of the transport lane:
 (4) The tempo row's stop now takes every clip off the layer strips and its pause stops the clips (his answer to 126 / 127;
     questions 135, 136 open). Whether the row's pause writes the clip's OWN saved pause (this lane's TransportPause.h, his
     answer 72) is ruled by the tempo-row delta "nudge-row2" with this lane in view -- no builder decides it.
+
+## HARMONY ADOPTION, UPDATE ON BORIS'S ANSWERS TO 136, 137 AND R87 (2026-10-04 21:33:30, session s-rta-1004b)
+Boris, verbatim (binding-decisions.md, the second section headed "2026-10-04 (s-rta-1004b)", recorded 2026-10-04 21:33:30; his whole message: boris-feedback-backlog.md, same stamp): "136 b"; "137 the plus moves the main bpm 1 bpm number regardless of bpm or timeline mode. the plus
+moves 1 beat in the clip that is in bpm mode"; "r87 this is the resolume bpm clip menu, lets model ours based on this:
+[Image #9]"; "I will get you the 3 audio tracks in another session. need to get them from a dj".
+(1) A BPM-synced clip's Beats "-" / "+" move by 1 beat; Duration in Timeline mode by 0.1 (21:03:09). Question 137 is closed.
+(2) The clip's BPM panel is modelled on .harmony/.reports/s-rta-1004b/boris-images/resolume-bpm-sync-panel.png: header
+    "Transport" + the mode menu "BPM Sync"; the timeline with its time; back, pause, play; the loop-mode menu and the
+    play-out menu; rows Speed ("-" "+" slider) and Beats ("-" "+" "/2" "x2"). With resolume-random-1.png / -2.png (Random
+    adds Interval and Distance) and resolume-beat-repeat.png these are the S5a / S4e pictures. It shows no snap setting:
+    the clip's own Snap goes (readings R87, R100).
+(3) The tempo row's PAUSE holds the BPM-synced clips with the beat and leaves the others playing (136 B); its STOP takes
+    every clip off the layers. How that meets the clip's OWN saved pause is ruled by the delta "nudge-row2".
+(4) SM-a stays BLOCKED: the three tracks come in another session. S0 may run when a build slot is free.
+(5) The fact sheet .harmony/.reports/s-rta-1004b/facts-quantize.md names S1, S2, S4c, S6 of this lane as resting on live
+    Quantize: an architect delta is owed before the packet of S1 (NOT before S0, SM-a, S4t, SR, SM-b).

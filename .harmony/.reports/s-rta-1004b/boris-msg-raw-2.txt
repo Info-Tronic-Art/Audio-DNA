@@ -1,0 +1,15 @@
+ok what is your question about r76 having to do with manaul?
+what is the recording review screen that you are looking for?
+I will get you the 3 audio tracks in another session. need to get them from a dj
+135 the beat stops but tempo is not lost, just not playing
+136 b
+137 the plus moves the main bpm 1 bpm number regardless of bpm or timeline mode. the plus moves 1 beat in the clip that is in bpm mode
+138 look is an effect preset. change the name look to preset to avoid further confusion.
+139 a
+140 a and after I let go it catches up
+141 a
+142 a and a layers actions can trigger clips
+143 a
+r85 go with the defined stop play pause that we discussed in 135 and place them at the top. use this similar layout across the top row where it fits: [Image #8]
+r87 this is the resolume bpm clip menu, lets model ours based on this: [Image #9]
+r89 pick a stretch of the take and the sliders or trigger buttons to include. The sliders and trigger buttons will each have their own row, and I could select them. I could select In and Out points for the duration, and then I can push a button to save the action. Then I will have an opportunity to name the action and it will show me exactly the details of the action that are needed to know whether it is global layer or clip. We need to really think about this to make sure it works very well and there's no confusion so in the displaywhere all of the parameter changes are displayed, they are displayed in a very smart hierarchy so depending on what they are, they could be put into the right hierarchy, meaning clip, layer or Global.
