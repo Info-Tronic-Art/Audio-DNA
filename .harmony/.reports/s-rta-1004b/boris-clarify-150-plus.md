@@ -108,4 +108,22 @@ Readings shown with them (he corrects only what is wrong):
 Void, not shown: [{"r": "R118", "from": "nudge-row2 R112", "label": "VERIFIED", "source": ".reports/s-rta-1004b/ruling-nudge-row2.md:849; BD:1070; .reports/s-rta-1004b/plan-nudge-row2.md:821", "text": "The text \"nudge +12 ms\" sits right after RESYNC, so your thirteen cells stay side by side as in your picture.", "why": "Void by your \"145 b\": the text sits between the two nudge buttons. The number R118 is not used."}, {"r": "tempo-row R79", "from": "told earlier (boris-clarify-125-129.md)", "label": "VERIFIED", "source": ".reports/s-rta-1004b/ruling-nudge-row2.md:860; BD:1071", "text": "The \"Bar 1..4\" text sits just left of the circle; the LOCKED word sits beside Manual.", "why": "Its first half is void by your \"146 b\": the Bar text is taken out; the circle alone shows the beat."}, {"r": "tempo-row R84", "from": "told earlier (boris-clarify-125-129.md)", "label": "VERIFIED", "source": ".reports/s-
 
 ## ANSWERS
-(none yet)
+Recorded 2026-10-05 13:58:00 (session s-rta-1005). Boris's whole message, byte-exact: .harmony/.reports/s-rta-1005/boris-msg-raw-1.txt (session record line 91); filed verbatim with his four pictures described in boris-feedback-backlog.md (BF126-BF149) and binding-decisions.md ("2026-10-05 (s-rta-1005)"), same stamp. His first line: "All defaults good except for these."
+150 -> A, and a small Save button appears once the preset is changed; it opens a small window for a name, with Save (his words; reading R127).
+151 -> A (default; not named).
+154 -> neither letter: "a clip that has BPM mode enabled will start playing on the next 1 if it is triggered in the middle of a bar" (reading R128; what the layer shows until the "1" is OPEN).
+155 -> A (default; not named).   156 -> A (default; not named).   157 -> A (default; not named).   158 -> A (default; not named).
+159 -> B.
+160 -> A, and a light on the first action that is conflicted (reading R130).
+161 -> A as a toggle (he asks: "can we make this lamp a toggle"; reading R131).
+162 -> B.
+163 -> A in his own words: clip actions and layer actions are saved separately (reading R133).
+164 -> none of the letters: 8 for clips, 8 for a layer, 16 for global, a "+" at the end of each (reading R134).
+165 -> A (default; not named).   166 -> A (default; not named).   167 -> A (default; not named).
+168 -> A, strict: In and Out can only snap to the grid; the grid can be adjusted (reading R135).
+169 -> A in his own words (a row for every parameter and button; a preset drop = the values change at the same time), and presets are to follow Resolume (readings R136, R137).
+170 -> neither letter: the replay window is its own screen (reading R138).
+171 -> A (default; not named).
+Readings: R111 REPLACED by his words (reading R139). R114: he confirms a clip's own pause is saved and asks what R114 is about (answered in the chat: the live show's tempo row). R116: asked to be explained (answered in the chat; falls away by his R117 words). R117: falls away ("Just replace with action."). R120: asked to be clarified (answered in the chat). R121: to be revised on his words about the effect name and preset naming (answered in the chat; re-stated with the presets re-plan). R123: "yes", and an action follows the tempo (reading R144). R109, R110, R112, R113, R115, R119, R122, R124, R125, R126: shown, not corrected (INFERRED consent), except R109 (actions for routines) and R110 (a take is replayed in the review screen).
+New from him in the same message: delete / copy / cut / paste for actions and saving an action without its ignored controls (R145, R146); a CUE SYSTEM: a preview monitor with a cue button per layer, and a click on a clip's name previews it (R140, R141).
+Readings R127-R147 are Harmony's and are NOT yet told to him: they go on his next page with the questions his answers open (first free question 172; first free reading for any planning lane R148).
