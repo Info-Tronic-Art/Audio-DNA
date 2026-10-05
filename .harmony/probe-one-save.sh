@@ -9,8 +9,12 @@
 #   bash .harmony/probe-one-save-selftest.sh
 #
 # TEST MODE launch (`open -g ... --args --test-mode`; the /api/debug/* routes are test-mode only) with a SCRATCH
-# settings file and a SCRATCH library folder in the run's out dir (AUDIODNA_SETTINGS_FILE, AUDIODNA_LIBRARY_DIR): the
-# user's ~/Library/AudioDNA and ~/Library/Audio-DNA are not named by this probe and no route is pointed at them.
+# settings file in the run's out dir (AUDIODNA_SETTINGS_FILE). AUDIODNA_LIBRARY_DIR is passed too, but NOTHING in the
+# app reads it before stage S4b: until then the launched app still READS the user's library -- it lists
+# ~/Library/AudioDNA/compositions and parses every ~/Library/AudioDNA/decks/*.json (CompDecksBrowser::scanForFiles /
+# isV2DeckFile) at launch and after every successful save. It never WRITES there: this probe names neither
+# ~/Library/AudioDNA nor ~/Library/Audio-DNA and points no route at them. The guard on his files is Harmony's
+# checksums (G-OS4-0), not this probe.
 # Screen-safe: open -g (never plain open / foreground exec), no screen capture of any kind, no Output window, no
 # synthetic input, no window of the quit flow. QUITS ONLY THE APP IT LAUNCHED (quit_ours, .harmony/probe-quit-ours.sh):
 # graceful quit, kill of that one pid only if still running after 30 s. REFUSES if any Audio-DNA is already running

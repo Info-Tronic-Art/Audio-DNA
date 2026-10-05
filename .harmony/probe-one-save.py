@@ -9,7 +9,8 @@ usage: probe-one-save.py <root> <out-dir> [row,row,...]
   ONESAVE_NOFILL    os_l21, SELF-TEST ONLY: do not write the filler file (the stub models the full disk)
 
 Every request is sent with "Connection: close". Every file this probe writes is under <out-dir> (or ONESAVE_FULLDISK);
-no fixture is a file of the user's and none of his folders is read or written.
+no fixture is a file of the user's and no row reads or writes one of his folders. (The APP the .sh launches still
+reads his library folder until stage S4b -- see the .sh header.)
 
 A row prints exactly ONE verdict line: "PASS  OS-L<n>: <facts>" or "FAIL  OS-L<n>: <facts>" (os_l21 on a rig where
 the measurement cannot be made: "INFO  OS-L21: <why>"), plus "INFO  OS-L<n>: ..." lines for measured facts (M-2: the
