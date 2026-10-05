@@ -850,3 +850,26 @@ its stamp was minted, one clause in TL-U49j, a frame-code clause in TR20") -- th
 three names; no architect delta is needed. NAMING: every on-screen and documented "BeatLoopr" of this lane reads
 "Beat Repeat" (stage S4e's row, the panel's S5a states, section 6's checks, the docs); code identifiers are the builder's.
 H-A12 is closed: no question of this lane is open except the held-back 73 (FM-8).
+
+## HARMONY ADOPTION, UPDATE ON BORIS'S MESSAGE (2026-10-04 21:04:04, session s-rta-1004b)
+Boris, verbatim (binding-decisions.md, the section headed "2026-10-04 (s-rta-1004b)", recorded 2026-10-04 21:03:09; his whole message: boris-feedback-backlog.md, same stamp): "here is the beat repeat screenshot: [Image #5]"; "A screenshot of a clip in BPM Sync with the loop
+menu on Random, showing Interval and Distance. this is essentially jumping to random 1's on the beat: [Image #6] [Image
+#7]"; "one click on time jumps 1 bpm, duration in timeline mode moves up 0.1"; and, on reading R81 of the tempo row,
+"Quantize ... This is not for live usage. We should remove it from the top bar" (quoted whole in binding-decisions.md).
+Consequences, binding for every packet of the transport lane:
+(1) RESOLUME FACTS that were requested, now on disk (.harmony/.reports/s-rta-1004b/boris-images/; each looked at by me):
+    resolume-beat-repeat.png -- the panel "BeatLoopr": ONE row of buttons "Off 4 2 1 1/2 1/4 1/8 1/16 1/3 1/6" ("Off" lit)
+    and a button "Catch up". resolume-random-1.png, resolume-random-2.png -- Transport in "BPM Sync" with the play-mode menu
+    on Random: rows Speed "1/4" ("-" "+" and a slider), Interval "1" ("-" "+" slider), Distance "2" ("-" "+" slider), Beats
+    "16" ("-" "+" "/2" "x2"); buttons back, pause, play. The packets of S4e (Beat Repeat) and S5a (the panel) carry this
+    block and the three files; where facts-resolume-transport.md says NOT DOCUMENTED for these rows, the pictures win.
+(2) Step sizes: Duration's "+" in Timeline mode adds 0.1 (his words). Which row "time" is ("jumps 1 bpm") is asked:
+    question 137; unanswered = the other steps stay as ruled.
+(3) QUANTIZE IS NOT A LIVE CONTROL. Reading R86 (told to him): every fire starts at once on the press; nothing waits for a
+    beat or bar line; a BPM-synced clip is put in time by the one cut on the next "1" ("71 b", "123 b"). Every row of this
+    lane's chain that makes a fire wait for a line is re-read: a fact sheet first, then an architect delta, BEFORE the
+    packet of any stage it names. By the stage list S0, SM-a, S4t and SR do not rest on Quantize: unchanged -- NOT VERIFIED
+    beyond the stage list; the fact sheet says.
+(4) The tempo row's stop now takes every clip off the layer strips and its pause stops the clips (his answer to 126 / 127;
+    questions 135, 136 open). Whether the row's pause writes the clip's OWN saved pause (this lane's TransportPause.h, his
+    answer 72) is ruled by the tempo-row delta "nudge-row2" with this lane in view -- no builder decides it.

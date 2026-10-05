@@ -660,3 +660,26 @@ rows run only when no Audio-DNA of his is open (the lock helper already refuses)
 STAGES of the lane now: (one-save S7 first, in its own lane) S1a, S1b, SE, S2, S3, VG.
 Questions 131-134: boris-clarify-131-134.md (asked at the close; each has a default; nothing waits).
 NOT STARTED in this session: nothing of this lane is built.
+
+## HARMONY ADOPTION, UPDATE ON BORIS'S ANSWERS (2026-10-04 21:04:04, session s-rta-1004b)
+Boris, verbatim (binding-decisions.md, the section headed "2026-10-04 (s-rta-1004b)", recorded 2026-10-04 21:03:09; his whole message: boris-feedback-backlog.md, same stamp): "131 is the signal plugged into a slider in a clip in the show, or is it a look which is an effect
+preset in the effect library that can also be connected to a signal. If this is a clip in the show, then ctrl-z brings it
+back. There is no other way. If it is a look, there is no way to remove the signal unless the user drops it into the show
+(clip, layer or global) and then adds a signal and saves that look."; "132 default good"; "133 no need for any of that. It
+can be called look 2 but no need to show that it was changed. Effects are usually changed by the user."; "134 delete them
+too". His words outrank the ruling. Consequences, binding for every packet of the effect-looks lane:
+(1) 131: he asks which case is meant and rules both. The question's case is his first (an effect in the show); his rule
+    for it is A as asked: `looks::kUnwiredEntry` stays Unplug. This is MY READING (R88, told to him); B stays one constant
+    away. His second case agrees with the lane as adopted (a look is changed only from an effect in the show).
+(2) 132 A: the ruling's default.
+(3) 133 is NOT a letter: the button keeps reading the loaded look's name after a slider moves, with NO mark (B's text rule
+    without its mark). The ruling: 133 B makes "No store or format change".
+(4) 134 B: DONE by me 2026-10-04 21:01:09 -- the folder ~/Library/AudioDNA/Presets/fast_saves (FX_Save_1.json ..
+    FX_Save_9.json, checksums in s-rta-1004b-work.md) moved to the Trash through Finder. Left alone: "test 1.deck.json".
+(5) NEW in his wording: "a look which is an effect preset in the effect library" that the user "drops ... into the show
+    (clip, layer or global)". Asked as question 138 (looks listed in the effect list and dragged from it); default A = the
+    lane as adopted (the "Looks" button only). NOT VERIFIED by me that the ruling has no such path: a grep of both rulings
+    for "library", "browser", "drag" found none; the delta's architect re-reads it.
+NOT CHANGED: S1a, S1b, SE (store, format, the engine line). They may be built as ruled once the one-save lane's S7 is in.
+OWED BEFORE the packets of S2, S3 and the visual gate: an architect delta "looks-answers2" (opus max) attacked by two blind
+seats (gates, stage-hands) on (3) and on 138's answer or its default. No builder re-cuts LM-3 or MU-EL-17 by himself.

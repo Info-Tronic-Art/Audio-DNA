@@ -1,0 +1,29 @@
+2026-10-04 20:52:37 G0 start; app binary sha 5d3d91d612711b75
+settings sha before: af6fc014e5b60246c9802adb9b4eec5c2476b2867564b585b6ac90ea093bb5e5
+20:52:37 lock acquired
+acquire_lock rc=0
+20:52:40 app up: 66883 
+start_app rc=0
+health 8080: (200, '{\r\n  "status": "ready",\r\n  "gl_version": "4.1",\r\n  "fps": 86.965736389160156,\r\n  "effects_count": 135\r\n}')
+display {'id': 1, 'builtin': True, 'main': True, 'x': 0.0, 'y': 0.0, 'w': 1728.0, 'h': 1117.0, 'hz': 120.0}
+app window 'Audio-DNA' {'X': 0.0, 'Height': 1079.0, 'Y': 38.0, 'Width': 1728.0} onscreen True centre on display [(1, 'builtin', 120.0)]
+state.outputs BEFORE tap: {'live': 0, 'tap': False, 'frame_gen': 0, 'frame_serial': 0, 'canvas_w': 0, 'canvas_h': 0} fps 86.96573638916016
+displays per app: [(0, 'Display 1 (1728x1117, main)', 1728, 1117, True, False)]
+set_output_tap on: (200, '{\r\n  "ok": true,\r\n  "tap": true\r\n}')
+oa_publish_rate INFO window 1: serial 265 -> 1202 in 10.019 s  publish_hz=93.52  (tap True live 0 fps 87.7620620727539 canvas 1920x1080)
+oa_publish_rate INFO window 2: serial 1204 -> 2170 in 10.019 s  publish_hz=96.41  (tap True live 0 fps 98.36920928955078 canvas 1920x1080)
+oa_publish_rate INFO window 3: serial 2171 -> 3162 in 10.015 s  publish_hz=98.96  (tap True live 0 fps 100.98543548583984 canvas 1920x1080)
+M2 GET 8080 /api/syphon: (404, '')
+M2 GET 7070 /api/syphon: (200, '{\r\n  "ok": true,\r\n  "enabled": false,\r\n  "available": true\r\n}')
+set_output_tap off: (200, '{\r\n  "ok": true,\r\n  "tap": false\r\n}')
+state.outputs AFTER: {'live': 0, 'tap': False, 'frame_gen': 1, 'frame_serial': 3163}
+python rc=0
+audio-dna windows 2, Output-named 0
+app running after quit: no
+quit_app rc=0
+after quit +16 s: audio-dna windows 0, Output-named 0, UserNotificationCenter windows 0
+adna after: []
+20:53:33 lock released
+settings sha after:  af6fc014e5b60246c9802adb9b4eec5c2476b2867564b585b6ac90ea093bb5e5
+app-err.log bytes:    10409
+2026-10-04 20:53:33 G0 end

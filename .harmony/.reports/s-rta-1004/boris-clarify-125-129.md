@@ -56,3 +56,11 @@ deleted; T-N19 is then the live path and LR2 (a) reads 40 in rounds 4-5.
 
 ## ANSWERS
 (none yet)
+
+RECORDED 2026-10-04 21:03:09 (session s-rta-1004b). Boris's whole message verbatim: boris-feedback-backlog.md, same stamp. His lines for this file:
+"All defaults good except for these:"
+"125 whole numbers"
+"126 and 127 stop clears all clips from layer strips, pause stops them, tempo setting stays the same. Make thee new buttons as I asked"
+"128 tapping tempo does not start anything but when click resync, that is the 1 and it begins on that button push"
+"129 b"
+and his words on readings R75, R76, R81, R83 (in the backlog entry). Harmony's reading: 125 A; 126 A; 127 not a letter (new questions 135, 136; reading R85); 128 not a letter (Tap never starts, Resync starts); 129 B; R81 void (Quantize leaves the top bar).

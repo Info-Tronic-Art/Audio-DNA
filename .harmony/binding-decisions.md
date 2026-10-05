@@ -946,3 +946,59 @@ build it; "audio controls the video", all tempo-locked, current UI will be scrap
 - A beat loop switched off without Catch Up (124) — Boris: "124 a" -> the clip carries on and cuts into time on the next "1".
 - The name — Boris: "also, lets change name to beat repeat. beat loopr is resolumes original name" -> the feature is called
   "Beat Repeat" in Audio-DNA.
+
+## 2026-10-04 (s-rta-1004b) — Boris's answers to questions 125-129 and 131-134, his words on readings tempo-row R75, R76, R81, R83 (actions; Quantize leaves the top bar; a recording review screen), the three tracks, three Resolume screenshots (recorded 2026-10-04 21:03:09; whole message verbatim + the questions as asked + the pictures: boris-feedback-backlog.md, same stamp)
+- The tempo step (125) — Boris: "125 whole numbers" -> "-" and "+" step in whole numbers.
+- The row's stop and pause (126, 127) — Boris: "126 and 127 stop clears all clips from layer strips, pause stops them, tempo
+  setting stays the same. Make thee new buttons as I asked" -> the row's stop takes every clip off the layer strips; its
+  pause stops the clips; the tempo number stays. The row is his list of 14:21:32. OPEN: 135, 136 -- against his answer to
+  111 ("just the bpm timer ... clips that are not BPM based ... are unaffected") it is not settled whether the beat stops
+  and holds with the clips, and which clips a pause holds. No later line of his says REPLACES.
+- Tap, Resync and a stopped beat (128) — Boris: "128 tapping tempo does not start anything but when click resync, that is
+  the 1 and it begins on that button push" -> a Tap never starts the beat; Resync is the "1" and starts it on the press.
+- The nudge across stop and play (129) — Boris: "129 b" -> stop and play never touch the nudge; only Resync zeroes it.
+- Actions (on reading R75) — Boris: "R75 we are calling routines actions. We need to discuss this. The actions are bpm based
+  as their timing is important and the bpm they were recorded with need to be saved so if the show is playing at a
+  different speed, the actions will play in time. A take = action recording. After it is recorded it does not follow audio,
+  the audio is gone when it has been turned into an action. The only time that an action will be connected to its audio is
+  when the user is reviewing the show they recorded and is extracting a certain actions from it of a certain duration." ->
+  TO DISCUSS, nothing is built on it yet. Readings R90-R94, questions 139-143.
+- Manual (on reading R76) — Boris: "R76 please explain wha tit means to switch manual on" -> explained in chat; no rule.
+- Quantize (on reading R81) — Boris: "R81 Quantize is for locking button pushes to beats when the user is doing it. If a
+  clip is set to bpm then it's time will always be locked to the BPM hence automatically quantized. Our quantized setting
+  is for helping the users button pushes stay in time for the recording of the actions. Even though the user will be a
+  little early or late recording the show, it will clip to the exact bar or beat in the recording. We can just use this for
+  cleaning up the recording afterwards. This is not for live usage. We should remove it from the top bar and use it in the
+  recording review screen which we have yet to create. I have attached an image of what it should roughly look like.It will
+  be rows and rows of parameters on a timeline and each parameter will have keyframes and values. Some values will go from
+  0-1 and some will be radians and some will go from a negative number to a positive number." -> Quantize is not a live
+  control: it leaves the top bar; it comes back as a clean-up tool in a recording review screen (new, not planned). The
+  tempo-row reading R81 is VOID. REPLACES BF20's Quantize menu (1 bar, 1/2 bar, 1/4, 1/8, 1/16) as a live top-bar
+  control; what of Quantize is on screen today is not yet established (a fact sheet is owed). Readings R86, R87. His
+  picture did not arrive (RQ-1).
+- Actions on screen (on reading R83) — Boris: "R83 I have no idea for how the routines, now called. Actions will be recorded
+  and displayed. There will be a little area above each clip where there will be toggle buttons for each action that was
+  recorded for that clip. If the actions are toggled on all those actions will play when the clip plays in time with the
+  clip. The same will be true for a layer actions. They will be in the layer strip, and they were also be buttons that
+  could be toggled on and off for each action. We will also find a place to have composition level actions, but they will
+  simply be toggle buttons as well. When the clip starts playing, if its actions are turned on, they will play. Essentially
+  they are just automations for any parameters within the clip or its effects." -> on / off buttons per action above each
+  clip, in the layer strip, and for the composition; an action is an automation of parameters. TO DISCUSS with the entry
+  above. Reading R89 (his first sentence), R94 (today's pads, bank and bands go).
+- A look and a plugged signal (131) — Boris: "131 is the signal plugged into a slider in a clip in the show, or is it a look
+  which is an effect preset in the effect library that can also be connected to a signal. If this is a clip in the show,
+  then ctrl-z brings it back. There is no other way. If it is a look, there is no way to remove the signal unless the user
+  drops it into the show (clip, layer or global) and then adds a signal and saves that look." -> read as A (R88): loading a
+  look without a signal on a slider unplugs it; Cmd+Z brings it back. OPEN: 138 (looks in the effect list).
+- Save over (132) — Boris: "132 default good" -> a small window asks first.
+- The button after a change (133) — Boris: "133 no need for any of that. It can be called look 2 but no need to show that
+  it was changed. Effects are usually changed by the user." -> the button keeps the look's name; no mark.
+- The nine quick FX saves (134) — Boris: "134 delete them too" -> moved to the Trash by Harmony, 2026-10-04 21:01:09.
+- The three tracks — Boris: "explain better what you need here: Three tracks you would really play, about 10 minutes each —
+  tell me where the files are. The first transport measurement (how often the picture would cut) cannot run without them."
+  -> explained in chat (the quoted sentence after "here:" is Harmony's own request, quoted back by him).
+- Resolume facts — Boris: "here is the beat repeat screenshot: [Image #5]"; "A screenshot of a clip in BPM Sync with the
+  loop menu on Random, showing Interval and Distance. this is essentially jumping to random 1's on the beat: [Image #6]
+  [Image #7]"; "one click on time jumps 1 bpm, duration in timeline mode moves up 0.1" -> the pictures are
+  .harmony/.reports/s-rta-1004b/boris-images/resolume-beat-repeat.png, resolume-random-1.png, resolume-random-2.png.
+  OPEN: 137 (which row "time" is).

@@ -827,3 +827,29 @@ BF80) -- the naming lane re-words those strings; no builder invents the new word
 STAGES of the lane now: G-N0, S1, S1r, S2, S2r, S3a, VG-0, S3m, S3r (replaces S3b), S4, S4r, VG, S5.
 Questions 125-129 + readings: boris-clarify-125-129.md (asked at the close; each has a default; nothing waits).
 NOT STARTED in this session: nothing of this lane is built.
+
+## HARMONY ADOPTION, UPDATE ON BORIS'S ANSWERS (2026-10-04 21:04:04, session s-rta-1004b)
+Boris, verbatim (binding-decisions.md, the section headed "2026-10-04 (s-rta-1004b)", recorded 2026-10-04 21:03:09; his whole message: boris-feedback-backlog.md, same stamp): "All defaults good except for these:"; "125 whole numbers"; "126 and 127 stop clears all clips from
+layer strips, pause stops them, tempo setting stays the same. Make thee new buttons as I asked"; "128 tapping tempo does not
+start anything but when click resync, that is the 1 and it begins on that button push"; "129 b"; and his words on the
+readings R75, R76, R81, R83 (quoted whole in binding-decisions.md). His words outrank the ruling. Consequences, binding for
+every packet of the beat-nudge lane:
+(1) 125 A and 126 A (126 read from "tempo setting stays the same"): the ruling's defaults; nothing changes.
+(2) 129 B: the ruling's section 7 names the change ("the two statements in `setBeatTimer`'s Stop path are deleted; T-N19 is
+    then the live path and LR2 (a) reads 40 in rounds 4-5").
+(3) 127 and 128 are NOT letters of the ruling. The row's stop takes every clip off the layer strips and its pause stops the
+    clips (the ruling stopped the BPM timer only, on his answer to 111). A Tap never starts the beat; Resync is the "1" and
+    starts it on the press (the ruling has one constant, `kGesturesStartTimer`, for both). Whether the beat itself stops and
+    holds with the clips, and which clips a pause holds, is asked of him: questions 135, 136.
+(4) R81: Quantize is not a live control. It leaves the top bar (it returns in a recording review screen that is not planned
+    yet). The ruling's R81 and every row that makes a fire WAIT while the timer is stopped or paused are VOID.
+(5) R75 / R83: routines become "actions" with a new model (on / off buttons per clip, per layer, for the composition). The
+    row's "stop all routines" button and the routine clauses of R75 and R83 are not built until an actions lane is ruled.
+    Reading R85 (told to him): the three old buttons left of the wheel leave the top bar.
+NOT CHANGED, as far as the stage tables say (I read section 4 of ruling-nudge.md, not this ruling's): G-N0 and S1 (the
+arithmetic; nothing is wired) -- S1 is launched as ruled. S2's packet is written only after the delta below says whether
+(3) or (4) touches the wiring; S4 (key and pad) likewise.
+OWED BEFORE any packet of S1r, S2, S2r, S3a, VG-0, S3m, S3r, S4, S4r, VG: (a) his answers to 135 and 136, or their defaults
+if a packet is needed first; (b) the fact sheet on Quantize / beat snap (what is on screen and in the engine today; which
+adopted rows of every lane rest on it); (c) an architect delta "nudge-row2" (opus max) attacked by two blind seats (gates,
+stage-hands). No builder designs the row.

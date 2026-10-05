@@ -1,0 +1,24 @@
+here are my answers to what is still open:
+
+
+<pasted_content id="815c">
+All defaults good except for these:
+125 whole numbers
+126 and 127 stop clears all clips from layer strips, pause stops them, tempo setting stays the same. Make thee new buttons as I asked
+128 tapping tempo does not start anything but when click resync, that is the 1 and it begins on that button push
+129 b
+R75 we are calling routines actions. We need to discuss this. The actions are bpm based as their timing is important and the bpm they were recorded with need to be saved so if the show is playing at a different speed, the actions will play in time. A take = action recording. After it is recorded it does not follow audio, the audio is gone when it has been turned into an action. The only time that an action will be connected to its audio is when the user is reviewing the show they recorded and is extracting a certain actions from it of a certain duration. 
+R76 please explain wha tit means to switch manual on
+R81 Quantize is for locking button pushes to beats when the user is doing it. If a clip is set to bpm then it's time will always be locked to the BPM hence automatically quantized. Our quantized setting is for helping the users button pushes stay in time for the recording of the actions. Even though the user will be a little early or late recording the show, it will clip to the exact bar or beat in the recording. We can just use this for cleaning up the recording afterwards. This is not for live usage. We should remove it from the top bar and use it in the recording review screen which we have yet to create. I have attached an image of what it should roughly look like.It will be rows and rows of parameters on a timeline and each parameter will have keyframes and values. Some values will go from 0-1 and some will be radians and some will go from a negative number to a positive number.
+R83 I have no idea for how the routines, now called. Actions will be recorded and displayed. There will be a little area above each clip where there will be toggle buttons for each action that was recorded for that clip. If the actions are toggled on all those actions will play when the clip plays in time with the clip. The same will be true for a layer actions. They will be in the layer strip, and they were also be buttons that could be toggled on and off for each action. We will also find a place to have composition level actions, but they will simply be toggle buttons as well. When the clip starts playing, if its actions are turned on, they will play. Essentially they are just automations for any parameters within the clip or its effects.
+
+131 is the signal plugged into a slider in a clip in the show, or is it a look which is an effect preset in the effect library that can also be connected to a signal. If this is a clip in the show, then ctrl-z brings it back. There is no other way. If it is a look, there is no way to remove the signal unless the user drops it into the show (clip, layer or global) and then adds a signal and saves that look.
+132 default good
+133 no need for any of that. It can be called look 2 but no need to show that it was changed. Effects are usually changed by the user.
+134 delete them too
+</pasted_content id="815c">
+
+explain better what you need here: Three tracks you would really play, about 10 minutes each — tell me where the files are. The first transport measurement (how often the picture would cut) cannot run without them.
+here is the beat repeat screenshot: [Image #5]
+A screenshot of a clip in BPM Sync with the loop menu on Random, showing Interval and Distance. this is essentially jumping to random 1's on the beat: [Image #6] [Image #7]
+one click on time jumps 1 bpm, duration in timeline mode moves up 0.1

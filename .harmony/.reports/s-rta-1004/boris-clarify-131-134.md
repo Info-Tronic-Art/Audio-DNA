@@ -36,3 +36,10 @@ What changes with each answer (so that either is a small change)
 
 ## ANSWERS
 (none yet)
+
+RECORDED 2026-10-04 21:03:09 (session s-rta-1004b). Boris's whole message verbatim: boris-feedback-backlog.md, same stamp. His lines for this file:
+"131 is the signal plugged into a slider in a clip in the show, or is it a look which is an effect preset in the effect library that can also be connected to a signal. If this is a clip in the show, then ctrl-z brings it back. There is no other way. If it is a look, there is no way to remove the signal unless the user drops it into the show (clip, layer or global) and then adds a signal and saves that look."
+"132 default good"
+"133 no need for any of that. It can be called look 2 but no need to show that it was changed. Effects are usually changed by the user."
+"134 delete them too"
+Harmony's reading: 131 A (reading R88; new question 138); 132 A; 133 not a letter (the name stays, no mark); 134 B (done 2026-10-04 21:01:09).
