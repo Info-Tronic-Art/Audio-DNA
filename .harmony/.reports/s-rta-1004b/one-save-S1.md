@@ -2,6 +2,7 @@
 
 ### STATUS
 STATUS: DONE_WITH_CONCERNS
+(Fix round after the r1 reviews: section "Fix round (review r1)" near the end; the HAND-OVER block is refreshed.)
 
 Every item of the stage row is built and its unit rows are green; nothing was run live (no app launch is allowed in
 this stage), so the two new routes, `writeShow` inside the app and the probe's fixtures against the real app are
@@ -10,7 +11,7 @@ INBOX-RECHECK: none (this run has no inbox; no addendum arrived).
 
 Compaction header
 - TASK: lane one-save, stage S1 (ruling-one-save.md section 4 row "S1 the show file").
-- HEAD: 2d3cdbb + the commit of this report (code head 2d3cdbb: `git -C /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/onesave log --oneline -5`).
+- HEAD: after the fix round, code head 608d6fd + the commit of this report (S1's own code head was 2d3cdbb: `git -C /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/onesave log --oneline -5`).
 - BUILD: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/onesave/build-lane = the LANE app (Release, test server, Syphon); 4 mutant apps in build-mut-os4 / os5 / os23 / os21.
 - CTEST: `100% tests passed, 0 tests failed out of 1278` (1252 on main + 26 new), through the mutex, rc 0.
 - LIVE: nothing run. No app launched, no Output window, no probe run, no screen capture.
@@ -216,9 +217,109 @@ The nine mutant runs pre-date this fixture change (case bodies are unchanged by 
 Changed lines trace to the stage row; no refactor of neighbouring code; no new abstraction beyond the two ruled
 headers and `saveWithBackup` (stop item 5a). No on-screen text added.
 
+## Fix round (review r1)
+STATUS (fix round): DONE_WITH_CONCERNS -- no MUST in any of the three r1 reviews; 4 SHOULD fixed, 2 left to Harmony
+(they are rulings, not code). Nothing was run live: no app launched, no probe run against an app, no Output window.
+INBOX-RECHECK: none (this run has no inbox; no addendum arrived). Scratch:
+/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/31b4c846-ad01-4801-82d9-569a43efdd3b/scratchpad/one-save-S1-R1/
+
+Per-finding verdict (the 11 finding lines of the three lenses are 6 distinct findings; every one was checked against
+the head BEFORE any edit):
+
+| # | finding (lenses) | checked how | verdict | what was done | commit |
+|---|---|---|---|---|---|
+| 1 | `showfile::versionOf` cuts a 64-bit version down to an int (data-safety SHOULD-1; NIT in the two others) | EXECUTED: the new SF-10 checks on the unchanged source | TRUE, and now measured (the reviewers had it as inferred) | FIXED: clamp to the largest int (`juce::jmin`); SF-10 gains 2147483648, 3000000000, 4294967296, 4294967298 (title unchanged) | 9e57a64 |
+| 2 | the ruled gate string reaches no LINT row (all three) | EXECUTED: `ctest -N -R` with the ruled pattern (raw line in the end checks below) | TRUE, and now measured: `Total Tests: 21`, 0 rows of test_one_save_lint | NOT FIXED BY ME: the titles are ruled and the gate text is the ruling's. Harmony's (stop item 2 stands) | -- |
+| 3 | tests/test_show_model.cpp:1305, one helper line outside the stage's file list (all three) | `git diff 8b464a6 HEAD -- tests/test_show_model.cpp`: exactly one added line, in `legacyShow()` | TRUE as described; the reviewers call it forced and minimal | NOT FIXED: it needs Harmony's written word (stop item 1 stands) | -- |
+| 3b | the ruling counts three `saveToFile` call sites in tests; there are two (ruling-tests SHOULD-2) | `git grep "saveToFile(" 8b464a6 -- tests`: test_composition.cpp:892 and :1277, no third | TRUE: a miscount in the ruling, not a missed edit | NOT FIXED: the ruling's text is Harmony's | -- |
+| 4 | probe-one-save.sh / .py claim a scratch library folder (all three) | `grep -rn AUDIODNA_LIBRARY_DIR src`: 0 hits; CompDecksBrowser.cpp:322-331 return `~/Library/AudioDNA/{compositions,decks}`; `scanForFiles` :297-311 parses each decks/*.json through `isV2DeckFile` :314-319 | TRUE; my N1 said only "lists" and understated it | FIXED (comments only): the header and the docstring now say the variable is inert until S4b and the launched app READS his library, never writes it | a0062a6 |
+| 5 | docs say "the four other replaceWithText writers" (data-safety SHOULD-5) | `git grep -n replaceWithText -- src`: MainComponent.cpp:3871 (deck files), :7389 (Save Layout), BindingManager.cpp:297, PresetManager.cpp:156 / :528 / :581, plus the four named ones | TRUE: 10 callers, not 4 | FIXED: integration.md and pitfalls.md NN name them whole, and say Save Deck As can still write over any file the chooser names | 608d6fd |
+| 6 | AS-4 is POSIX-only and leaves SIGXFSZ ignored (ruling-tests SHOULD-1) | read tests/test_app_settings.cpp:11-12, :223-231 | TRUE. (Four older tests include `<unistd.h>` unguarded, so this guard alone does not make the test tree build on Windows.) | FIXED: `#ifndef _WIN32` around the two includes and the case; the old SIGXFSZ disposition is put back after the limit is lifted | 55e1606 |
+
+No finding was found wrong. NITs were not in the fix list and are untouched (architecture.md's tree glyph, the probe
+files' mode 100644, the comment "test-mode only" at probe-one-save.sh:11, the duplicated TempDir, no unit row for an
+unreadable target or a failed swap).
+
+RED then GREEN, raw (logs red-sf10-*, green-sf10-*, mu22-*, as4-*, end-*, ctest-full.log in the scratch dir):
+```
+finding 1, RED -- the new SF-10 checks, source unchanged:
+== build test_show_file rc=0, objects compiled 1
+== run test_show_file rc=42        test cases: 1 | 0 passed | 1 failed      assertions: 97 | 84 passed | 13 failed
+test_show_file.cpp:343: CHECK( showfile::versionOf(parsed) == std::numeric_limits<int>::max() )
+   version = 2147483648 -> -2147483648 == 2147483647     version = 3000000000 -> -1294967296 == 2147483647
+   version = 4294967296 -> 0 == 2147483647               version = 4294967298 -> 2 == 2147483647
+test_show_file.cpp:344: CHECK( showfile::backupTagFor(parsed) == "v2147483647" )
+   v-2147483648 / v-1294967296 / v0 (version = 4294967296) / the empty tag = NO COPY (version = 4294967298)
+test_show_file.cpp:351: CHECK( c.migrationNote.empty() )  false, with message: version = 4294967296
+   (a file that states a version of 2 or more WAS converted as an old-shape file)
+finding 1, GREEN -- after the clamp:
+== build test_show_file rc=0, objects compiled 1
+== run test_show_file rc=0         All tests passed (274 assertions in 10 test cases)      (was 254)
+MU-OS-22 on the extended row (its target line is untouched by the fix):
+mutant build rc=0, objects compiled 1    RED run rc=42   CHECK( showfile::versionOf(withLayers) == 1 )  0 == 1
+   assertions: 97 | 58 passed | 39 failed
+restore build rc=0, objects compiled 1   GREEN run rc=0  All tests passed (97 assertions in 1 test case)   ShowFile.h: OK (sha256)
+finding 6: == build test_app_settings rc=0, objects compiled 1 / == run test_app_settings rc=0 / All tests passed (124 assertions in 10 test cases)
+   No RED arm exists for a platform guard on this rig, and the Windows side is NOT built (no Windows rig): unverified there.
+finding 4: bash -n probe-one-save.sh rc=0; SELFTEST 36 ok / 0 FAIL (rc 0). Comment lines only.
+```
+The stage's end checks again, on the fixed head (endcheck.sh, then the mutex helper):
+```
+build-lane build rc=0, objects compiled 136        ctest -N: Total Tests: 1278      (no case added: 1252 + 26 as before)
+unit rows rc=0: 100% tests passed, 0 tests failed out of 24
+ruled gate string, ctest -N: Total Tests: 21; rows of test_one_save_lint among them: 0
+test_one_save_lint rc=0: All tests passed (350 assertions in 2 test cases)
+test_app_settings rc=0: All tests passed (124 assertions in 10 test cases)
+test_safe_write rc=0: All tests passed (77 assertions in 4 test cases)
+test_show_file rc=0: All tests passed (274 assertions in 10 test cases)
+test_show_backup rc=0: All tests passed (161 assertions in 7 test cases)
+regression rows rc=0: 100% tests passed, 0 tests failed out of 13
+output law rc=0: 100% tests passed, 0 tests failed out of 15
+selftest rc=0: SELFTEST 36 ok / 0 FAIL
+2026-10-04 22:27:18 ctest mutex taken ... 100% tests passed, 0 tests failed out of 1278 / Total Test time (real) = 21.88 sec / ctest rc=0
+```
+Mutant apps REBUILT from the fixed head (mutant-apps.sh 4 5 23 21; each: apply, build target AudioDNA in its own dir,
+revert, mtime put back), because the fix changed ShowFile.h and the old ones would have differed from the lane app by
+more than their mutant:
+```
+MU-OS-4  : configure rc=0 / revert rc=0 / git diff --quiet -- src tests rc=0 / mutant app build rc=0, objects compiled 26 / sha256 e1b0a76c7a6f...
+MU-OS-5  : configure rc=0 / revert rc=0 / git diff --quiet -- src tests rc=0 / mutant app build rc=0, objects compiled 26 / sha256 b1f92c83773b...
+MU-OS-23 : configure rc=0 / revert rc=0 / git diff --quiet -- src tests rc=0 / mutant app build rc=0, objects compiled 26 / sha256 cd432aa0cf01...
+MU-OS-21 : configure rc=0 / revert rc=0 / git diff --quiet -- src tests rc=0 / mutant app build rc=0, objects compiled 27 / sha256 3afac3fe9d26...
+after all four: ShowFile.h: OK, SafeFileWrite.h: OK (sha256 against the snapshot taken before the first)
+final build-lane build rc=0, objects compiled 0        lane app sha256 61b37feb3d67e6e6...85caf1 (F7's ea3c1a24... is superseded)
+```
+(26 = the app objects that include ShowFile.h; the lane rebuild compiled the same 26 app objects.)
+
+STOP ITEMS after this round (for Harmony; nothing here was improvised):
+- Stop items 1 to 5 of the stage report stand unchanged. Items 1 and 2 are now backed by all three reviewers and
+  item 2 by a measurement (21 rows, no lint row).
+- NEW 6: THE PROBE'S APP READS BORIS'S LIBRARY FOLDER. The rig rule says his folders are read by nothing a builder
+  runs; I launch nothing, but Harmony's run of probe-one-save.sh (and of every earlier probe) starts an app that lists
+  `~/Library/AudioDNA/compositions` and parses each `~/Library/AudioDNA/decks/*.json` at launch and after every
+  successful save (src/ui/CompDecksBrowser.cpp:297-331). Read-only, and it ends with S4b. Whether G-OS1 may run before
+  S4b under that rule is hers to say; the header now states it.
+- NEW 7: THE CLAMPED TAG. A file that states a version too large for an int is copied as `<name>.v2147483647.json`
+  and reads as `loadedVersion` 2147483647. The reviewers proposed the clamp; the tag's wording is hers to change.
+- NEW 8 (from finding 5, not an S1 defect): until the stages that remove them, Save Deck As (MainComponent.cpp:3855
+  -> :3871) can write over any file the chooser names -- a show included -- unverified and with no copy. M1 ships S1
+  alone; whether that needs an earlier stage is a plan question.
+
+Risks of this round: the clamp changes what `versionOf` returns only for a version above 2147483647 (no real file has
+one); the four mutant apps were rebuilt, so their binaries are not the ones named in F7; the Windows guard is unbuilt.
+
+Progress of this round:
+- [22:20:35] step 0: tree clean at 25d5dc9; three r1 reviews read whole (0 MUST, 11 SHOULD lines = 6 distinct findings); each finding checked against the head by grep before any edit.
+- [22:21:41] fix 1 (versionOf clamp): SF-10 extended RED (13 failed assertions, rc 42) then GREEN (274 assertions in 10 cases); MU-OS-22 re-run RED then GREEN; commit 9e57a64.
+- [22:21:59] fix 2 (AS-4 guard + SIGXFSZ put back): test_app_settings 124 assertions in 10 cases green on macOS; the Windows side is NOT built (no Windows rig); commit 55e1606.
+- [22:22:32] fix 3 (probe header / docstring wording): bash -n rc 0; self-test `SELFTEST 36 ok / 0 FAIL` rc 0; commit a0062a6.
+- [22:22:43] fix 4 (docs: the other replaceWithText writers named whole): commit 608d6fd.
+- [22:29:57] build-lane rebuilt on the fixed head (136 objects), end checks + full ctest 1278 / 1278 through the mutex; the four mutant apps rebuilt from the fixed head (26 / 26 / 26 / 27 objects), tree clean after each; a last build-lane build compiled 0 objects; no Audio-DNA process (none was started); `git worktree list` 7 lines.
+
 ## HAND-OVER TO HARMONY
-Head: the commit of this report on lane/one-save (code head 2d3cdbb; `git -C /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/onesave log --first-parent --oneline -5`).
-Build dirs: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/onesave/build-lane = the LANE app + every test (current: a rebuild compiles 0 objects).
+REFRESHED after the fix round (review r1). Head: the commit of this report on lane/one-save (code head 608d6fd = S1's 2d3cdbb + 9e57a64 the version clamp, 55e1606 the AS-4 guard, a0062a6 the probe header, 608d6fd the docs; `git -C /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/onesave log --first-parent --oneline -5`).
+Build dirs: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/onesave/build-lane = the LANE app + every test (current: a rebuild compiles 0 objects; binary sha256 61b37feb3d67...).
+  The four mutant apps below were REBUILT from the fixed head in this round (same dirs, same mutants).
   /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/onesave/build-mut-os4  = MU-OS-4  app (backupBeforeOverwrite always NotNeeded)        -> RED arm of OS-L13
   /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/onesave/build-mut-os5  = MU-OS-5  app (a Failed copy is ignored, the write goes on)   -> RED arm of OS-L14
   /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/onesave/build-mut-os23 = MU-OS-23 app (a target that does not parse needs no copy)    -> RED arm of OS-L14b
@@ -234,9 +335,13 @@ G-OS1, row by row (APP = the bundle path; L = /Users/boriskarpman/projects/RealT
      PASS line: `All tests passed (350 assertions in 2 test cases)`
    the settings file's ten cases: `L/build-lane/tests/test_app_settings`
      PASS line: `All tests passed (124 assertions in 10 test cases)`
+   the ruled string `ctest -R "safewrite|showfile|showbackup|onesavelint"` runs 21 rows and NO lint row (measured, fix round): use the lines above.
    RED arms: the named unit mutants (section RED FIRST); `python3 /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/31b4c846-ad01-4801-82d9-569a43efdd3b/scratchpad/one-save-S1/mutant.py apply|revert <id>` is the edit.
+   the show file's ten cases alone: `L/build-lane/tests/test_show_file` -> `All tests passed (274 assertions in 10 test cases)`.
 2. the probe's self-test (no app): `bash L/.harmony/probe-one-save-selftest.sh`
      PASS line: `SELFTEST 36 ok / 0 FAIL`
+   NOTE for rows 3 to 5: the app these probes launch READS `~/Library/AudioDNA/compositions` and `~/Library/AudioDNA/decks/*.json`
+   (never writes them) until S4b; AUDIODNA_LIBRARY_DIR is inert at this head (fix round, stop item 6).
 3. OS-L13, OS-L14, OS-L14b: `ONESAVE_APP=L/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app bash L/.harmony/probe-one-save.sh <out-base> os_l13,os_l14,os_l14b`
      PASS lines: `PASS  OS-L13: ...`, `PASS  OS-L14: ...`, `PASS  OS-L14b: ...`, then `PROBE-ONE-SAVE GREEN`
      M-2: `INFO  OS-L13: M-2 the time of writeShow on F-OLD (<n> bytes after the save): first save (...) <ms> ms; plain save (no copy) <ms> ms`
