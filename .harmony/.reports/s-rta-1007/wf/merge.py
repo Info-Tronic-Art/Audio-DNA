@@ -4,6 +4,8 @@ import sys, os, re, json
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from blocks import parse, dump, KINDS, TOPICS
 RS = sys.argv[1]
+# ruling-page-2.md (its line on R151): the first page ruling's replacement of R151 is turned back -- the topic ruling's block stands (a clip previewed by its name waits for the next 1, his L36)
+VOID_BY_RULING_2 = {'R151'}
 ids = json.load(open(os.path.join(RS, 'slice-ids.json')))
 rd = lambda p: open(p, encoding='utf-8').read() if os.path.exists(p) else None
 def section(text, head):
@@ -30,6 +32,16 @@ for T in 'ABCDEFGHIJKX':
                 hit = [i for i, x in enumerate(blocks) if key(x) == key(b)]
                 if hit: blocks[hit[0]] = b; nrep += 1
                 else: blocks.append(b); nnew += 1
+    # the ruling over all topics (ruling-page.md, then ruling-page-2.md) may replace an item's block: laid over last, by item id
+    npage = 0
+    for pf in ('ruling-page.md', 'ruling-page-2.md'):
+        pr = rd(os.path.join(RS, pf))
+        if pr is None: continue
+        for b in parse(pr)[0]:
+            if pf == 'ruling-page.md' and b['id'] in VOID_BY_RULING_2: continue
+            if b['kind'] == 'ITEM' and b['id'] in ids[T] and all(b['fields'].get(f, '').strip() for f in KINDS['ITEM']):
+                hit = [i for i, x in enumerate(blocks) if x['kind'] == 'ITEM' and x['id'] == b['id']]
+                if hit: blocks[hit[0]] = b; npage += 1
     have = [b['id'] for b in blocks if b['kind'] == 'ITEM']
     miss = [i for i in ids[T] if i not in have]
     out = ['# SPEC %s -- %s (s-rta-1007): the paper apply-%s.md with the ruling rule-%s.md laid over it by merge.py. This file wins over both.' % (T, TOPICS[T], T, T), '']
@@ -67,7 +79,7 @@ for T in 'ABCDEFGHIJKX':
     sc = {}
     for b in blocks:
         if b['kind'] == 'ITEM': s = b['fields'].get('STATUS', '').split(' ')[0]; sc[s] = sc.get(s, 0) + 1
-    report.append('%s: %d/%d items (missing %s) %s | ASSUME %d (YES %d, LINE %d, NO %d) | ANSWER %d | NAME %d | ruling: %s (replaced %d, new %d, dropped %d) | format problems %d' % (T, len(have), len(ids[T]), miss or 'none', ' '.join('%s=%d' % kv for kv in sorted(sc.items())), len(A), ask('YES'), ask('LINE'), ask('NO'), c('ANSWER'), c('NAME'), 'yes' if r is not None else 'NO FILE', nrep, nnew, ndrop, len(prob)))
+    report.append('%s: %d/%d items (missing %s) %s | ASSUME %d (YES %d, LINE %d, NO %d) | ANSWER %d | NAME %d | ruling: %s (replaced %d, new %d, dropped %d; by the page ruling %d) | format problems %d' % (T, len(have), len(ids[T]), miss or 'none', ' '.join('%s=%d' % kv for kv in sorted(sc.items())), len(A), ask('YES'), ask('LINE'), ask('NO'), c('ANSWER'), c('NAME'), 'yes' if r is not None else 'NO FILE', nrep, nnew, ndrop, npage, len(prob)))
     for p in prob[:6]: report.append('    ! ' + p)
 for name, key in (('codec', 'answer-codec.md'), ('lowres', 'answer-lowres-rec.md'), ('tempo-auto', 'answer-tempo-auto.md')):
     a = rd(os.path.join(RS, key))

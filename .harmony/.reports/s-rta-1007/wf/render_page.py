@@ -56,7 +56,9 @@ made = []
 for src, dst, title in (('names-draft.md', 'names.html', 'Audio-DNA — what everything is called'), ('milkdrop-current.md', 'milkdrop.html', 'Audio-DNA — MilkDrop, how it works now')):
     p = os.path.join(RS, src)
     if os.path.exists(p):
-        open(os.path.join(RS, dst), 'w', encoding='utf-8').write(page(title, md2html(open(p, encoding='utf-8').read()))); made.append(dst)
+        md = open(p, encoding='utf-8').read()
+        if src == 'names-draft.md': md = md.split('\n## Notes for Harmony')[0]   # his copy ends before Harmony's own notes and the re-check record
+        open(os.path.join(RS, dst), 'w', encoding='utf-8').write(page(title, md2html(md))); made.append(dst)
 blocks, prob = parse(open(os.path.join(RS, 'page2-items.md'), encoding='utf-8').read())
 items = [b for b in blocks if b['kind'] == 'PAGE-ITEM']; ans = [b for b in blocks if b['kind'] == 'PAGE-ANSWER']
 ask = [b for b in items if b['fields'].get('KIND') == 'ASK']; line = [b for b in items if b['fields'].get('KIND') == 'LINE']
@@ -76,7 +78,7 @@ o.append('<h2>1 · What you asked me</h2>')
 for b in ans:
     f = b['fields']; q = re.sub(r'\s*\[L[\d, L-]+\]\s*$', '', f.get('ASKED', '')).strip()
     it = f.get('ITEM', 'none').strip()
-    o.append('<div class="box"><div class="hw">%s</div><div class="ti">%s</div><p>%s</p>%s</div>' % (E(q), E(f.get('TITLE', '')), E(f.get('TEXT', '')), '' if it == 'none' else '<p class="dim">Your choice is number %s below.</p>' % ', '.join('<a href="#i%s">%s</a>' % (x.strip(), x.strip()) for x in it.split(','))))
+    o.append('<div class="box"><div class="hw">%s</div><div class="ti">%s</div><p>%s</p>%s</div>' % (E(q), E(f.get('TITLE', '')), E(f.get('TEXT', '')), '' if it == 'none' else '<p class="dim">%s below.</p>' % (('Your choice is number %s' if len(it.split(',')) == 1 else 'Your choices are numbers %s') % ' and '.join('<a href="#i%s">%s</a>' % (x.strip(), x.strip()) for x in it.split(',')))))
 def by_topic(bs):
     for T in 'ABCDEFGHIJKX':
         sel = [b for b in bs if b['fields'].get('TOPIC') == T]
@@ -96,9 +98,9 @@ for T, sel in by_topic(line):
     o.append('</ul>')
 o.append('<h2>4 · Made as you asked</h2><ul class="l">')
 if 'names.html' in made: o.append('<li><a href="names.html">The list of what everything is called</a>. I keep it, and it is the truth for names from now on: in the app, in the menus, when we talk, and later in the manual. My own picks are marked; say so if one is wrong. Nothing in it has to be read now.</li>')
-if 'milkdrop.html' in made: o.append('<li><a href="milkdrop.html">The MilkDrop document</a>: how MilkDrop works in the app now. It is for the session in which you design the new MilkDrop; nothing in it has to be read now, and nothing of MilkDrop changes in the coming build.</li>')
+if 'milkdrop.html' in made: o.append('<li><a href="milkdrop.html">The MilkDrop document</a>: how MilkDrop works in the app now. It is for the session in which you design the new MilkDrop; nothing in it has to be read now.</li>')
 o.append('</ul>')
-o.append('<p class="dim" style="margin-top:40px">Nothing is built until you say that all is clear; the build starts in the session after that.</p>')
+o.append('<p class="dim" style="margin-top:40px">“All good” answers this page. I then tell you whether anything is still open. Nothing is built until you say that all is clear; the build starts in the session after that.</p>')
 open(os.path.join(RS, 'boris-page-2.html'), 'w', encoding='utf-8').write(page('Audio-DNA — what I still assume (page 2)', '\n'.join(o)))
 txt = '\n'.join(o)
 txt = re.sub(r'</(p|div|li|h1|h2|h3|ul)>', '\n', txt); txt = re.sub(r'<h[123][^>]*>', '\n\n== ', txt); txt = re.sub(r'<span class="n">(\d+)</span>', r'[\1] ', txt); txt = re.sub(r'<span class="r">(\d+)</span>', r'[\1] ', txt); txt = re.sub(r'<b>([bc])</b>', r'   \1) ', txt)

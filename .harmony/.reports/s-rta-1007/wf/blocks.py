@@ -10,7 +10,7 @@ KINDS = {
     'PAGE-ITEM': ['TOPIC', 'KIND', 'TEXT', 'B', 'C', 'FROM'],
     'TRIAGE': ['TO', 'WHY'],
 }
-TOPICS = {'A': 'Firing clips and the tempo row', 'B': 'The cue system', 'C': 'Presets', 'D': 'Actions in a show', 'E': 'The review screen and recordings', 'F': 'The show file, decks and saving', 'G': 'Output screens', 'H': 'How a clip plays', 'I': 'Effects, signals and what moves a slider by itself', 'J': 'The keyboard and MIDI mapping, menus and messages', 'K': 'Sources and the automatic features', 'X': 'Loose ends of the last page'}
+TOPICS = {'A': 'Triggering clips and the tempo bar', 'B': 'The cue system', 'C': 'Presets', 'D': 'Actions in a show', 'E': 'The review screen and recordings', 'F': 'The show file, decks and saving', 'G': 'Output screens', 'H': 'How a clip plays', 'I': 'Effects, signals and what moves a slider by itself', 'J': 'The keyboard and MIDI mapping, menus and messages', 'K': 'Sources and the automatic features', 'X': 'Loose ends of the last page'}
 
 def parse(text):
     blocks, problems, cur = [], [], None

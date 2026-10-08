@@ -1,0 +1,21 @@
+# Session s-rta-1007 — secondary (MINIMAL, foreign repo RealTimeAudio) — 2026-10-07 22:19 → 2026-10-08 02:30
+| field | value |
+|---|---|
+| role / profile | secondary / MINIMAL (cwd ~/projects/RealTimeAudio); session id dc0022aa-41a3-4de2-a8fb-bc5cbd289eab |
+| goal | Boris's instruction in his one message: file his answers to the page of all open questions; "Work on your own to continue planning the app answering and asking questions in another html document like you just made, but simpler per my requested parameters. Finish this task autonomously then eos." |
+| model tiers | main loop opus 5.5 [1m]; applied papers + the 189 answer: architect opus high (13); rulings: architect opus max (15, one of them failed); checkers, the MilkDrop reader, the names list: sonnet high (24); researchers sonnet (4: codec, low-resolution recording, and their re-checks); builders none |
+| Boris inputs | 1 message (session record line 10; 18,065 characters, 3 pictures), filed byte-exact: all defaults good except 22 questions and 47 readings; seven general points; rules for his pages; BF154-BF238 |
+| built / merged | nothing (his rule); no source file changed; no test, gate or app launch |
+| workflows | apply.js run wf_a9691ac6-b09 (32 agents, 35 min, 4.35 M tokens) / rule.js run wf_9a4e9b63-639 (23 agents, 2 h 37 min, 6.44 M; its last stage FAILED: four answers cut at 64,000 output tokens) / rule2.js run wf_54f25005-e3c (1 agent, 28 min, 0.31 M) |
+| deliverable | .harmony/.reports/s-rta-1007/boris-page-2.html, opened for him: 9 answers to what he asked + 57 assumptions (31 that matter 217-247, 26 one-line 248-273), about 25 minutes; list page2-items.md; linked: names.html (the list of what everything is called), milkdrop.html |
+| planning truth | s-rta-1007/spec-A..K + spec-X (296 items of the last page: status + the rule now + my notes on today), ledger.md, assume-all.md (257 assumptions: 57 on the page, 153 internal, 37 settled by his words, 14 merged; some page items carry several), today-notes.md, answers-all.md; rulings rule-A..X.md, ruling-page.md, ruling-page-2.md; checks check-*.md, pcheck-*.md |
+| new docs | .harmony/NAMES.md (262 names: 137 his words, 62 my picks); docs/claude/milkdrop.md + a trigger row in CLAUDE.md; binding-decisions.md: the 2026-10-07 section (85 entries + a 61 KB application block); RIG-RULES A6 |
+| statuses of the 296 items | ANSWERED 27, CORRECTED 42, REPLACED 24, STANDS 42, DEFAULT 24, SETTLED 35, DROPPED 57, OPEN 45 |
+| my own gate | quotes pulled by line by script (0 content lines unfiled); scripts checked + dry-run; lint_apply OK on 12 papers; lint_page OK on the final list; merge 12 of 12 topics, 0 format problems; the WHOLE final page read; one headless picture looked at; one spec block (R151) read after it was turned |
+| my edits after the read | 4 (a fact that was only read, not run; one broken sentence; one default turned back to HIS answer 207 c; the frame's two sentences) -- seen by no seat |
+| not verified | the spec files, the names list and the MilkDrop document beyond heads and greps; 153 internal + 37 settled + 14 merged triage decisions (seats and rulings only); nothing in the answers on the codec, the low-resolution recording and question 189 is measured |
+| own errors | a ruling told to rewrite a 53 KB list whole (43 min lost); a 16 % filing turn; a 61 KB "compact" block; one cd in a throwaway subshell |
+| captured | notebook +6; idea ledger +3 (his rules for pages, verbatim; his order for a names list, verbatim; edit blocks for rulings); RIG-RULES A6 |
+| audit | WARN fable-usage-audit LAW11-LOG-GAP: 28 architect dispatches, no DISPATCH_LOG row (a foreign lane cannot write it); session index skipped (foreign-repo lane) |
+| screen | no Audio-DNA started, no Resolume touched, no Output window; one page opened in his browser in the background; pgrep Audio-DNA at the close: 0 |
+| next | his answers to page 2 -> filed -> applied -> page 3 (shorter) or "nothing is open"; the build starts only in the session after he says all is clear |

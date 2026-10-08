@@ -703,3 +703,57 @@ status-note:
 artifact:
 history:     NEW(2026-10-05)
 --- /IDEA ---
+
+--- IDEA ---
+id:          idea-2026-10-08-RealTimeAudio-1791440711488792028
+raw:         BORIS (2026-10-07, verbatim): "Don’t list what is happening today as we are discussing a major change. Keep the ‘today’ in your own notes so you know what to change. I have so much to read and this takes my focused time away. It would be best if you just asked me focused questions on any assumption that you're making. Breaking it into the R’s and the questions is a lot more material to read for me." AND: "there are some repeats in your document, and I neglected to explain every time. If I have explained something, use it to answer questions not answered." AND: "If there are questions or assumptions still undecided/unverified by me, then ask or show your assumptions". What followed from it and worked: ONE list; each item ONE assumption that begins 'I assume' and says what WILL happen, with at most two other ways; nothing about how the product works now (that goes to Harmony's own notes file); no separate 'readings'; a triage ruling decides for every open assumption ask / one line / internal with the reason filed (no silent caps); an explanation he gave once is applied to every repeat before anything is asked.
+context:     RealTimeAudio s-rta-1007: Boris's reply to a page of 45 questions + 102 readings (about 3 h 20 min of reading); the next page was cut to 9 answers + 57 one-assumption items, about 25 minutes
+why:         
+intent:      
+target:      how Harmony writes any page of questions for Boris (every project)
+constraints: 
+related:     
+priority:    high
+repo:        RealTimeAudio     session: s-rta-1007     date: 2026-10-08
+status:      NEW
+status-changed: 2026-10-08
+status-note:
+artifact:
+history:     NEW(2026-10-08)
+--- /IDEA ---
+
+--- IDEA ---
+id:          idea-2026-10-08-RealTimeAudio-17914407114889425227
+raw:         BORIS (2026-10-07, verbatim): "We need a solid list with what we call everything. You create and keep one and I will ask questions and you can give me the truth, which will be this doc. You will use this for comms with me and to name all features in the app, menus and manual(later)."
+context:     RealTimeAudio s-rta-1007: .harmony/NAMES.md, version 1, 262 rows (his words / my pick / on screen now / replaces)
+why:         
+intent:      
+target:      a per-project NAMES file kept by Harmony (every project with a non-technical owner)
+constraints: 
+related:     
+priority:    medium
+repo:        RealTimeAudio     session: s-rta-1007     date: 2026-10-08
+status:      NEW
+status-changed: 2026-10-08
+status-note:
+artifact:
+history:     NEW(2026-10-08)
+--- /IDEA ---
+
+--- IDEA ---
+id:          idea-2026-10-08-RealTimeAudio-17914407114890915657
+raw:         A RULING OR FIX PASS OVER A LONG LIST WRITES EDIT BLOCKS, NEVER THE LIST: a max-effort agent told to rule ~70 findings and then rewrite a 53 KB list whole cannot fit thinking plus the rewrite into one 64,000-token answer and dies after retries. What works: a marker format (@@KIND id / FIELD: one line / @@END); the agent takes ONE checker's paper at a time and appends its verdict lines and its replacement / drop / new blocks in commands of at most ~120 lines; a deterministic script lays the blocks over the list, renumbers, remaps references and lints. The same format lets a per-topic ruling replace single blocks of a 60 KB paper, lets a lint say OK before the agent returns, and lets the page be rendered by a script instead of an agent (0 mismatches by construction).
+context:     RealTimeAudio s-rta-1007, run wf_9a4e9b63-639 (the failed second ruling: four answers cut at 64,000 output tokens, 43 minutes) fixed by run wf_54f25005-e3c (114 findings ruled in 28 minutes)
+why:         
+intent:      
+target:      workflow / ruling doctrine (decision-council, workflow-authoring habits)
+constraints: 
+related:     
+priority:    medium
+repo:        RealTimeAudio     session: s-rta-1007     date: 2026-10-08
+status:      NEW
+status-changed: 2026-10-08
+status-note:
+artifact:
+history:     NEW(2026-10-08)
+--- /IDEA ---

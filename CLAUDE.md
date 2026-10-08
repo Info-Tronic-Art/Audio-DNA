@@ -251,3 +251,4 @@ these are NOT @-imported, so they cost nothing at boot and are read on demand.
 | Building on Windows/Linux, adding Aubio, or adding any new project dependency | `docs/claude/build-other-platforms.md` |
 | Boris says "kick off phase N" (the legacy phase protocol) | `docs/claude/phase-protocol.md` |
 | Needing milestone history (incl. the P1-P12 phase dependency map), the v2 redesign rationale, or the `research/` document index | `docs/claude/history.md` |
+| Touching MilkDrop (ProjectMSource, the MilkDrop tab, the Jukebox, a clip's MilkDrop playlist), or preparing the session in which Boris designs its replacement -- how it works now, in plain words and by file:line (written 2026-10-07; read-only study, nothing run) | `docs/claude/milkdrop.md` |
