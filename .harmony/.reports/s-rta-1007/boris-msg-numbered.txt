@@ -1,0 +1,138 @@
+Boris's message of 2026-10-07 22:19:09 local, one line per line of the byte-exact copy boris-msg-raw-1.txt, each prefixed L<number> (0-based). Empty lines and the paste / picture markers are kept. Quote him ONLY from these lines, verbatim.
+
+L0: <pasted_content id="1ea8">
+L1: All defaults good except for these. Numbers without an R in front of them our answers to your questions. Don’t build anything till you are clear and 100% sure of what everything means. Don’t list what is happening today as we are discussing a major change. Keep the ‘today’ in your own notes so you know what to change. I have so much to read and this takes my focused time away. It would be best if you just asked me focused questions on any assumption that you're making. Breaking it into the R’s and the questions is a lot more material to read for me. 
+L2: General Questions:
+L3: - Is there any reason for us to build our own codec that is optimized for our system like resolume’s DVX 3.0? Is that something that you can do reliably?
+L4: - We need copy and paste for any clip. If it is selected, it can be copied and then if they empty sell or sell with something else in it is selected then it can be pasted. 
+L5: - Option drag on a clip copy and pastes into the cell it is dragged to.
+L6: - I think it might be good to record a very low resolution show recording if that is possible and to record it in 10 or 20 minute chunks so that they are small and if something happens most of the recording is not lost. Maybe something like 1/4 or 1/8 the size so it is very minimal to use as a double check. How much comp resource would this take up?
+L7: - We should have ignore actions toggle on the layer as well as ignore column. 
+L8: - there are new functionalities, and I am OK with you laying them out wherever you can in the correct area. If you have a question where they get laid out, ask me, but there will be a very big UI redesign once all of the functions have been built and everything works correctly.
+L9: - there are some repeats in your document, and I neglected to explain every time. If I have explained something, use it to answer questions not answered.
+L10: 
+L11: R168 dfad let's do the resolume way where the empty cell triggers on the 1 if the clip playing is in bpm mode, same as a new clip in bpm mode. If a layer that is not in BPM mode is triggered, then that plays instantly
+L12: R139 in pause or run mode, unless resync is clicked, when a new clip with BPM mode is triggered, it waits for the one. When stopped, user’s click on play or any clip is the new 1.
+L13: R174 /2 and x2, tempo change do not move the 1. Pause and play do not move the clip back to the one. Pause pauses, the beat clock, the clips and everything that it controls with BPM. Think about this logically, if the nudge is pushed, it moves the one a hair forward or back. If the pause is pushed on the tempo bar, and then user triggers clicking on the clip or presses play, it doesn't matter what the nudge did because that press starts the clock from when the user clicks play or the clip and that nudge is history because the user started the clock from the position it was holding at. If you don’t understand ask me.
+L14: R176 let's keep the BPM from 22 to 480. The /2 and x2 manual work to both limit as well as the listening clock. If having such an open range is distorting the listening clock, then we will change that later but manually it will always go from 22 to 480. We only need to display the nudge XMS in automatic mode. In manual mode, this is not necessary because the user will nudge it to move it to where they want. A complete circle is one bar, and each of the four spots on the circle are one beat.
+L15: R206 
+L16: A when you click Lipp's name, it plays in the preview and populates the clip tab
+L17: B tempo paused or stopped, when you trigger a clip tempo play his activated
+L18: C the beat reacts instantly to the tapping on the second tap, and the clip responds to the beat changing
+L19: D layer goes empty when a column is triggered with an empty
+L20: E it randomly moves playhead every single beat. When it changes, it jumps to random beat markers on the clip. 
+L21: F Bpm mode the clip’s timeline is divided into beat markers. Plus and minus doubles and halves the current. It goes: 0, 1/8, 1/4, 1/2, 1, 2, 4, 8, 16. There is no duration on a bpm clip, but it has beats. The beats regulate how many beats are on the clip. By default it gives me a decent amount of beats (sometimes 8, sometimes 16) so that it plays at about the same speed as it would play at speed number one in timeline mode. Pressing plus and minus increase or decrease by one beat and there is /2 and x2, which double and halve. In timeline mode duration changes don’t affect the speed setting but the video plays faster or slower based on the direction moved. Same with speed. It does not affect the duration setting but make the video move slower and faster. 
+L22: G manages a small window with the names of all of the presets and the names can be changed or the presets can be deleted.
+L23: </pasted_content id="1ea8">
+L24: 
+L25:  [Image #4]
+L26: 
+L27: 
+L28: <pasted_content id="1ea8">
+L29: H it plays out of sight
+L30: 172 they're only two ways to do this. One is to click the column trigger, and that plays them at the same time. Effectively the same exact way to do this, is to trigger all the clips, press, pause, then drag each play head to the beginning manually so that is a waste of time. The only way to do this is with a column trigger. Moving on.
+L31: 174 let me clarify this. There is nothing in the layer. The tempo is paused. I click on a BPM clip and it waits for the bpm clock to return to the 1 and then fires. The only difference is if I was stopped, it would play the moment I triggered it and I would be setting a new 1 for the tempo. If I have a click that is playing, and I pause the tempo it then it will display the paused clip and when I press tempo play it will play from where it was paused and the clock will continue from where it was paused as well.
+L32: 189 is it possible to correct the app listening to the music if it is off by two BPM's and keep it on automatic mode, or will that correction necessitate going back to manual mode? This is a question for you.  Same question if I correct, where the one is.
+L33: 
+L34: R141 it would be nice if next to each cue button for each layer, there's also a transparency slider so we can see what the transparency would be in the preview monitor, of course using the transparency setting in the layer settings and the layer stacked in their correct order.
+L35: R170 no need to undock and move just yet. We will have various configurations other than live and recording review mode. As for the preview window under the output window, we also want to preview the clips double clicked from the files window and name clicked from a clip in the deck. They will play right away and we will have a toggle between cue mode and preview mode. Double clicking or single clicking the name will take over the preview, and to see the cue you need to push the toggle button. The preview will just happen frictionlessly, to get back to queue you need to push the toggle button.
+L36: R179 all good except a previewed clip (clicking its name) shows the clip with all its actions and it is triggered on the 1. Resolume plays it right away but we have actions so that will need to be playing in time with the music
+L37: 176 a but read R170 for detail
+L38: 177 add a global effects and actions toggle button called master cue 
+L39: 
+L40: R136 if there are no effects in the effects tab for a clip layer or Global, then there is no header bar for any effects. There should not be space wasted with a bar that says “effects”. Each effect has its own header bar and that's it, like resolume
+L41: R154 good but if you double click an effect in effect tab display the effects properties like resolume does. Look at screenshot where I double clicked on Add Subtract: Red
+L42: </pasted_content id="1ea8">
+L43: 
+L44:  [Image #6]
+L45: 
+L46: 
+L47: <pasted_content id="1ea8">
+L48: R155 presets are such low storage files that they should travel with the show file if it goes to another computer
+L49: R156 we do not need that 2nd small p. It’s superfluous 
+L50: R157 they are kept with the app and the show file. Very little storage overhead
+L51: R180 yes and a cell with effect(s) only can be used similar to a layer effect. They will affect the layers below it. If there is an effect at the bottom layer, it will not be effective
+L52: 178 I would like to have the presets name in the same header line as the effects name. If the preset gets changed then remove the preset name and replace it with save button
+L53: 192 b
+L54: 
+L55: R133 composition and global are interchangeable but lets move to global as that is what musicians are more used to. E yes, this is a good idea. After use picks rows of more than 1 kind, the app breaks them down into clean, concise actions that can be saved in the action save window, the final step in creating an action.
+L56: R134 we will make a small row below the clip, still within the layer for the actions like this screenshot.
+L57: </pasted_content id="1ea8">
+L58: 
+L59:  
+L60: [Image #8]
+L61: 
+L62: 
+L63: <pasted_content id="1ea8">
+L64: R172 I think what we are missing here are a few items: an actions loops toggle.  Actions will loop and when they are not ticked to loop they will only play once which means they will go back to the position they were at before they played. Each action where it is placed, will have a loop toggle right there. Some actions will loop in a clip, layer, global and some actions will not. We will just keep the Global glide slider that will affect how quickly the values go back to their pre-action positions, from instant to four seconds max.
+L65: R159 show a warning in save screen if the action is not a multiple of 4 bars
+L66: R129 2- the slider moves back to the action position based on the global glide back setting I described earlier. 4- please explain in more detail about loading a preset onto an effect with an action playing. Also, I had an idea about recording an action playing. This is very meta (recording of a recording) but if we want to create a new action, we will not nest an action in an action. In this case we will just display the moving parameters and save the moving parameters into a new action, but in the recording, we need a way to show that an action was triggered so those parameters will be slightly different colored and the name of the action shown somehow in the hierarchy.
+L67: R131 again, whenever an action is switched off and it goes back, it follows the master action fade back time
+L68: R162 if an action is is pasted onto a clip that lacks a parameter or an effect, that specific action is muted, and the small messages is displayed where the user needs to say OK they understand.
+L69: R143 let's delete all the old show files and start from scratch.
+L70: R147 one small correction I do want to have a Global fade control on all actions starting/stopping that would create a jump, even with a resync
+L71: R181 on the watching the recording screen, we need to have a different color for the actions that were recorded off of signals so the user can see it before creating actions, but the actions can be created with the signal recording and treated like a regular action. 
+L72: R224 yes. I like that. We need a global stop actions button that stops all actions. The tempo stop button stops all actions as well as everything else. We will only allow users to record actions in the recording review screen, not modify during a show. We need a good name for this screen so it’s easy to remember and discuss.
+L73: 179 a layer can have a global action bypass in the same way that I can have column trigger bypass
+L74: 182 b
+L75: 184 read my note on this above
+L76: 193 b - the action holds all parameters that are changed from it’s defaults, including menu changes and backwards forwards changes
+L77: 213 b
+L78: 
+L79: R138 use can chose to output the recording to monitor to maximize space on the screen, or they can drag the line between tracks and display screen on one monitor to min or max screen size
+L80: R173 if a show has been changed, the recording needs to open up the show so the recording also saves a show file with the clips exactly as they are for the show. If for some reason the user has changed that show with the same name, the recording still opens it up correctly and indicates this to the user that these clips have been moved or missing.
+L81: R137 we are not recording anything that does not move. Let's say the user move something for the first time a minute into the show, we will display that from the beginning to the end, but it will have a flat line at default until they use it. On any button or slider that was not changed during the show and was at default the entire time, does not get a row in the recording. 
+L82: R135 1beat is the smallest
+L83: R166 when we do a quantize, we need to select the grid spacing setting: 4 bars, 1 bar, 2 beats, 1 beat, 1/2 beat, 1/4 beat
+L84: R222 the mend is another recording that is saved, parallel to the original.
+L85: R167 action should not record switching decks
+L86: R183 Each track recorded, button or slider, display in a small row that can be dragged taller with keyframes and slider positions. The button track will have a horizontal line that moves from 0 to 100 and can only be in those two positions unless this is something with more than one position. Also, sound needs to be able to be switched off as it won't sound good if it's scrubbed. There should be a setting to not scrub sound, but only play when it's playing in real time.
+L87: R184 I don't understand this: To play a whole recording as a performance you make one action from its start to its end.
+L88: R186 D) it is impossible to record something paused. Anything is recorded it is recorded in time on the one and ending on a even amount. If we push stop recording, keep recording till it is on an even grid line like the end of the bar. It can be trimmed later if necessary. E) I don't think there's any reason for a one layer recording. Recording will be the output of the layers but not the screen output as screens can be modified to fit a projectors color and timing issues. It must be the full screen composition.
+L89: R223 the tracks are greyed out and the selected area is white. Selected area is the selected tracks and between in and out points on timeline. Very little chance a recording will be removed. If it is removed, record the removal and keep it in the recorded show file, but default all its settings once removed. When tempo changes, record that as it will happen often. Actions will not be made with a tempo change.
+L90: 
+L91: 186 b
+L92: 195 yes we can record over using the midi controller. This record over mode is different than the scrubbing and drawing with mouse as this plays in real time. Record overs are recorded separately from the original
+L93: 
+L94: R188 the show will hold the layout and so will the comp. When you open the application, it opens to the very last show. Do we need snapshot?
+L95: 
+L96: R191 if I save a show with the outputs connected, and I open the show back up with the outputs connected, I expect the show to remember the outputs connected and not need to connect them again.
+L97: 
+L98: R217 if a clip plays once and ejects that is clear the layer. If the clip plays on autopilot and the next clip plays then the eject would be cancelled by the next clip appearing.
+L99: R218 do beats here. It was my mistake before
+L100: 
+L101: 201 each of the markers on a clip are bpm lines and the random lands on one of them
+L102: 202 model these 2 little menu’s after resolume 
+L103: 
+L104: R195 d we can have infinite envelopes for different sliders. We can have one per slider or have many sliders share the same one. G we want to re-order effects
+L105: 
+L106: R221 the one shot and looping controls should be on user of the signal (clip, layer or global slider and button), not the signal itself. The slider or button can use the signal. Slider is simple and button needs a threshold setting. Once the signal is above the threshold the button will be on (or off it’s inverted). Each signal user should also have it’s own gain and falloff (smoothing).
+L107: B) Is this a good idea, help me think through this logically: An effect that reads the beat by itself (a strobe, a pulse) follows the beat as the signals do: it holds still while the beat is paused or stopped (R214); the Master Signal at 0 still leaves such effects pulsing while the beat runs, as you ruled. 
+L108: C) yes I want a moving line on each signal to know where they are. 
+L109: 
+L110: 203 c this is built after all other parts are done. This is last, before the ui redesign which is the final change
+L111: 204 I want to remove the keying and slider. We are only going to use the transparency slider to control that layers blend mode.
+L112: 205 these terms are confusing. Timeline is connecting anything that can be connected to the layers playhead and should be called as such. The envelope is the envelope and I have already described this above.
+L113: 
+L114: R197 we will record to clip or record show. That’s what the 2 recordings are called. All else is gone. Show Recording Review should be called Review for short is a good name. Do you have a better name for this? Macro’s panel should be called Macros. We need a solid list with what we call everything. You create and keep one and I will ask questions and you can give me the truth, which will be this doc. You will use this for comms with me and to name all features in the app, menus and manual(later).
+L115: 
+L116: R199 we want mapping files 
+L117: 
+L118: R227 all good. Spacebar is typically tap tempo
+L119: 
+L120: 207 c but make an argument for why we should have a key/pad hold setting. How does this help dj’s or bands using this software?
+L121: 
+L122: 209 already dicsussed above
+L123: 
+L124: R201 we will need symbols and pictures that make sense for everything and this will be done in the UI step
+L125: 
+L126: R202 we will design a much smarter system for doing Milk drop and we will do that as a dedicated session where I will design the UI and how we will use it but not right now. I want you to create a dedicated document with how milk drop functions currently and that's it for this upcoming build.
+L127: 
+L128: 215 plan all of these
+L129: 
+L130: I did not read anything below but much of this was decided by the answers above. If there are questions or assumptions still undecided/unverified by me, then ask or show your assumptions : Decided without asking you — say so if one is wrong
+L131: 
+L132: 
+L133: Work on your own to continue planning the app answering and asking questions in another html document like you just made, but simpler per my requested parameters. Finish this task autonomously then eos.
+L134: </pasted_content id="1ea8">
+L135: 
