@@ -56,7 +56,7 @@ grep -n -A 7 "^@@ITEM <id>" spec-<letter>.md (ids: a question number, R<n>, D<n>
 per item; assume-all.md = the 257 assumptions that were left (153 internal ones are NOT on his page: technical, a look, or a
 measurement); today-notes.md = MY notes on what the app does now, item by item (never shown to him); answers-all.md,
 names-all.md. His words: .harmony/binding-decisions.md (quotes are his; the text after "->" is Harmony's; the 2026-10-07
-section ends in a 61 KB application block: grep it by item id), .harmony/boris-feedback-backlog.md (BF1-BF238), byte-exact
+section ends in a 61 KB application block: grep it by item id), .harmony/boris-feedback-backlog.md (BF1-BF239), byte-exact
 s-rta-1007/boris-msg-raw-1.txt, numbered by line boris-msg-numbered.txt, pictures s-rta-1007/boris-images/. History:
 .harmony/HANDOFF-ARCHIVE.md — never load it whole. docs/claude/milkdrop.md = how MilkDrop works now (his order; nothing of
 MilkDrop is built until the session in which he designs the new one).
@@ -64,7 +64,7 @@ MilkDrop is built until the session in which he designs the new one).
 WHEN HE ANSWERS PAGE 2 ("231 b", "217 no: ...", "all good"): (a) the turn it arrives: pull his message from the session record
 by record line and type (wf/extract_msg.py: assert on its first words; pictures sized with sips), number its lines, write one
 row per statement into an entries table and let wf/file_build.py pull every quote BY LINE (it asserts that every content line
-is filed): backlog from BF239, binding-decisions.md (a dated section), the stamp from date; (b) that turn launches nothing (a
+is filed): backlog from BF240, binding-decisions.md (a dated section), the stamp from date; (b) that turn launches nothing (a
 40 s timer, then launch); (c) apply: each answered item changes its spec blocks (the item's FROM field names them) -> what the
 answers open -> a page 3 of the same shape, shorter -> checks -> my own read of the whole page -> open it -> end of session.
 Scripts, all in .harmony/.reports/s-rta-1007/wf/: apply.js (one architect per topic writes blocks; one blind checker per
