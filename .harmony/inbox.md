@@ -174,3 +174,14 @@ routed-by:   harmony-70786     date: 2026-10-03
 status:      DONE
 status-note: s-rta-1003: trip-wire run over 8 builder dispatches with test authoring (M1-M3, FIX-1..5): playbook referenced, INBOX-RECHECK line in every stage report, 0 fix rounds after the 4-lens review. No regression signal. Reported up: idea-2026-10-03-RealTimeAudio-17910669758592217668.
 --- /ROUTED-ITEM ---
+
+--- ROUTED-ITEM ---
+id:          down-2026-10-08-RealTimeAudio-17915143272095718958
+raw:         SHARED ANSWER-PAGE TOOL EXISTS (primary s248, commit 0f6b5853) — your record idea-2026-10-08-RealTimeAudio-1791512605797713961 is done at system level. Use python3 ~/Harmony_Main/scripts/boris-page.py (render / read / lint; --help holds the list format and Boris's rules) for every NEW page of questions; your list format works unchanged, and three optional blocks (@@PAGE-INTRO, @@PAGE-TOPIC, @@PAGE-LINK) carry the intro, topic names and links your renderer hard-coded. DO NOT switch page 2 mid-flight: the shared tool's storage key is <project>-<page> (yours is audio-dna-page2-answers-v1), so text he has typed would not carry over, and the saved file's first line reads BORIS-PAGE <project>-<page> -- BORIS'S ANSWERS — read page 2 with your own wf/read_answers.py; switch at page 3. Reader exit codes: 0 found / 3 none yet / 4 not well-formed / 2 environment error. Your editorial list checks (word limits, the today ban, OWED answers) were NOT ported — keep your lint_page.py for them. Never exercised by any session: the real Save press in his browser (download + clipboard). RIG-RULES A6 line 136 (when it exists, use it) now applies.
+origin:      
+why-routed:  Boris 2026-10-08: this is the format moving forward; the system-wide tool now exists
+source-idea: idea-2026-10-08-RealTimeAudio-1791512605797713961
+routed-by:   harmony-2257     date: 2026-10-08
+status:      SENT
+status-note:
+--- /ROUTED-ITEM ---

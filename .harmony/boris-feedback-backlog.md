@@ -1226,3 +1226,148 @@ ADDED 2026-10-08 22:23:02 -- A THIRD MESSAGE OF HIS (session s-rta-1007; session
 VERBATIM (whole message):
 "I want this to be the format moving forward. Leave a note for the primary to make this happen first thing in next primary session."
 BF239b [RULE, his pages + TASK for the primary] The page with a comment box under each item and the answers saved from the page is THE FORMAT FROM NOW ON; a note is left for the primary to make it happen first thing in the next primary session. (Lettered 239b, not 240, so that the next free number in the prompt he already holds -- BF240 -- stays true.)
+
+## Boris's answers to page 2 (9 answers to what he asked; assumptions 217-273): 33 comments in 67 boxes -- 26 on the numbered items, 6 under Harmony's answers, 1 general; every box left empty accepted as written (31 items) (recorded 2026-10-09 18:28:51, session s-rta-1009) — the page as shown: .harmony/.reports/s-rta-1007/boris-page-2.txt
+VERBATIM (the whole file, between the two marker lines; the file his page's Save button wrote, ~/Downloads/audio-dna-page2-answers.txt, saved: 2026-10-09 18:21:55 (from the page boris-page-2.html, build 7f7ea917); 5094 bytes, sha256 189a4e9d43a39ce4...; build of the file = build of the page; byte-exact copy .harmony/.reports/s-rta-1009/boris-answers-page2.txt, numbered by line boris-answers-numbered.txt; it came with the session's first chat message, which carried the birth prompt and the file's path and no other words of his):
+<<<BORIS
+AUDIO-DNA PAGE 2 -- BORIS'S ANSWERS
+saved: 2026-10-09 18:21:55 (from the page boris-page-2.html, build 7f7ea917)
+comments: 33 of 67 boxes; every box left empty = accepted as written
+left empty although the item asks a question: none
+format: a line that begins "=== " at the left edge opens a box and names it; his words follow, each line indented by two spaces; "=== END" at the left edge is the last line
+
+=== answer codec
+  after we build the app can we test encoding and decoding of different codec to have a baseline of what codecs work good on this mac m1 32gb?
+
+=== answer lowres
+  we should test which codecs work best. Maybe something close to the output monitor resolution? 30 fps is the fastest or even 15 could be ok. This is just for reference. If we want a very hd recording, we can make an HD render from the Recording Review
+
+=== answer 189
+  I imagine we will be fine tuning this beat detection till it's perfect and we should be able to resync the 1 if the detection is finidng the correct bpm but not the correct 1
+
+=== answer R188-snapshot
+  Perhaps a good snapshot is a save of the show exactly where it is with all the settings and the output and everything so if there is a cool inspiring moment, that happened, the user can push a shortcut button and save that to look out later
+
+=== answer R221-b
+  For these effects, we should just be able to adjust the sink, and maybe we could use a common macro that we could set later for example shows where a single macro controls the speed of all of these type of effects
+
+=== answer review-name
+  Let's go with studio. That's perfect.
+
+=== 218
+  b. app should always try to find the 1 and I will correct if necessary
+
+=== 220
+  I think I want to change this. Previewing a clip should not happen on the beat. It should just be quick so the user could go through any amount of previews as quick as they want and only when they trigger and play should they be on time with the beat. If the clip is loaded into the layer, and we are cueing this way, then it should play in time
+
+=== 222
+  what and where is the master cue? The layers have a cue button to display in the preview/cue monitor but where is the cue button and where would the master cue be displayed?
+
+=== 223
+  b
+
+=== 226
+  tempo stop stops all actions, not just global
+
+=== 227
+  neither. It's button stays on and that action plays again only when that clip is re-triggered
+
+=== 228
+  b
+
+=== 231
+  It defaults to running next to the show recording so that we can see if there is a mistake in the parameter recording. It has no sound.
+
+=== 232
+  c
+
+=== 233
+  Both are correct. You can select the name without triggering it, or you can select the cell which triggers it and selects it.
+
+=== 234
+  Pasting over a clip or deleting a clip, removes it from the layer strip, and it does not play. If a clip is playing, and I change the deck, that does not change the clip
+
+=== 236
+  We keep the safe snapshot somewhere. Earlier in this document, I explained what a snapshot exactly is.
+
+=== 238
+  b
+
+=== 239
+  Why would we make HAP copies at all?
+
+=== 240
+  All the blend modes and keying stay, and they will be built when there is time. Right now they're just sitting there as placeholder. We will also add masks and moving masks with which are alpha channels
+
+=== 241
+  There should be two different types of envelopes that could work. One is along the beat, which is like a signal, but personalized for that clip, and another one is play head based so we can draw a envelope that happens over the course of the playing of that clip in timeline mode.
+
+=== 244
+  b
+
+=== 245
+  b
+
+=== 246
+  I want you to do some research online and figure out what people are doing and if this is worth doing? We need to only match what Dj or bands are doing and also look at Dj/producers.
+
+=== 247
+  Keep Milk drop as it is. When I have time while you are building, I will design a whole system for Milk drop
+
+=== 250
+  What does shifting the beep mean to you? Does that mean moving the 1 forward or backwards in time?
+
+=== 252
+  What do you mean by come first? Playing something smaller or less smooth may create problems. What do you think? You understand how the system needs to be built better than me. Of course the output is more important, but the output preview screen which we have and the preview-cure screen below it should all run at the same fps, no?
+
+=== 256
+  This is exactly the output recorded as one layer. Whatever the output is displaying is what this should look like.
+
+=== 265
+  b
+
+=== 270
+  b due to what we're doing endless will be better, but we can assume that people will use one or the other. We need to work with both and know how they both work so they both work smoothly. If we have to, we could ask the user to set a toggle if it's an endless encoder.
+
+=== 273
+  Stop removes all clips from all layers so it would stop. A pause would not pause it unless it is connected to the BPM.
+
+=== general
+  after this round of questions, I will give you 3 10 min audio clips and a longer set to look at. are mp3 and m4a files ok or do prefer a certain format?
+
+=== END
+>>>BORIS
+BACKLOG ITEMS (each restates his words only; a bracket "read as" marks a word of his that Harmony reads as a slip of dictation: INFERRED; how an answer changes the item it answers is this session's ruled application, .harmony/.reports/s-rta-1009/, appended to binding-decisions.md when ruled):
+BF240 [ASK, codecs] He asks whether, after the app is built, the encoding and decoding of different codecs can be tested, to have a baseline of which codecs work well on this Mac (M1, 32 GB).
+BF241 [RULE + ASK, the low-resolution show recording] Which codecs work best is tested. Its size: maybe something close to the output monitor's resolution (he asks). 30 fps is the fastest; even 15 could be OK. It is just for reference. For a very HD recording, an HD render can be made from the Recording Review.
+BF242 [INFO + RULE, beat detection] He imagines that the beat detection is fine-tuned until it is perfect; and the 1 can be resynced when the detection finds the correct BPM but not the correct 1.
+BF243 [RULE, Snapshot] "Perhaps": a good snapshot is a save of the show exactly where it is, with all the settings and the output and everything, so that at a cool, inspiring moment the user pushes a shortcut button and saves it to look at later ("look out later": read as "look at later").
+BF244 [RULE, effects that read the beat by themselves] For these effects the sync is simply adjustable ("the sink": read as "the sync"); and maybe a common macro, set later, for example in shows where a single macro controls the speed of all effects of this type.
+BF245 [ANSWER, naming] "Let's go with studio. That's perfect."
+BF246 [ANSWER, 218] b (the page's way b: "The app also places the 1 by itself when it is sure, until your first Resync."). In his words: the app always tries to find the 1, and he corrects it if necessary.
+BF247 [CHANGE, 220] He wants to change this. Previewing a clip does not happen on the beat: it is just quick, so that the user can go through any number of previews as fast as they want; only when they trigger and play are they on time with the beat. If the clip is loaded into the layer and is cued that way, it plays in time.
+BF248 [ASK, 222] No letter. He asks what and where the master cue is: the layers have a cue button to display in the preview / cue monitor, but where is the cue button, and where would the master cue be displayed?
+BF249 [ANSWER, 223] b (the page's way b: "A small window asks which one to keep.").
+BF250 [RULE, 226] The tempo stop stops all actions, not just the global ones.
+BF251 [ANSWER, 227] Neither. The button stays on, and that action plays again only when that clip is re-triggered.
+BF252 [ANSWER, 228] b (the page's way b: "It glides back to the value it had before the action; the preset's value for it is lost.").
+BF253 [RULE, 231] It defaults to running next to the show recording, so that a mistake in the parameter recording can be seen. It has no sound.
+BF254 [ANSWER, 232] c (the page's way c: "It stops at the end of the bar, but the clip loops only whole groups of 4 bars (5 recorded bars loop as 4); the rest stays in the file.").
+BF255 [ANSWER, 233] Both are correct: the name can be selected without triggering it; or the cell is selected, which triggers it and selects it.
+BF256 [RULE, 234] Pasting over a clip or deleting a clip removes it from the layer strip, and it does not play. If a clip is playing and he changes the deck, that does not change the clip.
+BF257 [RULE, 236] The snapshot is kept somewhere ("the safe snapshot": read as "the saved snapshot"). What exactly a snapshot is he explained earlier in the document (his box under the Snapshot answer).
+BF258 [ANSWER, 238] b (the page's way b: "Its end is cut in so that the clip is whole groups of 4 bars and plays at exactly its normal speed.").
+BF259 [ASK, 239] No letter. He asks why we would make HAP copies at all.
+BF260 [RULE, 240] All the blend modes and the keying stay, and they are built when there is time; right now they just sit there as placeholders. Masks and moving masks, which are alpha channels, are added as well.
+BF261 [RULE, 241] Two different types of envelope: one along the beat, which is like a signal but personal to that clip; and one based on the playhead, so that an envelope can be drawn that happens over the course of the playing of that clip in timeline mode.
+BF262 [ANSWER, 244] b (the page's way b: "The knob belongs to the cell: it moves that slider of whatever clip sits there in the deck on screen.").
+BF263 [ANSWER, naming, 245] b (the page's way b: "It is called Studio.").
+BF264 [TASK, 246] Harmony does research online and figures out what people are doing and whether this is worth doing. Only what DJs or bands are doing has to be matched; DJ / producers are looked at too.
+BF265 [RULE, 247] MilkDrop is kept as it is. When he has time, while Harmony is building, he designs a whole system for MilkDrop.
+BF266 [ASK, 250] No letter. He asks what shifting the beat means to Harmony ("the beep": read as "the beat"): does it mean moving the 1 forward or backwards in time?
+BF267 [ASK, 252] No letter. He asks what "come first" means. Playing something smaller or less smooth may create problems; he asks what Harmony thinks, who understands better than he how the system needs to be built. The output is more important, of course; but the output preview screen and the preview-cue screen below it ("preview-cure": read as "preview-cue") should all run at the same fps, he asks.
+BF268 [RULE, 256] It is exactly the output recorded as one layer: whatever the output is displaying is what it looks like.
+BF269 [ANSWER, 265] b (the page's way b: "After All Outputs Off nothing comes on until you switch an output on yourself.").
+BF270 [ANSWER + RULE, 270] b (the page's way b: "Knobs that send steps must work too."). In his words: for what we are doing endless will be better, but people will use one or the other; the app works with both, and how both work is known so that both work smoothly. If necessary, the user sets a toggle saying that it is an endless encoder.
+BF271 [RULE, 273] Stop removes all clips from all layers, so it would stop. A pause would not pause it unless it is connected to the BPM.
+BF272 [INFO + ASK] After this round of questions he gives 3 audio clips of 10 minutes and a longer set to look at. He asks whether mp3 and m4a files are OK or whether a certain format is preferred.

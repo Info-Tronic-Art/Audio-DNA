@@ -1,0 +1,106 @@
+AUDIO-DNA PAGE 2 -- BORIS'S ANSWERS
+saved: 2026-10-09 18:21:55 (from the page boris-page-2.html, build 7f7ea917)
+comments: 33 of 67 boxes; every box left empty = accepted as written
+left empty although the item asks a question: none
+format: a line that begins "=== " at the left edge opens a box and names it; his words follow, each line indented by two spaces; "=== END" at the left edge is the last line
+
+=== answer codec
+  after we build the app can we test encoding and decoding of different codec to have a baseline of what codecs work good on this mac m1 32gb?
+
+=== answer lowres
+  we should test which codecs work best. Maybe something close to the output monitor resolution? 30 fps is the fastest or even 15 could be ok. This is just for reference. If we want a very hd recording, we can make an HD render from the Recording Review
+
+=== answer 189
+  I imagine we will be fine tuning this beat detection till it's perfect and we should be able to resync the 1 if the detection is finidng the correct bpm but not the correct 1
+
+=== answer R188-snapshot
+  Perhaps a good snapshot is a save of the show exactly where it is with all the settings and the output and everything so if there is a cool inspiring moment, that happened, the user can push a shortcut button and save that to look out later
+
+=== answer R221-b
+  For these effects, we should just be able to adjust the sink, and maybe we could use a common macro that we could set later for example shows where a single macro controls the speed of all of these type of effects
+
+=== answer review-name
+  Let's go with studio. That's perfect.
+
+=== 218
+  b. app should always try to find the 1 and I will correct if necessary
+
+=== 220
+  I think I want to change this. Previewing a clip should not happen on the beat. It should just be quick so the user could go through any amount of previews as quick as they want and only when they trigger and play should they be on time with the beat. If the clip is loaded into the layer, and we are cueing this way, then it should play in time
+
+=== 222
+  what and where is the master cue? The layers have a cue button to display in the preview/cue monitor but where is the cue button and where would the master cue be displayed?
+
+=== 223
+  b
+
+=== 226
+  tempo stop stops all actions, not just global
+
+=== 227
+  neither. It's button stays on and that action plays again only when that clip is re-triggered
+
+=== 228
+  b
+
+=== 231
+  It defaults to running next to the show recording so that we can see if there is a mistake in the parameter recording. It has no sound.
+
+=== 232
+  c
+
+=== 233
+  Both are correct. You can select the name without triggering it, or you can select the cell which triggers it and selects it.
+
+=== 234
+  Pasting over a clip or deleting a clip, removes it from the layer strip, and it does not play. If a clip is playing, and I change the deck, that does not change the clip
+
+=== 236
+  We keep the safe snapshot somewhere. Earlier in this document, I explained what a snapshot exactly is.
+
+=== 238
+  b
+
+=== 239
+  Why would we make HAP copies at all?
+
+=== 240
+  All the blend modes and keying stay, and they will be built when there is time. Right now they're just sitting there as placeholder. We will also add masks and moving masks with which are alpha channels
+
+=== 241
+  There should be two different types of envelopes that could work. One is along the beat, which is like a signal, but personalized for that clip, and another one is play head based so we can draw a envelope that happens over the course of the playing of that clip in timeline mode.
+
+=== 244
+  b
+
+=== 245
+  b
+
+=== 246
+  I want you to do some research online and figure out what people are doing and if this is worth doing? We need to only match what Dj or bands are doing and also look at Dj/producers.
+
+=== 247
+  Keep Milk drop as it is. When I have time while you are building, I will design a whole system for Milk drop
+
+=== 250
+  What does shifting the beep mean to you? Does that mean moving the 1 forward or backwards in time?
+
+=== 252
+  What do you mean by come first? Playing something smaller or less smooth may create problems. What do you think? You understand how the system needs to be built better than me. Of course the output is more important, but the output preview screen which we have and the preview-cure screen below it should all run at the same fps, no?
+
+=== 256
+  This is exactly the output recorded as one layer. Whatever the output is displaying is what this should look like.
+
+=== 265
+  b
+
+=== 270
+  b due to what we're doing endless will be better, but we can assume that people will use one or the other. We need to work with both and know how they both work so they both work smoothly. If we have to, we could ask the user to set a toggle if it's an endless encoder.
+
+=== 273
+  Stop removes all clips from all layers so it would stop. A pause would not pause it unless it is connected to the BPM.
+
+=== general
+  after this round of questions, I will give you 3 10 min audio clips and a longer set to look at. are mp3 and m4a files ok or do prefer a certain format?
+
+=== END
