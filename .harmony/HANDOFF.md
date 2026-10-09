@@ -158,6 +158,11 @@ FILED DEBT (found in the app as it is; NOT verified by me):
   (nothing of it was worked): HANDOFF-ARCHIVE.md, heading "LOOSE-ENDS LEDGER — s-rta-1004b (STILL OPEN; moved at the
   s-rta-1007 close)".
 SESSION / SYSTEM:
+- A NOTE FOR THE PRIMARY IS LEFT, at his order of 2026-10-08 (BF239b; verbatim: "I want this to be the format moving forward. Leave a note for the primary to make this happen first thing in next primary session."): this repo's idea ledger, record
+  idea-2026-10-08-RealTimeAudio-1791512605797713961, marked first thing in the next primary session -- make the page with comment
+  boxes and saved answers the standard for every page of questions, in every project (doctrine, a shared renderer and reader,
+  a check). The primary pulls it at its boot; this lane writes nothing into Harmony_Main. In THIS project the format already
+  holds (RIG-RULES A6); when the primary has built a shared tool, use it instead of s-rta-1007/wf.
 - WARN fable-usage-audit LAW11-LOG-GAP: 28 architect dispatches this session have no DISPATCH_LOG row (a foreign lane cannot
   write it). Session index: skipped (foreign-repo lane, no transport yet).
 - Context gauge read at the close: [CTX] 394,012 / 1,000,000 (39.4%) · prev turn; at the second close after his re-open:

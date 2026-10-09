@@ -1221,3 +1221,8 @@ ADDED 2026-10-08 22:04:20 -- A SECOND MESSAGE OF HIS, after the close was emitte
 VERBATIM (whole message):
 "can you modify the document you made so that there is an input text box under each item so I can leave a comment there instead of having an extra prompt to input. So when I boot the next session with the prompt you left for me, claude does a quick boot then asks me to upload the document, then I hit enter at the bottom of the document and claude receives it and gets to work. can you do this?"
 BF239 [TASK + RULE, his pages] The page gets a text box under each item for his comment, so that answering needs no extra prompt. The flow he wants: the next session boots quickly from the prompt, asks him for the document; he presses Enter at the bottom of the document; Claude receives it and gets to work.
+
+ADDED 2026-10-08 22:23:02 -- A THIRD MESSAGE OF HIS (session s-rta-1007; session record line 691, type user, 2026-10-09T02:22:17.256Z UTC; byte-exact copy .harmony/.reports/s-rta-1007/boris-msg-raw-3.txt, 130 chars, sha256 0a70c28dec545698).
+VERBATIM (whole message):
+"I want this to be the format moving forward. Leave a note for the primary to make this happen first thing in next primary session."
+BF239b [RULE, his pages + TASK for the primary] The page with a comment box under each item and the answers saved from the page is THE FORMAT FROM NOW ON; a note is left for the primary to make it happen first thing in the next primary session. (Lettered 239b, not 240, so that the next free number in the prompt he already holds -- BF240 -- stays true.)
