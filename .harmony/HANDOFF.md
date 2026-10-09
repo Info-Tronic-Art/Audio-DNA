@@ -4,7 +4,26 @@
 
 You are Harmony, SECONDARY lane, in ~/projects/RealTimeAudio (Audio-DNA — C++20/JUCE/OpenGL live audio-reactive VJ app).
 NEVER cd, from the first command: R=<repo> at the head of every command, absolute paths, git -C; a return code on its own line,
-never after a pipe (a pipe gets no rc line at all). CURRENT as of session s-rta-1007 (2026-10-07 22:19 → 2026-10-08 02:26).
+never after a pipe (a pipe gets no rc line at all). CURRENT as of session s-rta-1007 (2026-10-07 22:19 → 2026-10-08 02:26;
+re-opened by him 2026-10-08 22:02 → 22:16 for the comment boxes).
+
+FIRST MOVE, BEFORE THE READS BELOW — A QUICK BOOT, by his order of 2026-10-08 (verbatim): "claude does a quick boot then asks me to upload the document, then I hit enter at the bottom of the document and claude receives it and gets to work". His page now has a box under
+every answer and item and, at its bottom, the button "Save my answers for Claude" (Cmd+Enter inside its bar): it writes his
+comments to ~/Downloads/audio-dna-page2-answers.txt (the browser adds " (1)" on a second save) and copies them to the
+clipboard; EVERY BOX LEFT EMPTY COUNTS AS ACCEPTED. So: (1) read only this prompt, then run
+python3 <R>/.harmony/.reports/s-rta-1007/wf/read_answers.py (exit 0 = found: it prints the file, its stamp, its build against
+the page's, and every comment; exit 3 = no file yet; exit 4 = not well-formed: read the file itself, do not guess). (2) No file
+yet: tell him in two lines -- press Cmd+R on the page if it was open before 8 October 22:15 (the boxes are new), type under
+the items, press "Save my answers for Claude" at the bottom -- open the page for him (open -g
+<R>/.harmony/.reports/s-rta-1007/boris-page-2.html) and WAIT IN THE SAME TURN for the file (an until-loop on the reader with
+--quiet, 5 s apart, at most 9 minutes per command; repeat it while he works: he types no extra prompt). If macOS asks whether
+the terminal may read the Downloads folder, that prompt is his: say so first. If no file comes, he pastes (the button also put
+the text on the clipboard) or answers in chat. (3) The file is there: read back to him in ONE line when it was saved and how
+many comments it holds; copy it byte-exact into the new session's report folder (--copy-to): it IS his message -- file it
+word for word (backlog from BF240, binding-decisions.md) as a chat message would be; a build that differs from the page's, or
+a box listed under "left empty although the item asks a question" (270: which MIDI controller), is SAID to him, never guessed.
+(4) Only then the reads below, and the work. The answers came as a file inside a waiting turn, not as a message of his: that
+turn may launch (the 40 s timer is for a message that arrives in chat).
 
 THE FIRST RULE, BORIS'S OWN (binding-decisions.md, the sections "2026-10-05 (s-rta-1005)" and "2026-10-07 (s-rta-1007)"): NOTHING IS
 BUILT. His words of 2026-10-07: "Don’t build anything till you are clear and 100% sure of what everything means." And of
@@ -27,7 +46,7 @@ the session section; the s-rta-1004b ledger of BUILD-SIDE debts moved to .harmon
 "LOOSE-ENDS LEDGER — s-rta-1004b (STILL OPEN; moved at the s-rta-1007 close)": read it before any build, merge or gate); (2) .harmony/RIG-RULES.md BEFORE launching any workflow (binding; sections A to A6, B); (3)
 .harmony/.reports/s-rta-1003/board.md, the rows under "s-rta-1007 LIVE STATE"; (4) what is in front of him:
 .harmony/.reports/s-rta-1007/boris-page-2.html — read its text copy boris-page-2.txt whole (22 KB): 9 answers to what he asked,
-31 assumptions that matter (217-247), 26 one-line ones (248-273). Its list: page2-items.md (blocks @@PAGE-ANSWER, @@PAGE-ITEM,
+31 assumptions that matter (217-247), 26 one-line ones (248-273), a comment box under each (67 with "Anything else?"). Its list: page2-items.md (blocks @@PAGE-ANSWER, @@PAGE-ITEM,
 @@TRIAGE; made from page2-items.round1.md + page2-edits.md by wf/apply_page_edits.py — never edit it by hand).
 THE PLANNING TRUTH after his answers (never load a file of it whole): .harmony/.reports/s-rta-1007/spec-<topic letter>.md =
 every item of the last page with its status and THE RULE NOW (A triggering clips and the tempo bar, B the cue system, C
@@ -64,7 +83,8 @@ Law #11: plans = architect, opus high; rulings = architect, opus max while Fable
 you know, we are out of fable usage so you will need to do all fable work with opus 5.5"); readers / seats / checkers sonnet;
 builders (none until he says so) opus high. BORIS USES THIS MACHINE AND THIS APP: an Audio-DNA or a Resolume Arena you did not
 start is his; yield the turn while workflows run; an item already shown is never re-worded in place (next free page item 274,
-BF239, Pitfall 69; reading numbers are retired). NEVER load the update-config skill.
+BF240, Pitfall 69; reading numbers are retired). PAGE 3 gets the same boxes: wf/render_page.py carries "page2" in the storage
+key, the file name and the header line, and wf/read_answers.py in its glob -- change both with the page. NEVER load the update-config skill.
 
 STATE: main = this close's docs commits on top of de383a3, pushed; NO source file changed in s-rta-1007 (new docs:
 docs/claude/milkdrop.md + its trigger row in CLAUDE.md; .harmony/NAMES.md). Unchanged since s-rta-1004b: the show-file
@@ -90,9 +110,10 @@ BUILD: Audio-DNA's functions are being pinned down in full with Boris before any
 SHIPPED: this session, on paper only — his answers to the 45-question page filed word for word (85 entries, three pictures);
   all 296 items of that page applied topic by topic, checked blind and ruled (the rule now for each); answers to the nine
   things he asked back; page 2, opened for him: 9 answers + 57 assumptions (31 that matter, 26 one-liners), about 25 minutes
-  instead of three hours; the list of what everything is called (262 names); the MilkDrop document. In the app: nothing new.
+  instead of three hours; the list of what everything is called (262 names); the MilkDrop document. At his word of 8 October:
+  a comment box under every item and a button that saves his answers for the next session. In the app: nothing new.
 IN-FLIGHT: none (every started task is finished and filed).
-NEXT: his answers to page 2 -> filed -> applied -> a shorter page 3 or "nothing is open". Building starts only in the session
+NEXT: his answers to page 2 (the file his Save button writes, picked up at boot) -> filed -> applied -> a shorter page 3 or "nothing is open". Building starts only in the session
   after he says all is clear.
 BLOCKERS: his answers. The three DJ tracks (not here). Three measurements nobody has made (jump wait / HAP, the low-resolution
   recording's cost, a hand correction in automatic mode).
@@ -121,6 +142,12 @@ NOT RUN / NOT MET (reported as such, never as pass):
 - NAMES.md: 62 of 262 rows are my picks, unconfirmed; the page says that nothing in it has to be read now.
 - The first run of the second ruling FAILED (four answers cut at the 64,000-token limit; 43 minutes lost); the relaunch ruled
   114 findings in 28 minutes. Cause and habit: RIG-RULES A6.
+- THE SAVE BUTTON WAS NEVER PRESSED IN A REAL BROWSER BY ME: the download into Downloads and the clipboard copy are NOT run (a
+  headless self-test of the collected text only: 67 boxes, 0 duplicate keys, the text parses back exactly, a comment line that
+  looks like a marker included; the script's syntax checked; four headless pictures looked at). Whether his browser saves the
+  file without asking, and where, only he sees. Three critics (look, flow, script logic) read the candidate: PASS_WITH_FIXES
+  each, 6 MUST and 18 SHOULD; I folded in all 6 MUST and 16 SHOULD and rejected 2 (a guard against saving twice: it would
+  block a retry after a blocked download; an item-text snippet per comment). My folded-in version was seen by NO critic.
 - No test, gate or app launch ran this session (no build). Every count of the s-rta-1004b close is unchanged and NOT re-run.
 OPEN WITH BORIS:
 - Page 2: 9 answers to read, items 217-273, none answered. The three DJ tracks. Which MIDI controller he uses (item 270).
@@ -133,7 +160,8 @@ FILED DEBT (found in the app as it is; NOT verified by me):
 SESSION / SYSTEM:
 - WARN fable-usage-audit LAW11-LOG-GAP: 28 architect dispatches this session have no DISPATCH_LOG row (a foreign lane cannot
   write it). Session index: skipped (foreign-repo lane, no transport yet).
-- Context gauge read at the close: [CTX] 394,012 / 1,000,000 (39.4%) · prev turn (the off-ramp is about 40 %).
+- Context gauge read at the close: [CTX] 394,012 / 1,000,000 (39.4%) · prev turn; at the second close after his re-open:
+  [CTX] 478,502 / 1,000,000 (47.9%) · prev turn (past the off-ramp of about 40 %: his explicit task).
 - T26 STEP 3: this handoff's size — see the close row of the work log.
 DOUBTS:
 - He may take "all good" for "all is clear": the page's last line keeps them apart; say it again in chat.
@@ -234,6 +262,15 @@ command line (no effect; against the letter of the rule). Habits: RIG-RULES A6 a
 This session and its agents launched NO Audio-DNA and touched no Resolume Arena (every prompt forbade it); no probe, no gate,
 no Output window. One page was opened in his browser in the background (boris-page-2.html). One headless Chrome picture of
 that page was taken by me (not a screen capture). Audio-DNA processes at the close: none (pgrep count 0).
+
+## RE-OPENED AFTER THE CLOSE (2026-10-08 22:02 → 22:16) — the comment boxes
+His message (BF239; binding-decisions.md "2026-10-08 (s-rta-1007)"; byte-exact s-rta-1007/boris-msg-raw-2.txt): a text box under
+each item instead of an extra prompt; the next session boots quickly, asks for the document, he presses Enter at the bottom,
+Claude receives it. Done: wf/render_page.py now renders the boxes, the Save bar and its script; the page was built as a
+candidate, checked by three critics (crit-visual.md, crit-flow.md, crit-logic.md), mended, then rendered in place and opened
+for him; wf/read_answers.py is the next session's reader (tested on a made-up file in scratch); the birth prompt's FIRST MOVE
+says how. Decided by me, not asked: a file in Downloads plus the clipboard, no listener process -- a page opened from a file
+cannot push into a session, and a listener would have to be running at the right moment.
 
 ## COUNTS — run them, never inherit them
 Nothing was run this session. From the s-rta-1004b close, NOT re-run: ctest on main 1278 (serial); lanes outputs-a 1272,

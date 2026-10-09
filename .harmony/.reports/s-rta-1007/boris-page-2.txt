@@ -5,7 +5,7 @@ You wrote: “It would be best if you just asked me focused questions on any ass
 
 Your answers are filed word for word and applied everywhere, also where you left a repeat unanswered. The list you did not read, “Decided without asking you”, is folded in: what your answers settled is settled, and what they did not settle is below.
 
-How to answer: write only what is wrong: “217 b”, or “217 no: …”. One line, “all good”, accepts everything else.
+How to answer: there is a box under every item. Type in it only where something is wrong or you want to add something: “b”, or your own words. Leave the others empty: an empty box counts as accepted. At the bottom press Save my answers for Claude, then start the next session; Claude reads your answers by itself. What you type is kept in this browser while you work, so you can stop and come back.
 
 First, 9 answers to what you asked me. Then 31 assumptions that matter: you or the audience would see a wrong guess, or it would be costly to change once built. Then 26 smaller ones, one line each. About 25 minutes in all.
 
@@ -268,4 +268,4 @@ The list of what everything is called. I keep it, and it is the truth for names 
 
 The MilkDrop document: how MilkDrop works in the app now. It is for the session in which you design the new MilkDrop; nothing in it has to be read now.
 
-“All good” answers this page. I then tell you whether anything is still open. Nothing is built until you say that all is clear; the build starts in the session after that.
+Saving with every box empty means “all good”. I then tell you whether anything is still open. Nothing is built until you say that all is clear; the build starts in the session after that.

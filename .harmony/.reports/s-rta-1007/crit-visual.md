@@ -1,0 +1,27 @@
+## VERDICTS (one line per hat)
+- VISUAL: PASS_WITH_FIXES. Each box sits inside its item's card, 8-10 px under the last line (the "b"/"c" alternatives), so it reads as belonging to that item and not to the next. But the box edge is weak on the dark ground (see numbers) and the same 60-character placeholder is repeated 67 times.
+- GRAPHIC: PASS_WITH_FIXES. The gold number (24 px, bold) and the item text stay the first thing the eye takes; the box is second because it is dark-on-dark. The Send bar reads as the one thing to press (gold border, filled gold button, contrast 10.6:1). But the page does not END on it (an old "All good" paragraph follows), the confirmation appears about 90 px below the button, and a box that holds a comment loses its focus ring.
+- LEGIBILITY: PASS_WITH_FIXES. Typed text 15 px, #e6e6e6 on #101216 = 15.0:1, fine. Placeholder #6f7680 on #101216 = 4.09:1 (under 4.5) at 15 px. Box edge #3a3f49 = 1.56:1 against the card (#1c1f25), 1.77:1 against the field (#101216); the field fill itself differs from the card by only 1.14:1. Only the faint edge shows where to type.
+
+Numbers (WCAG contrast, computed): placeholder 4.09; placeholder on the green-tinted "has" fill #121a15 = 3.87; has-border #9fd3a4 on card = 9.69; has-fill #121a15 vs card = 1.07 (invisible); gold #d9c58a on card = 9.67; button text #14161a on gold = 10.61; the .dim hints #9aa0a6 on card = 6.25.
+
+## FINDINGS
+
+1. SHOULD | CSS `textarea.cm` and `textarea.cm::placeholder` | The box is found only by a 1.56:1 hairline and the placeholder is 4.09:1 at 15 px, so at his reading distance an empty box can be missed or the hint can be hard to read; the "has" tint (1.07:1) does nothing. | Replace the two rules with: `textarea.cm{...;border:1px solid #6b7380;...}` (edge 3.45:1 on the card, 3.92:1 on the field) and `textarea.cm::placeholder{color:#8f96a0}` (6.28:1 on #101216, 5.94:1 on the has fill). Delete `background:#121a15` from `textarea.cm.has` (it is invisible; the green border is the signal).
+
+2. SHOULD | CSS `textarea.cm:focus` vs `textarea.cm.has` | Both rules have the same specificity and `.has` comes later, so a box that already holds a comment shows green, not gold, when it has focus; with `outline:none` there is no focus mark left (tab or click into a filled box: only the caret). | Replace the focus rule with: `textarea.cm:focus{outline:none;border-color:#d9c58a;box-shadow:0 0 0 2px rgba(217,197,138,.45)}` and add after the `.has` rule: `textarea.cm.has:focus{border-color:#d9c58a}`.
+
+3. SHOULD | The 67 placeholders: "Leave empty if this is right. Or type: b, c, or your own words." | The same 12-word sentence 57 times is the most repeated text on the page and, once the contrast is raised (finding 1), competes with the item's own "b"/"c" lines (the second thing the eye should take). The top paragraph already says it once. | Shorten the line placeholders to `Right? Leave empty. Or type: b, or your words.` (and with "b, c," where there is a c), the answers' to `Fine? Leave empty. Or type a comment.` Keep it in data-ph of the same 15 px style; no layout change.
+
+4. SHOULD | The trailing `<p class="dim">“All good” answers this page. I then tell you...` after #sendbar | The Send bar is meant to be the end of the page, but a paragraph follows it that says "All good" answers the page: he will wonder whether he must still type "All good" to Harmony after pressing Send (the exact extra prompt he asked to drop). | Move the paragraph above the Send bar and change its first sentence to: `Sending this page answers it. I then tell you whether anything is still open.` (rest unchanged), so Send bar is the last thing on the page.
+
+5. SHOULD | #sendmsg placement inside #sendbar | The confirmation ("Sent (...)... Claude takes it from there.") is after the 3-line grey explanation, about 90 px below the button, and below it the 160 px #sent box opens; at 900 px height the message can fall below the fold and the button itself does not change, so he may press it twice or not know it worked. | In the markup put `<div id="sendmsg" role="status"></div>` directly after the `<button id="send">...<span id="count"></span>` line (before the explanation div), and keep `#sent` last. Optionally in done(): `document.getElementById('send').textContent='Send again';` then it reads as a state change.
+
+6. SHOULD | `grow()` and the 67 boxes at narrower or resized windows | Height is set once from scrollHeight; if he resizes the window (or opens on a narrow one) a long typed comment re-wraps but the box keeps its old height with `overflow:hidden`, hiding the last lines. | Add after `count();`: `window.addEventListener('resize',function(){boxes.forEach(grow)});`
+
+## WHAT IS RIGHT
+- A box inside its card with 8-10 px above and the card's own padding below: no item can be confused with its neighbour; the item number (gold, 24 px) is still first.
+- Page weight: the boxes are dark, thin and quiet, so 67 of them add length (each about 48 px; the 26 one-line cards grow from about 70 to 120 px) but not noise; the item text stays the brightest thing.
+- "Has a comment" is unmistakable: a green border at 9.69:1 against the card; the count line at the bottom (6.25:1) says how many.
+- The Send bar is the single gold-bordered block with the single filled button (10.61:1 text); "Anything else?" box gives the bottom a clear end of the form.
+- Typed text 15.0:1; no horizontal scroll at 900 px; the three changed frame sentences sit in the existing paragraph style.
