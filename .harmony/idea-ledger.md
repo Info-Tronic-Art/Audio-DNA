@@ -775,3 +775,39 @@ status-note:
 artifact:
 history:     NEW(2026-10-08)
 --- /IDEA ---
+
+--- IDEA ---
+id:          idea-2026-10-09-RealTimeAudio-17915970579955911095
+raw:         [Harmony s-rta-1009 finding -- NOT Boris's words] boris-page.py renders the TEXT of a @@PAGE-ANSWER block with E() only (scripts/boris-page.py line 243), not with inline(): **bold**, `code` and [label](url) written in an answer reach him as raw markdown, although the --help says 'Inline in any text'. Found by a checker on Audio-DNA page 3 (three web links in an answer printed as plain text with brackets and full addresses). Worked around in the project by moving the links into @@PAGE-LINK blocks, which do render as anchors. Wanted: run an answer's TEXT (and TITLE?) through inline(), or correct the help; and let the line beside the Save button name the items that silence cannot accept ('Every box you left empty counts as accepted' is printed flat even when a KIND ASK item with a question mark is on the page).
+context:     s-rta-1009, first page of the project rendered with the shared tool (render --project audio-dna --page page3); the last three-seat read of the rendered page found it
+why:         a page for Boris showed unclickable links; the help promises otherwise
+intent:      fix in the shared renderer + a lint row (a visible '](' in rendered text)
+target:      harmony-system
+constraints: 
+related:     RealTimeAudio/.harmony/.reports/s-rta-1009/page3-final-truth.md F1; page3-frame.md
+priority:    MEDIUM
+repo:        RealTimeAudio     session: s-rta-1009     date: 2026-10-09
+status:      NEW
+status-changed: 2026-10-09
+status-note:
+artifact:
+history:     NEW(2026-10-09)
+--- /IDEA ---
+
+--- IDEA ---
+id:          idea-2026-10-09-RealTimeAudio-17915970579960130175
+raw:         [Harmony s-rta-1009 report -- NOT Boris's words] The REAL Save press works: Boris pressed 'Save my answers for Claude' in his own browser on Audio-DNA page 2 (the project's own renderer, the reference implementation the shared tool was made from); the file audio-dna-page2-answers.txt (5,094 bytes, 33 comments in 67 boxes) was in ~/Downloads at the next boot, the reader returned exit 0, no paste was needed, and macOS raised no Downloads prompt in this terminal. Page 3 is the first page rendered with the shared tool; its Save press is not exercised yet (the next RealTimeAudio boot will show it). Kept in the project because the shared tool does not carry it: the editorial lint before every render (word limits per card / line / answer, no block ids or 'today' in his text, his quotes verbatim against his files, a triage line for every open assumption): RealTimeAudio/.harmony/.reports/s-rta-1009/wf/page3_build.py --check. A last small panel that reads the RENDERED page after the second ruling found 8 must-fix points that six lens checkers and two rulings had passed (wf/final3.js).
+context:     answer to the primary's routed item down-2026-10-08-RealTimeAudio-17915143272095718958 (the real Save press was never exercised by any session)
+why:         closes the open doubt on the format Boris made standing on 2026-10-08
+intent:      note the proof; consider porting the editorial lint and the last-read panel into the boris-page skill
+target:      harmony-system
+constraints: 
+related:     RealTimeAudio/.harmony/inbox.md (item marked DONE); RIG-RULES A7; notebook.md 2026-10-09
+priority:    MEDIUM
+repo:        RealTimeAudio     session: s-rta-1009     date: 2026-10-09
+status:      NEW
+status-changed: 2026-10-09
+status-note:
+artifact:
+history:     NEW(2026-10-09)
+--- /IDEA ---

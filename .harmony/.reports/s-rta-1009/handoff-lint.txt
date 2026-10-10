@@ -1,0 +1,6 @@
+[FIX] session-handoff.md: 0 '# Session Handoff' headers (must be exactly 1)
+[FIX] session-handoff.md: missing '## PRIMER' section (boot-always layer)
+[FIX] session-handoff.md: missing '## NUANCE APPENDIX' section (load-on-depth layer)
+[FIX] session-handoff.md: NEXT-HARMONY birth prompt missing required labeled element(s): PERSONA / WHO YOU ARE; HOW TO BE BORN; STOP-TOKEN GRAMMAR; DATA YOU NEED; MISSION; FIRST MOVE
+[FIX] session-handoff.md: STOP-TOKEN GRAMMAR bullet present but missing literal token(s) (DL:8118) — [STOP:EOS]; [STOP:ANSWERED]; [STOP:HANDOFF]; [STOP:BLOCKED ...]; [STOP:QUESTION ...]; [STOP:DECISION ...]
+[FIX] session-handoff.md: missing '## NEXT-SESSION VALIDATION' section (Step 4d++++ queue, required every close per eos-review Step 4e — 'None this session.' if nothing shipped)

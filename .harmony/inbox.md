@@ -185,3 +185,25 @@ routed-by:   harmony-2257     date: 2026-10-08
 status:      DONE
 status-note: s-rta-1009: page 2 was read with this repo's own reader (exit 0; 33 comments) and page 3 is rendered, linted and read with the shared tool (render --project audio-dna --page page3). TO REPORT UP: the real Save press in his browser WORKED on its first use (file in Downloads, 5,094 bytes, no paste needed). Kept here because the shared tool does not carry it: the editorial lint (wf/page3_build.py --check).
 --- /ROUTED-ITEM ---
+
+--- ROUTED-ITEM ---
+id:          down-2026-10-09-RealTimeAudio-1791596327969329700
+raw:         BORIS APPROVED (2026-10-09, page s252-close item rta-locks, accepted as assumed): "I assume I may change RealTimeAudio so its two only-one-copy-runs marker files live in the project folder, not in /tmp." TASK for a RealTimeAudio session: move the two marker folders (the house form removes /tmp/audiodna-live.lock) into the project folder and update the house clean-up line and gotcha. Until this lands, Harmony's coming delete rule stays silent on those two paths.
+origin:      memory/DECISION_LOG.md 2026-10-09 (s252) sixth entry
+why-routed:  a change to RealTimeAudio's own scripts and notes; the primary works only on Harmony
+source-idea: 
+routed-by:   harmony-54529     date: 2026-10-09
+status:      SENT
+status-note:
+--- /ROUTED-ITEM ---
+
+--- ROUTED-ITEM ---
+id:          down-2026-10-09-RealTimeAudio-17915963279695218786
+raw:         BORIS DECIDED (2026-10-09, chat: "Go with recs on the rta question"): RealTimeAudio tests must record their takes and audio into a TEST LIBRARY INSIDE THE PROJECT FOLDER, not into ~/Documents/Audio-DNA/ (his real library: Takes 527 entries, Audio 1.7 GB of id-named files on 2026-10-09, all test material by name). First find out whether the app and the test harness can point at another library folder; then move the tests and their clean-up there. Until this lands, Harmony's coming delete rule stays silent on ~/Documents/Audio-DNA/ (clean-up there behaves as today); after it lands that folder is refused for every session.
+origin:      memory/DECISION_LOG.md 2026-10-09 (s252) sixth entry
+why-routed:  a change to RealTimeAudio's tests and app settings; the primary works only on Harmony
+source-idea: 
+routed-by:   harmony-54529     date: 2026-10-09
+status:      SENT
+status-note:
+--- /ROUTED-ITEM ---

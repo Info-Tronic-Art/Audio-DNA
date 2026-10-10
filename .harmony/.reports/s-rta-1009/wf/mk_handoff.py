@@ -1,4 +1,17 @@
-# Handoff — Audio-DNA (RealTimeAudio)
+# usage: python3 mk_handoff.py  -- writes the s-rta-1009 handoff: the new sections, the SCREEN-SAFETY LAW kept byte-exact, the s-rta-1007 sections moved to HANDOFF-ARCHIVE.md
+import re, os, sys
+R = '/Users/boriskarpman/projects/RealTimeAudio'; H = R + '/.harmony/HANDOFF.md'; A = R + '/.harmony/HANDOFF-ARCHIVE.md'
+old = open(H, encoding='utf-8').read()
+assert 'CURRENT as of session s-rta-1007' in old, 'the handoff on disk is not the s-rta-1007 one: stop'
+i = old.index('## SCREEN-SAFETY LAW'); j = old.index('## THE ONE-LINE VERSION')
+law = old[i:j].rstrip('\n')
+k1 = old.index("THE FIRST RULE, BORIS"); k2 = old.index('READ, in this order:')
+rules = old[k1:k2].rstrip('\n')
+assert rules.count('"Review"') == 1; rules = rules.replace('"Review"', '"Studio"')
+fable = re.search(r'"just so\s+you know, we are out of fable usage so you will need to do all fable work with opus 5\.5"', old).group(0).replace('\n', ' ')
+counts = old[old.index('## COUNTS'):].rstrip('\n')
+P = R + '/.harmony/.reports/s-rta-1009'
+new = f'''# Handoff — Audio-DNA (RealTimeAudio)
 
 ## NEXT-HARMONY — BIRTH PROMPT & PERSONA
 
@@ -12,11 +25,11 @@ under every answer and item and the button "Save my answers for Claude" at its b
 ~/Downloads/audio-dna-page3-answers.txt (the browser adds " (1)" on a second save) and copies the text to the clipboard; EVERY
 BOX LEFT EMPTY COUNTS AS ACCEPTED, except item 277, which asks him to type yes, b or c. So: (1) read only this prompt, then
 run python3 ~/Harmony_Main/scripts/boris-page.py read --project audio-dna --page page3 --page-file
-/Users/boriskarpman/projects/RealTimeAudio/.harmony/.reports/s-rta-1009/boris-page-3.html --copy-to <R>/.harmony/.reports/<the new session's folder>   (make the folder first; --copy-to takes a
+{P}/boris-page-3.html --copy-to <R>/.harmony/.reports/<the new session's folder>   (make the folder first; --copy-to takes a
 FOLDER). Exit 0 = found: it prints the file, when it was saved, its build against the page's, and every comment; 3 = no file
 yet; 4 = not well-formed: read the file itself, never guess; 2 = a path is wrong. (2) No file yet: tell him in two lines --
 type only where something is wrong or missing, press "Save my answers for Claude" at the bottom -- open the page for him
-(open -g /Users/boriskarpman/projects/RealTimeAudio/.harmony/.reports/s-rta-1009/boris-page-3.html) and WAIT IN THE SAME TURN (the loop of the boris-page skill, step 5: the reader with --quiet,
+(open -g {P}/boris-page-3.html) and WAIT IN THE SAME TURN (the loop of the boris-page skill, step 5: the reader with --quiet,
 5 s apart, at most 9 minutes per command; repeat while he works). If macOS asks whether the terminal may read the Downloads
 folder, that prompt is his: say so first. If no file comes, he pastes (skill boris-page, "Pasted instead of saved").
 (3) The file is there: read back to him in ONE line when it was saved and how many comments it holds; it IS his message --
@@ -26,33 +39,19 @@ guessed. (4) Only then the reads below, and the work. Answers that came as a fil
 that turn may launch (the 40 s timer is for a message that arrives in chat). THIS IS THE FIRST PAGE RENDERED BY THE SHARED TOOL:
 its Save press in his browser was never exercised; if it misbehaves, he pastes and you file a defect.
 
-THE FIRST RULE, BORIS'S OWN (binding-decisions.md, the sections "2026-10-05 (s-rta-1005)" and "2026-10-07 (s-rta-1007)"): NOTHING IS
-BUILT. His words of 2026-10-07: "Don’t build anything till you are clear and 100% sure of what everything means." And of
-2026-10-05: "After all is clear, then the following session you will start building the app and not before that." No builder of
-any lane runs, no stage, no merge, until HE has said that all is clear. Until then every session is: his answers -> filed word
-for word -> applied -> what they open -> his page -> end of session.
-
-HIS RULES FOR WHAT HE READS (2026-10-07, verbatim; they bind every sentence meant for him): "Don’t list what is happening today
-as we are discussing a major change. Keep the ‘today’ in your own notes so you know what to change." / "It would be best if you
-just asked me focused questions on any assumption that you're making. Breaking it into the R’s and the questions is a lot more
-material to read for me." / "If I have explained something, use it to answer questions not answered." / new functions: "I am OK
-with you laying them out wherever you can in the correct area ... there will be a very big UI redesign once all of the functions
-have been built". So: ONE list, each item one assumption in plain words ("I assume ...", with at most two other ways), no
-readings, no "today", no pictures page, nothing about where a control sits. NAMES: .harmony/NAMES.md is the one place that says
-what a thing is called (his task: "You create and keep one"); every text for him uses its words ("trigger", "tempo bar",
-"global", "action", "Studio", "record show", "record to clip", "keyboard and MIDI mapping"); keep it up to date.
+{rules}
 
 READ, in this order: (1) .harmony/HANDOFF.md (this file: WHERE WE ARE, the LOOSE-ENDS LEDGER, the SCREEN-SAFETY LAW — obey it,
 the session sections; the s-rta-1004b ledger of BUILD-SIDE debts is in .harmony/HANDOFF-ARCHIVE.md under the heading
 "LOOSE-ENDS LEDGER — s-rta-1004b (STILL OPEN; moved at the s-rta-1007 close)": read it before any build, merge or gate);
 (2) .harmony/RIG-RULES.md BEFORE launching any workflow (binding; sections A to A7, B); (3) .harmony/.reports/s-rta-1003/board.md,
-the rows under "s-rta-1009 LIVE STATE"; (4) what is in front of him: /Users/boriskarpman/projects/RealTimeAudio/.harmony/.reports/s-rta-1009/boris-page-3.html — read its text
+the rows under "s-rta-1009 LIVE STATE"; (4) what is in front of him: {P}/boris-page-3.html — read its text
 boris-page-3.txt whole (about 3,000 words): 7 answers to what he asked, 15 assumptions that matter (274-288), 15 one-line ones
 (289-303), a box under each (38 with "Anything else?"). Its list page3-items.md is MADE, never edited by hand: page3-round1.md
 (the list ruling) + page3-edits.md (the second ruling, 131 blocks) + page3-edits2.md (my blocks after the last read; made by
 wf/mk_edits2.py) + page3-frame.md, by wf/page3_build.py --build; the provisional ids (P1, NEW-2 ...) map to the numbers in
 page3-items.md.map.json; each item's FROM line names the assumption blocks it is made from.
-THE PLANNING TRUTH after his answers to page 2 (never load a file of it whole): /Users/boriskarpman/projects/RealTimeAudio/.harmony/.reports/s-rta-1009/spec-<topic letter>.md = every item with
+THE PLANNING TRUTH after his answers to page 2 (never load a file of it whole): {P}/spec-<topic letter>.md = every item with
 THE RULE NOW, merged by wf/merge3.py from the s-rta-1007 specs (untouched) + this session's apply-<T>.md and rule-<T>.md (A
 triggering clips and the tempo bar, B the cue system, C presets, D actions, E Studio and the recordings, F the show file and
 decks, G output screens, H how a clip plays, I effects and signals, J the keyboard and MIDI mapping, K sources and the automatic
@@ -61,14 +60,14 @@ assume3-all.md = the 119 assumptions open after the rulings (16 to ask, 25 one-l
 topic ruling's notes; answers3-all.md; names3-all.md (41 name blocks, already in .harmony/NAMES.md); today3-notes.md = MY notes
 on what the app does now (never shown to him). His words: .harmony/binding-decisions.md (quotes are his; the text after "->" is
 Harmony's; the section "2026-10-09 (s-rta-1009)" ends in the block "APPLIED": every item of page 2 with the rule now),
-.harmony/boris-feedback-backlog.md (BF1-BF272), byte-exact /Users/boriskarpman/projects/RealTimeAudio/.harmony/.reports/s-rta-1009/boris-answers-page2.txt, by box answers-by-item.md. History:
+.harmony/boris-feedback-backlog.md (BF1-BF272), byte-exact {P}/boris-answers-page2.txt, by box answers-by-item.md. History:
 .harmony/HANDOFF-ARCHIVE.md — never load it whole. docs/claude/milkdrop.md = how MilkDrop works now (he designs the new one
 himself while the build runs: BF265; nothing of MilkDrop is planned or built before his design).
 
 WHEN HE ANSWERS PAGE 3: (a) file it the turn it arrives -- wf/file_answers.py + an entries table by BOX (it asserts that every
 content line of his is filed; it was written for page 2's file: copy the wf folder into the new session's folder and change
 the page constants). (b) A chat message of his launches nothing in its own turn (40 s timer). (c) Apply with this session's
-chain, all in /Users/boriskarpman/projects/RealTimeAudio/.harmony/.reports/s-rta-1009/wf/ (copy, then change "page2 / 217-273" to "page3 / 274-303" and the base specs to s-rta-1009's):
+chain, all in {P}/wf/ (copy, then change "page2 / 217-273" to "page3 / 274-303" and the base specs to s-rta-1009's):
 mkslices3.py -> apply3.js (12 architects high + blind checkers + rulings max; @@AMEND blocks change an old rule by an exact
 piece found once; lint3.py) -> merge3.py (dry run first) -> page3.js (list ruling -> six checkers -> second ruling; made by
 mk_page3.py from page3.body.js) -> page3_build.py --check / --build (set FIRST = 304) -> boris-page.py render --page page4 ->
@@ -88,7 +87,7 @@ newest words against earlier ones (274, 282, 292, 298, 300) and the three whose 
 (5) owed by Harmony before the build, not for him: the Preferences window, the store of recorded sound, the remote-control
 port (page3-edits.md, "TO SAY IN CHAT", point 8); which MIDI controller he uses, and how endless knobs send their steps (a
 Researcher task before the mapping is built: BF270).
-Law #11: plans = architect, opus high; rulings = architect, opus max while Fable is out (Boris 2026-10-02, verbatim: "just so you know, we are out of fable usage so you will need to do all fable work with opus 5.5");
+Law #11: plans = architect, opus high; rulings = architect, opus max while Fable is out (Boris 2026-10-02, verbatim: {fable});
 readers / seats / checkers sonnet; builders (none until he says so) opus high. BORIS USES THIS MACHINE AND THIS APP: an
 Audio-DNA or a Resolume Arena you did not start is his; yield the turn while workflows run; an item already shown is never
 re-worded in place (next free: page item 304, page id page4, BF273, Pitfall 69). NEVER load the update-config skill.
@@ -102,7 +101,6 @@ re-made by architects from the specs after he says all is clear.
 
 START HERE, in order:
 1. HIS ANSWERS to page 3 (the quick boot above). File them first. If he brings the audio, file where it is.
-   Then read .harmony/inbox.md: two routed tasks of 2026-10-09 are SENT (the ledger, OPEN WITH BORIS, says what to ask him).
 2. Apply them; ask only what they open (page 4, shorter still); or, if nothing is open, tell him so and what is unmeasured.
 3. ONLY WHEN HE SAYS ALL IS CLEAR — and in the session AFTER that: first read the s-rta-1004b ledger in the archive (the
    build-side debts and what is owed at MERGE 2); then (a) the measurements that need no build (his audio; the cue system's
@@ -161,13 +159,6 @@ NOT RUN / NOT MET (reported as such, never as pass):
 - No test, gate or app launch ran this session (no build). Every count of the s-rta-1004b close is unchanged and NOT re-run.
 OPEN WITH BORIS:
 - Page 3: 7 answers to read, items 274-303, none answered; 277 needs a typed answer. His audio (BF272). Which MIDI controller.
-- TWO TASKS THE PRIMARY ROUTED DOWN ON 2026-10-09, both approved by him in the Harmony session, both still SENT in
-  .harmony/inbox.md (they arrived while this session ran; not taken): (1) move the app's two only-one-copy-runs marker folders
-  from /tmp into the project folder and update the house clean-up line and gotcha; (2) make the tests record their takes and
-  audio into a test library INSIDE the project folder, not into ~/Documents/Audio-DNA (first find out whether the app and the
-  harness can point at another library folder). Both change scripts, tests or app settings: under his rule NOTHING IS BUILT I
-  held them. ASK HIM IN ONE LINE at the next boot whether these two may run before "all is clear" (his approval of them is
-  newer than the rule, but it was given to the primary, not as a lift of the rule).
 FILED DEBT (found in the app as it is; NOT verified by me):
 - today3-notes.md and the s-rta-1007 today-notes.md (what the app does now, item by item); the MilkDrop document's "What is
   odd or broken now"; the s-rta-1004b ledger of build-side debts STANDS WHOLE (nothing of it was worked): HANDOFF-ARCHIVE.md,
@@ -189,53 +180,7 @@ DOUBTS:
 - The cue system as he wants it draws layers twice in a frame; answer 252 promises the same fps and names the limit (a preview
   that needs its own drawing freezes first); nobody has run it.
 
-## SCREEN-SAFETY LAW — MANDATORY, EVERY SESSION, NO EXCEPTIONS
-
-**Ratified by Boris 2026-08-03 after a gate session left a black overlay on his displays.**
-This is a LAW, not a preference. It applies to Audio-DNA work in every session, primary or
-secondary, and it applies to any agent you dispatch.
-
-### Why it exists
-Audio-DNA's output window is a REAL FULLSCREEN WINDOW ON BORIS'S ACTUAL MONITORS. It is not
-a headless test artifact. Opening it in an automated gate has immediate, visible
-consequences on the machine he is working on. Session 2026-08-03a opened and closed it three
-times across two launches while gating C3, `pkill`ed the app repeatedly, and left it open —
-and Boris ended up with a black overlay on every non-fullscreen screen that OUTLIVED a clean
-exit of the app.
-
-### The law
-1. **NEVER end a session with the output window open.** Closing it is part of EOS, not an
-   optional courtesy. Close via `Output > "All Outputs Off"` (or Cmd+Shift+Esc), then confirm.
-2. **NEVER `pkill` / SIGKILL the app while the output window is open.** Close the window
-   FIRST, let it tear down, THEN quit. Killing mid-fullscreen is the suspected trigger for
-   the orphaned overlay.
-3. **VERIFY THE SCREEN, NOT JUST THE PROCESS.** `pgrep` returning empty does NOT mean the
-   screen is clean — this incident proves it. Before declaring a session safe to close,
-   run `screencapture -x /tmp/eos-screen.png` and READ THE IMAGE. No CLI probe can see a
-   black overlay, a TCC dialog, or a stuck window. This is the same class as the 2026-07-25
-   TCC-prompt gotcha: the screen holds state that no socket or process check reveals.
-4. **STATE THE APP STATE IN THE HANDOFF.** Every session that launched Audio-DNA must say
-   explicitly, in its handoff, what state the app and its windows were left in, and whether
-   the screen was visually verified clean.
-5. **MINIMISE fullscreen output-window drive in automated gates.** If a gate needs the
-   output window, open it, take what you need, close it immediately — do not leave it open
-   across other work. Prefer probe states that do not require it when they answer the same
-   question.
-6. **IF BORIS REPORTS A SCREEN ARTIFACT, IT OUTRANKS THE LANE.** Stop, clean up, diagnose.
-   His machine is not a test rig.
-
-### EOS checklist addition (do this before writing "safe to close")
-```
-osascript -e 'tell application "System Events" to tell process "Audio-DNA" to click menu item "All Outputs Off" of menu 1 of menu bar item "Output" of menu bar 1'   # close every output window
-pkill -f Audio-DNA ; sleep 2 ; pgrep -f Audio-DNA        # then quit, confirm gone
-screencapture -x /tmp/eos-screen.png                      # AND LOOK AT IT
-```
-Report in the handoff: windows closed, process gone, screen visually verified.
-(The black-overlay hypothesis and its fix notes: .harmony/HANDOFF-ARCHIVE.md "BLACK-OVERLAY BUG". Later practice, binding:
-no full-screen capture — count Audio-DNA / Output / UserNotificationCenter windows with Quartz after every batch; launch
-only with open -g; no gate ever opens an Output window. See .harmony/RIG-RULES.md.)
-
-# >>> SESSION s-rta-1007 (2026-10-07 22:19 → 2026-10-08 02:26, secondary) — START HERE <<<
+{law}
 
 ## THE ONE-LINE VERSION
 Boris answered page 2 on the page itself (33 comments, the rest accepted); this session filed his words, applied them to every
@@ -290,6 +235,12 @@ no Output window. One page was opened in his browser in the background (boris-pa
 Chrome picture of that page was taken by me (its own process, stopped by its own id; not a screen capture). Audio-DNA
 processes at the close: none (pgrep count 0).
 
-## COUNTS — run them, never inherit them
-Nothing was run this session. From the s-rta-1004b close, NOT re-run: ctest on main 1278 (serial); lanes outputs-a 1272,
-nudge 1276, onesave 1278.
+{counts}
+'''
+arch_src = old[old.index('## NEXT-HARMONY'):i] + old[j:]
+arch_src = re.sub(r'(?m)^## ', '## [s-rta-1007] ', arch_src); arch_src = re.sub(r'(?m)^### ', '### [s-rta-1007] ', arch_src)
+arch = open(A, encoding='utf-8').read()
+assert '[s-rta-1007] NEXT-HARMONY' not in arch, 'the archive already holds the s-rta-1007 handoff'
+open(A, 'w', encoding='utf-8').write(arch.rstrip('\n') + '\n\n# s-rta-1007 HANDOFF, as it stood (moved at the s-rta-1009 close; the SCREEN-SAFETY LAW stayed in HANDOFF.md)\n\n' + arch_src.rstrip('\n') + '\n')
+open(H, 'w', encoding='utf-8').write(new)
+print('HANDOFF.md: %d lines, %d bytes (was %d lines); archive +%d lines; law kept: %s; his rule quotes kept: %s' % (new.count('\n'), len(new.encode()), old.count('\n'), arch_src.count('\n'), law in new, 'Don’t build anything till you are clear' in new))
