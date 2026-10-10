@@ -2,6 +2,7 @@
 
 Your words, L114 (2026-10-07): "We need a solid list with what we call everything. You create and keep one and I will ask questions and you can give me the truth, which will be this doc. You will use this for comms with me and to name all features in the app, menus and manual(later)." This is that list, version 1; Harmony keeps it up to date and it is the one place that says what a thing is called.
 Written 2026-10-08 01:00 (local time). Nothing in it describes what the app does today; it only says what each thing is called. "L" numbers are the lines of your message of 2026-10-07 (L1 is "All defaults good ..."); the list is the answer to your L114.
+2026-10-09 (s-rta-1009): brought up to date with the names fixed by your answers to page 2 (Review -> Studio and Review picture -> Studio picture; Snapshot now a save of the whole show; Ignore Actions and Ignore Global Actions told apart; the rows automatic mode, preview mode, preview monitor, output monitor, master cue, Global glide, Stop actions, Falloff, layer strip, layout, Record Show, track, Show Recordings, Render, low-resolution show recording, All Outputs Off and Restore Last Outputs made exact; new: cueing, play-once action, Keying, Mask, Moving mask, Envelope on the beat, Envelope on the playhead, Sync, Common macro, Endless, codec test). The Re-check notes at the end are as of 2026-10-08 and keep that day's names.
 How to read the "From" column: "your words, <date>" = you named it (the quote is in the entry when it is short); "my pick" = Harmony chose it and you have not confirmed it (a default you accepted by L1 is said so in the same cell); "on screen now" = it is simply the name the app already shows and nobody has changed it. "Replaces" = the older name this one takes the place of; every retired word is also in the last section.
 
 ## 1. The show and its parts
@@ -18,8 +19,8 @@ How to read the "From" column: "your words, <date>" = you named it (the quote is
 | Collect Media... | Makes a folder with a copy of the show and copies of all its pictures and videos; the open show stays as it was. | on screen now (kept by your "default", 2026-10-04) | |
 | Relocate Missing Files... | Lets you point the show at clips whose files were moved. | on screen now | |
 | safety copy | The copy of the open show the app writes by itself every few minutes and offers once after a crash. | my pick (you accepted the default, L1) | |
-| layout | How the panels of one screen of the app are arranged (the live window, Review); the show holds one for each screen and the computer keeps the last used. | your words, 2026-10-07 (L94: "the show will hold the layout and so will the comp"; "comp" read as the computer, as in your L6); "one for each screen" is my reading of your L35 | |
-| live window | The screen of the app you perform on, as against Review. | your words, 2026-10-05 (170: "the replay window looks different than live window"; L35: "live and recording review mode") | live screen |
+| layout | The arrangement of the panels of one screen of the app (the live window, Studio); the show holds one for each screen and the computer keeps the ones used last. | your words, 2026-10-07 (L94: "the show will hold the layout and so will the comp"; "comp" read as the computer, as in your L6); "one for each screen" is my reading of your L35 | |
+| live window | The screen of the app you perform on, as against Studio. | your words, 2026-10-05 (170: "the replay window looks different than live window"; L35: "live and recording review mode") | live screen |
 | Reset Layout | The View menu item that puts the panels back to the standard arrangement. | on screen now | |
 | deck | A box of clips; the grid shows one deck at a time and the layers keep playing whatever was triggered, from any deck. | your words, 2026-10-02 ("treat the decks as just a box of clips") | |
 | deck tab | One tab above the grid per deck; a click shows that deck, a double-click renames it. | on screen now | |
@@ -28,7 +29,7 @@ How to read the "From" column: "your words, <date>" = you named it (the quote is
 | Duplicate Deck | Makes a copy of a deck as a new deck. | on screen now | |
 | Remove Deck | Takes a deck out of the show. | on screen now | |
 | layer | One of the stacked rows that play clips; the layers are shared by all decks and mixed top over bottom. | your words, 2026-10-07 (L7, L19, L34) | |
-| layer strip | The control block at the left of each layer (its buttons, sliders, blend mode and picture). | my pick (the papers' working word) | |
+| layer strip | The block of each layer that shows what the layer is playing, with the layer's buttons and sliders; a clip that is "removed from the layer strip" is no longer on its layer. | your words, 2026-10-09 (BF256; also binding-decisions.md:688, 764) | |
 | clip | One piece of media or effect that sits in a cell and plays on a layer (a picture, a video, an image sequence, a source, or effects only). | your words, 2026-10-07 (L4, L11) | |
 | cell | One square of the clip grid, at a layer and a column; it holds a clip or is empty. | your words, 2026-10-07 (L4, L11) | |
 | empty cell | A cell with no clip; clicking it clears its layer (at the "1" if the playing clip is in BPM mode). | your words, 2026-10-07 (L4, L11) | |
@@ -56,11 +57,14 @@ How to read the "From" column: "your words, <date>" = you named it (the quote is
 | Solo | The strip button (now the letter S) that shows only that layer. | on screen now | |
 | Transparency slider | The one slider of a layer that sets how strongly it shows and so how it is blended in. | your words, 2026-10-07 (L34, L111) | V slider, opacity |
 | Blend mode | The way a layer is mixed with the layers below it; one per layer. | your words, 2026-10-07 (L111: "that layers blend mode") | |
+| Keying | The layer's list of ways to make parts of its picture see-through, with its keying slider; it stays, as a placeholder until built. | your words, 2026-10-09 (BF260: "All the blend modes and keying stay") | |
+| Mask | A picture used as an alpha channel: it decides where other pictures show and where they are hidden (what it cuts is my reading). | your words, 2026-10-09 (BF260: "masks and moving masks with which are alpha channels") | |
+| Moving mask | A mask whose picture moves: its clip is a video or another moving picture, or it is a still picture that a signal or an action moves (my reading). | your words, 2026-10-09 (BF260: "masks and moving masks"); what makes it move is my reading | |
 | Fade time | The strip slider (now the letter F) that sets how long a layer takes to change from one clip to the next. | on screen now | |
 | Ignore Column Trigger | The switch on a layer that keeps column clicks away from that layer. | your words, 2026-10-07 (L7: "ignore column"; L73: "column trigger bypass"); the words on screen are kept | |
 | Master | The fader that dims the whole picture (also the Master knob of the Global tab). | on screen now | Master opacity |
 | Transform | Position, scale, rotation and anchor of a clip, a layer or Global. | on screen now | Composition transform |
-| clip in point, clip out point | The two handles on a clip that mark which part of it plays (to keep apart from Review's In and Out points). | my pick (your 2026-10-03 Q11: "drag handles that snap") | |
+| clip in point, clip out point | The two handles on a clip that mark which part of it plays (to keep apart from Studio's In and Out points). | my pick (your 2026-10-03 Q11: "drag handles that snap") | |
 
 ## 2. Triggering clips and the tempo bar
 
@@ -83,7 +87,7 @@ How to read the "From" column: "your words, <date>" = you named it (the quote is
 | nudge X ms | The text between the nudge buttons that shows, in automatic mode only, how far the "1" has been nudged. | your words, 2026-10-04 ("lets call it nudge X ms"); where it shows: L14 | off beat by X ms |
 | Resync | The button, and mapping entry, whose press is the "1": it places the first beat of the bar and starts a stopped beat. | your words, 2026-10-07 (L12: "unless resync is clicked") | |
 | Tap Tempo | The button, and the spacebar out of the box, that sets the tempo by tapping; it reacts at the second tap. | your words, 2026-10-07 (L18, L118: "Spacebar is typically tap tempo") | |
-| automatic mode | The app listens to the music, finds the tempo by itself and keeps the beats on the music; what you correct holds. | your words, 2026-10-07 (L14, L32: "automatic mode") | Auto, the Manual box off |
+| automatic mode | The app listens to the music: it finds the tempo and the "1" by itself and keeps the beats on the music; what you correct by hand holds (items 217 and 218). | your words, 2026-10-07 (L14, L32: "automatic mode") and 2026-10-09 (BF246: "app should always try to find the 1 and I will correct if necessary") | Auto, the Manual box off |
 | manual mode | The tempo and the "1" are what you set by hand; the app does not correct them. | your words, 2026-10-07 (L14, L32: "manual mode") | Manual box on |
 | listening clock | The beat clock while the app is in automatic mode, driven by what it hears. | your words, 2026-10-07 (L14: "the listening clock") | |
 | Link | Ableton Link: sharing tempo and the "1" with other programs on the network. | on screen now | |
@@ -92,7 +96,7 @@ How to read the "From" column: "your words, <date>" = you named it (the quote is
 | Speed | The row that makes a clip play faster or slower: free in Timeline mode; in BPM mode the steps 0, 1/8, 1/4, 1/2, 1, 2, 4, 8, 16. It does not change Duration or Beats. | your words, 2026-10-07 (L21) | |
 | Duration | The row of a clip in Timeline mode that says how long one pass takes; a clip in BPM mode has none. | your words, 2026-10-07 (L21: "There is no duration on a bpm clip") | |
 | Beats | The row of a clip in BPM mode that says over how many beats it plays once, with -, +, /2 and x2 (these are the clip's own, not the tempo's). | your words, 2026-10-07 (L21, L99: "do beats here") | Beats / Cycle, Content Beats |
-| timeline (lower case) | The ruler of time: under a clip's picture, where the beat markers sit (L21: "the clip's timeline"), and in Review, along the tracks (L89). Written with a small t, or as "clip timeline" / "Review timeline"; the capital Timeline is the signal (section 5) and "Timeline mode" the clip mode. | your words, 2026-10-07 (L21, L89); the two long forms are my pick | |
+| timeline (lower case) | The ruler of time: under a clip's picture, where the beat markers sit (L21: "the clip's timeline"), and in Studio, along the tracks (L89). Written with a small t, or as "clip timeline" / "Studio timeline"; the capital Timeline is the signal (section 5) and "Timeline mode" the clip mode. | your words, 2026-10-07 (L21, L89); the two long forms are my pick | |
 | beat marker | One of the lines on the timeline of a clip in BPM mode, one per beat; Random lands on them. | your words, 2026-10-07 (L20, L21, L101: "beat markers", "bpm lines") | |
 | loop menu | The first small menu of a clip: Loop, Ping Pong, Random, Play Once and Eject, Play Once and Hold. | my pick (the menu's name; the entries are Resolume's) | Loop dropdown |
 | Loop | The loop-menu entry that plays a clip round and round. | on screen now | |
@@ -111,21 +115,22 @@ How to read the "From" column: "your words, <date>" = you named it (the quote is
 | Cuepoints | A clip's eight jump points in the Clip tab; the only other use of the word cue on screen. | on screen now | |
 | paused | The state of the beat clock after tempo pause: held where it was; a new clip in BPM mode waits for the "1". | your words, 2026-10-07 (L12, L13, L31) | |
 | stopped | The state of the beat clock after tempo stop: the next tempo play or triggered clip is the new "1". | your words, 2026-10-07 (L12, L31) | |
-| Quantize | A setting used only in Review: it pulls recorded moves onto a grid. It is not a live control. | your words, 2026-10-04 ("This is not for live usage ... use it in the recording review screen"); L83 | Quantize (top bar), Snap |
+| Quantize | A setting used only in Studio: it pulls recorded moves onto a grid. It is not a live control. | your words, 2026-10-04 ("This is not for live usage ... use it in the recording review screen"); L83 | Quantize (top bar), Snap |
 
 ## 3. The cue system
 
 | Name | What it is | From | Replaces |
 |---|---|---|---|
-| output monitor | The monitor that shows the picture as the outputs get it. | your words, 2026-10-05 ("resolume has a output monitor") | Output tab, output window (in-app) |
-| preview monitor | The monitor below the output monitor that shows cued layers or one previewed clip or file; the audience never sees it; "the preview" for short (your L16, L36). | your words, 2026-10-05 and 2026-10-07 (L34, L35) | Preview tab, layer monitor |
+| output monitor | The monitor that shows the picture as the outputs get it; you also call it "the output preview screen", which is the same thing. | your words, 2026-10-05 ("resolume has a output monitor") and 2026-10-09 (BF267: "the output preview screen which we have", read as the output monitor: inferred) | Output tab, output window (in-app) |
+| preview monitor | The monitor below the output monitor that shows the cue or one previewed clip or file; the audience never sees it; "the preview" for short (your L16, L36); you also call it "the preview/cue monitor" and "the preview-cue screen", which are the same thing. | your words, 2026-10-05 and 2026-10-07 (L34, L35) and 2026-10-09 (BF248: "the preview/cue monitor"; BF267: "the preview-cure screen", read as preview-cue: inferred) | Preview tab, layer monitor |
 | cue button | One button per layer under the preview monitor; on = that layer is in the cued mix. | your words, 2026-10-07 (L34: "each cue button for each layer") | |
 | cue transparency slider | The slider beside a layer's cue button that sets how strongly that layer shows in the preview only; "cue slider" for short. | my pick (from your L34: "a transparency slider") | |
 | the cue | The mix of the layers whose cue button is on, as cue mode shows it. | your words, 2026-10-07 (L35: "to see the cue you need to push the toggle button") | the cued mix |
 | cue mode | The state of the preview monitor in which it shows the cue. | your words, 2026-10-07 (L35) | |
-| preview mode | The state of the preview monitor in which it shows one clip or file, alone, playing in time with the music. | your words, 2026-10-07 (L35, L36) | |
+| cueing | Looking, in the preview monitor, at a layer whose cue button is on: the clip triggered on that layer is seen as the layer plays it, in time with the music. | your words, 2026-10-09 (BF247: "we are cueing this way"); the meaning is my reading | |
+| preview mode | The state of the preview monitor in which it shows one clip or one file, alone, playing from the moment it was clicked and never waiting for the beat. | your words, 2026-10-07 (L35, L36) and 2026-10-09 (BF247: "Previewing a clip should not happen on the beat") | |
 | cue / preview toggle | The one button that switches the preview monitor between cue mode and preview mode. | my pick (from your L35: "the toggle button") | |
-| master cue | The toggle button that puts the global effects and actions on the preview, or leaves them off. | your words, 2026-10-07 (L38: "called master cue") | |
+| master cue | The toggle button, with the layers' cue buttons, that puts the global effects and what the global actions do to them on the preview monitor, or leaves them off; the meaning waits on your answer to item 222. | your words, 2026-10-07 (L38: "called master cue") for the name; the meaning is my reading, asked again after BF248 | |
 | preview a clip | Clicking a clip's name (or double-clicking a file in the Files tab) so it plays at once in the preview monitor. | your words, 2026-10-07 (L16, L35, L36) | |
 
 ## 4. Effects and presets
@@ -137,6 +142,7 @@ How to read the "From" column: "your words, <date>" = you named it (the quote is
 | effect header | The bar of one effect with its name, preset name, bypass and remove; an effect has its own header and no bar says "effects" when there are none. | your words, 2026-10-07 (L40, L52: "header bar", "header line") | |
 | Clip effects, Layer Effects, Global Effects | The three stacks an effect can be dropped on: the clip's, the layer's, Global's. | on screen now (the last one now reads "Global Effects") | |
 | Dry / Wet | The first row of an effect: how much of the effect is mixed in. | on screen now | |
+| Sync | The slider on an effect that pulses by itself (a strobe, a pulse) with which its sync is adjusted; read as how fast it pulses against the beat, in steps (put to you). Not the old "sync" of the timing dial (that is Delay, section 8) and not the signal-picker entry "BPM Sync" (an open name, see the notes at the end). | your words, 2026-10-09 (BF244: "adjust the sink", read as the sync: inferred) | |
 | preset | One saved setup of one effect: each slider's value, Dry / Wet and the signals plugged into its sliders. | your words, 2026-10-05 ("look is an effect preset. change the name look to preset") | look |
 | Default | The first entry of every preset drop-down; it puts the sliders back to the effect's defaults and cannot be renamed or deleted. | your words, 2026-10-05 ("150 a is good": the effect's small button reads "Default" until a preset is saved); that it is the first entry of every drop-down and cannot be renamed or deleted is my reading | |
 | Save (preset) | The small button that stands in place of the preset's name once the effect is changed; it opens the name window. | your words, 2026-10-07 (L52: "replace it with save button") | |
@@ -159,15 +165,18 @@ How to read the "From" column: "your words, <date>" = you named it (the quote is
 | Mod 1 and Mod 2 | The two ready-made modulation signals (an oscillator and an envelope). | on screen now | |
 | Oscillator | A signal that goes up and down on a regular beat-length shape. | on screen now | |
 | Envelope | A shape you draw that moves a slider or switches a button; any number of them, one per slider or shared by many. | your words, 2026-10-07 (L104, L112) | |
+| Envelope on the beat | The type of envelope that runs along the beat like a signal. One made for a clip is that clip's own; the envelopes of the whole show are of this type too. | the name is my pick; the thing is your words, 2026-10-09 (BF261: "along the beat, which is like a signal, but personalized for that clip") | |
+| Envelope on the playhead | The type of envelope whose drawn shape happens over the course of the playing of its clip; always a clip's own, for a clip in Timeline mode (my reading). | the name is my pick; the thing is your words, 2026-10-09 (BF261: "play head based") | |
 | Timeline | The signal-picker entry that connects a control to the playhead of the clip playing on the layer. | your words, 2026-10-07 (L112: "connecting anything ... to the layers playhead and should be called as such"); same word as Timeline mode, told apart by "mode" | Clip Position |
 | Macros | The panel of 8 knobs per bank (clip, layer, Global) that sliders can be plugged into. | your words, 2026-10-07 (L114: "Macro's panel should be called Macros") | Dashboard |
 | macro knob | One of the eight knobs in a Macros bank. | on screen now | |
+| Common macro | One macro that sets the speed of all effects that pulse by themselves at once; your "maybe". Whether it waits or is built with the rest is my open question. | your words, 2026-10-09 (BF244: "a common macro that we could set later") | |
 | Master Signal | The fader that scales every signal at once; it does not touch actions or effects that read the beat by themselves. | on screen now (your words, 2026-09-25: "keep pulsing") | |
 | signal user | A slider or button that has a signal plugged in; it carries its own Looping / One Shot, Gain, Falloff and, for a button, Threshold. | your words, 2026-10-07 (L106: "user of the signal", "Each signal user") | |
 | Looping | On a signal user: follow the signal round and round. | your words, 2026-10-07 (L106) | |
 | One Shot | On a signal user: follow the signal once. (The word is no longer used for a clip's loop menu.) | your words, 2026-10-07 (L106) | |
 | Gain | On a signal user: how strongly the slider or button takes the signal. | your words, 2026-10-07 (L106) | |
-| Falloff | On a signal user: its smoothing, how slowly the value comes down after the signal drops. | your words, 2026-10-07 (L106: "falloff (smoothing)") | smoothing |
+| Falloff | On each user of a signal: its smoothing. The value goes up with the signal at once and comes down slowly, in a time set from instant to 2 seconds. | your words, 2026-10-07 (L106: "falloff (smoothing)"); what it does is item 268 of page 2, accepted as written | smoothing |
 | Threshold | On a button that uses a signal: the level above which the button is on (or off, when inverted). | your words, 2026-10-07 (L106) | |
 | Invert | On a signal user: turn the signal upside down. | on screen now | |
 | Range | On a signal user: the stretch of the slider the signal moves over. | on screen now | |
@@ -184,47 +193,49 @@ How to read the "From" column: "your words, <date>" = you named it (the quote is
 | action row | The small row below a clip, inside its layer, that holds the on / off buttons of its actions. | my pick (from your L56: "a small row below the clip, still within the layer") | the pad row, routine bands |
 | action button | The one on / off button an action has. | my pick | routine pad |
 | Loop (action) | The toggle beside each action: ticked, the action loops; not ticked, it is a play-once action: it plays once and its controls go back. | your words, 2026-10-07 (L64: "an actions loops toggle") | Loop / Once |
-| Global glide | The one slider (instant to four seconds) that times every glide of a control into or out of an action. Your four phrases, L64 "Global glide slider", L66 "global glide back setting", L67 "master action fade back time" and L70 "Global fade control", are taken to be this one slider (L70 speaks of actions starting and stopping, L64 of going back: one slider is assumed and asked on your next page). | your words, 2026-10-07 (L64, L66, L67, L70) | transition slider, ease / jump |
-| Stop actions | The one button (and key or pad) that stops every action of every clip, layer and Global. | your words, 2026-10-07 (L72: "a global stop actions button") | Stop all routines |
-| Ignore Actions | The toggle beside one slider or button (and on a layer) that makes that control ignore its actions. | your words, 2026-10-04 ("an ignore actions toggle"); L7 | ignore lamp |
-| Ignore Global Actions | The switch on a layer that keeps every global action away from that layer. Taken to be one thing with L7's "ignore actions toggle on the layer" and L73's "global action bypass"; open until you say. | my pick (from your L7, L73) | |
+| play-once action | An action whose Loop toggle is not ticked: it plays one pass and its controls go back; on a clip its button stays on and it plays again when the clip is triggered again. | the name is my pick (the page used it); what it does on a clip is your words, 2026-10-09 (BF251) | |
+| Global glide | The one slider (instant to four seconds) that times every smooth change of a control that an action moves. Your four phrases, L64 "Global glide slider", L66 "global glide back setting", L67 "master action fade back time" and L70 "Global fade control", are this one slider; that it is the only one is yours (item 224, accepted as written). | your words, 2026-10-07 (L64, L66, L67, L70) | transition slider, ease / jump |
+| Stop actions | The one button (and key or pad) that stops every action of every clip, layer and Global: it switches them off; the tempo stop does the same to actions. Whether that also darkens the action buttons of clips, on clips that are not playing too, is still asked. | your words, 2026-10-07 (L72: "a global stop actions button") and 2026-10-09 (BF250: "tempo stop stops all actions, not just global") | Stop all routines |
+| Ignore Actions | The toggle beside one slider or one button: lit, that one control ignores all its actions. The switch on a layer is a different thing with its own name, Ignore Global Actions. | your words, 2026-10-04 ("an ignore actions toggle"); L7 | ignore lamp |
+| Ignore Global Actions | The one switch on a layer that keeps every global action away from that layer, while the layer's own actions and its clips' actions keep playing. Taken to be one thing with L7's "ignore actions toggle on the layer" and L73's "global action bypass". | the name is my pick (from your L7, L73); what it does is yours, item 225 accepted as written | |
 | muted action | An action pasted onto a clip that lacks a slider, button or effect it moves; it does nothing, and a small message waits for the user to say OK. | your words, 2026-10-07 (L68: "that specific action is muted") | |
-| action save window | The last step of making an action in Review: it lists the actions your pick becomes, with owner, name, length and the 4-bar warning, and saves them. | your words, 2026-10-07 (L55: "the action save window"; L65: "save screen") | |
+| action save window | The last step of making an action in Studio: it lists the actions your pick becomes, with owner, name, length and the 4-bar warning, and saves them. | your words, 2026-10-07 (L55: "the action save window"; L65: "save screen") | |
 
-## 7. Recording and the review screen
+## 7. Recording and Studio
 
 | Name | What it is | From | Replaces |
 |---|---|---|---|
 | Record to Clip | One of the two recordings: the picture (all layers) is recorded into a video file that lands as a clip in the next empty cell of the top layer. | your words, 2026-10-07 (L114: "we will record to clip or record show") | Start Recording, Stop Recording (Output menu) |
-| Record Show | The other recording: the whole show (every move of every control, the sound, a film if ticked). | your words, 2026-10-07 (L114) | Record Take |
+| Record Show | The other recording: the whole show, a whole performance (every move of every control, the sound, a film if ticked); it is looked at afterwards in Studio. | your words, 2026-10-07 (L114: "we will record to clip or record show") | Record Take |
 | show recording | One recording made with Record Show; the word "take" is no longer used. | your words, 2026-10-07 (L6, L114: "show recording") | take |
-| Show Recordings | The list of show recordings; one is opened from it in Review. | my pick | Recordings, Load Take... |
+| Show Recordings | The list of show recordings; one is opened from it in Studio. | my pick (from your words "show recording", L6) | Recordings, Load Take... |
 | Record (tab) | The browser tab with the buttons Record to Clip and Record Show and the list Show Recordings. | my pick | |
-| Review | The screen where a show recording is watched, mended, recorded over and cut into actions (long form: Show Recording Review). You asked for a better name (L114); Harmony keeps Review and offered Studio, which you have not taken. | your words, 2026-10-07 (L114: "Show Recording Review should be called Review for short is a good name") | replay window, review screen, recording review screen / mode |
+| Studio | The screen where a show recording is watched, mended, recorded over and cut into actions; the only place where an action is made from a recording. | your words, 2026-10-09 (BF245: "Let's go with studio. That's perfect."; BF263: "b") | Review (long form Show Recording Review), replay window, review screen, recording review screen / mode |
 | stop recording | Ending a recording (either kind) with the button that began it; the recording runs on to the end of the bar and is trimmed later. What the button is labelled is not settled. | your words, 2026-10-07 (L88: "If we push stop recording") | Stop Recording (Output menu) |
 | Record Show boxes | The three things Record Show can keep: Parameters, Audio and Video (a full-size film). | my pick (the papers' words; your L114 "record show"; the film "if ticked") | |
-| Review picture | The area at the top of Review that shows the film of the recording; it can be sent to an output monitor or resized by dragging the line between it and the tracks. | my pick (your L79 says "display screen"; 170: "a screen at the top with the video") | display screen |
-| track | One row of Review: what one button or slider did over the length of the recording. | your words, 2026-10-07 (L86, L89) | |
+| Studio picture | The area of Studio that shows the picture made fresh from the show recording; the outputs show it too. | my pick (your L79 says "display screen"; 170: "a screen at the top with the video") | Review picture, display screen |
+| track | One row of Studio: one recorded button or slider, showing what it did over the length of the recording. | your words, 2026-10-07 (L86, L89) | |
 | button track | A track of a button: a horizontal line that moves between 0 and 100 and sits in only those two places unless the control has more positions. A slider's track is just a track. | your words, 2026-10-07 (L86: "The button track") | |
 | keyframe | A point on a track you can move or draw. | your words, 2026-10-07 (L86: "keyframes and slider positions") | |
 | selected area | The selected tracks between the In and Out points; it is white while the other tracks are greyed out; an action is saved from it. | your words, 2026-10-07 (L89) | |
-| In and Out points | The two marks on the timeline of Review that bound what is selected; they snap to the grid. | your words, 2026-10-05 (168: "the in anred out point can only snap to the grid"); L89 | |
+| In and Out points | The two marks on the timeline of Studio that bound what is selected; they snap to the grid. | your words, 2026-10-05 (168: "the in anred out point can only snap to the grid"); L89 | |
 | grid spacing | The setting a Quantize asks for: 4 bars, 1 bar, 2 beats, 1 beat, 1/2 beat or 1/4 beat. | your words, 2026-10-07 (L83) | |
 | mend | A change made to a show recording with the mouse (a drawn shape, a moved piece, a Quantize), saved as another recording beside the original. | your words, 2026-10-07 (L84: "the mend is another recording") | |
 | Record Over | Recording new moves from the MIDI controller over a show recording while it plays in real time; kept apart from the original. | your words, 2026-09-25 and 2026-10-07 (L92: "record over") | overdub |
 | scrub | Dragging through a show recording to look at any moment. | your words, 2026-10-07 (L86) | |
 | scrub sound | The setting that decides whether the sound is heard while scrubbing, or only while the recording plays in real time. | my pick (from your L86: "a setting to not scrub sound") | |
-| recorded show file | The show file that a show recording saves with it, holding the clips exactly as they were, from which Review opens the recording. | your words, 2026-10-07 (L80, L89: "the recorded show file") | |
-| low-resolution show recording | The very small film of the show, written in pieces of 10 or 20 minutes, as a double check. | your words, 2026-10-07 (L6: "a very low resolution show recording"); a shorter name is open | |
-| Render | Making a film file afterwards from a show recording, inside Review. | on screen now ("Render... (coming)"); my pick until you name it | |
-| Snapshot | A command that saves one still picture of the output as an image file; never part of a show. | on screen now; whether it stays is yours (L94) | |
+| recorded show file | The show file that a show recording saves with it, holding the clips exactly as they were, from which Studio opens the recording. | your words, 2026-10-07 (L80, L89: "the recorded show file") | |
+| low-resolution show recording | The small film of the show, without sound, written in 10-minute pieces next to every show recording, to see whether there is a mistake in the parameter recording; just for reference. | your words, 2026-10-07 (L6, BF161: "a very low resolution show recording") and 2026-10-09 (BF241, BF253); a shorter name is open | |
+| Render | Making a film file in full quality afterwards from a show recording, in Studio; your "HD render". | your words, 2026-10-09 (BF241: "we can make an HD render from the Recording Review"); on screen now as "Render... (coming)" | |
+| Snapshot | A save of the whole show exactly as it stands at one moment, with a picture of the output, made by one shortcut press and kept apart from the show file to look at later. | your words, 2026-10-09 (BF243, BF257) | |
+| codec test | The test after the app is built that compares, on your Mac and with your own clips, how video codecs play, jump and record, and gives you one short list of the codecs that work well. | my pick, from your words (BF240: "test encoding and decoding of different codec to have a baseline") | |
 
 ## 8. Output screens
 
 | Name | What it is | From | Replaces |
 |---|---|---|---|
 | Outputs | The one list of everything the picture can be sent to: every connected screen and Syphon, each with a tick. It is the Output menu's list and the top-bar button. | on screen now; Syphon is a line of it by default 200 A (L1) | |
-| Output menu | The menu that holds the Outputs list, All Outputs Off, Restore Last Outputs and Snapshot. | on screen now | |
+| Output menu | The menu that holds the Outputs list, All Outputs Off, Restore Last Outputs. The old command that saved only a still picture of the output goes: a picture comes with every Snapshot (my reading). | on screen now | |
 | output | One thing the picture is sent to: a screen or Syphon. | your words, 2026-10-07 (L96) and 2026-10-04 ("syphon is an output") | |
 | output screen | A connected display (a projector, a monitor, an LED wall) that shows the whole picture full-screen. | your words, 2026-10-04 ("each output screen can be delayed") | output window |
 | Display N | The name of one connected display in the Outputs list, with its size, for example Display 2 (1920x1080). | on screen now | |
@@ -232,8 +243,8 @@ How to read the "From" column: "your words, <date>" = you named it (the quote is
 | Output Properties | The window where each output's settings are opened (not the same as an output screen, which is a display). | my pick (your phrase was "output display properties", 2026-10-04) | Output Screens |
 | output settings | The eight settings of one output: Device, Delay, Opacity, Brightness, Contrast, Red, Green, Blue. | your words, 2026-10-04 ("yes add all of those output settings") | |
 | Delay | One output setting: how many milliseconds later (0 to 100) that output shows the picture. | your words, 2026-10-04 ("each output screen can be delayed") | sync dial |
-| Restore Last Outputs | The command that switches on again the outputs that were last on, whatever show is open. | on screen now | |
-| All Outputs Off | The command (also Cmd+Shift+Esc) that switches off every output, Syphon included. | on screen now | |
+| Restore Last Outputs | The command that switches on again the outputs that were last on on this computer, whatever show is open, also after All Outputs Off and after a quit and a new start. | on screen now; "also after All Outputs Off" and "after a quit" are reading R191 part i of the first page (s-rta-1005/boris-clarify-all.md:558), which you named (BF216) and left as it was; your way b of item 265 (BF269) fits it, because you press the command yourself | |
+| All Outputs Off | The command (also Cmd+Shift+Esc) that switches off every output, Syphon included, and after which nothing comes on by itself until you switch an output on yourself. | on screen now; what follows it is your way b of item 265 (BF269) | |
 | Resolution | The drop-down that sets the picture size (1920x1080 and so on). | on screen now | Output Settings (the section of the Global tab) |
 
 ## 9. The keyboard and MIDI mapping
@@ -245,6 +256,7 @@ How to read the "From" column: "your words, <date>" = you named it (the quote is
 | MIDI controller | The outside device with keys, pads, knobs and faders that sends MIDI to the app; "knob" and "fader" mean its parts (a Macros knob is a "macro knob"). | your words, 2026-10-07 (L92: "the midi controller"); the parts are my pick | |
 | Keyboard and MIDI Mapping... | The menu entry that opens the one screen for keys and MIDI. | my pick | Edit Keyboard Shortcuts..., Edit MIDI Mappings... |
 | keyboard and MIDI mapping screen | The screen where you click a target, then press a key or send MIDI. | my pick | Keyboard Binding Mode, MIDI Learn Mode |
+| Endless | The toggle on a knob's entry in the keyboard and MIDI mapping that says the knob is an endless one that sends steps, not its position. | my pick (from your words, BF270: "set a toggle if it's an endless encoder") | |
 | Export Mapping... | Writes the open show's mapping to a mapping file. | my pick | Export Bindings... |
 | Import Mapping... | Reads a mapping file and replaces the open show's mapping after asking. | my pick | Import Bindings... |
 | Import Mapping from Show... | Takes the mapping out of another show file. | my pick (from your 2026-10-03 "import the settings from another show file") | |
@@ -289,14 +301,16 @@ How to read the "From" column: "your words, <date>" = you named it (the quote is
 | Stop all routines | Old tooltip. Use: Stop actions. | your words, 2026-10-07 (L72) | Stop actions |
 | take | An old word. Use: show recording. | your words, 2026-10-07 (L6, L114) | show recording |
 | Record Take | Old button. Use: Record Show. | your words, 2026-10-07 (L114) | Record Show |
-| Load Take..., Play Take | Old buttons. A show recording is opened from Show Recordings and played in Review. | my pick | Show Recordings, Review |
+| Load Take..., Play Take | Old buttons. A show recording is opened from Show Recordings and played in Studio. | my pick | Show Recordings, Studio |
 | Start Recording, Stop Recording (Output menu) | Old video-only recording. Use: Record to Clip. | my pick (L114: "All else is gone") | Record to Clip |
-| replay window | Your earlier word for Review. Use: Review. | your words, 2026-10-05 | Review |
-| recording review screen / mode, review screen | Your L35 / L72 words and the papers' for the same screen. Use: Review (long form: Show Recording Review). | your words, 2026-10-07 (L35, L72) | Review |
+| Review | A word that is no longer used: your earlier name for the screen that is now called Studio (long form: Show Recording Review). Use: Studio. | your words, 2026-10-09 (BF245: "Let's go with studio. That's perfect."; BF263: "b"); they replace your earlier words of L114, where you asked for a better name yourself | Studio |
+| replay window | Your earlier word for the screen now called Studio. Use: Studio. | your words, 2026-10-05 | Studio |
+| recording review screen / mode, review screen | Your L35 / L72 words and the papers' for the same screen. Use: Studio. | your words, 2026-10-07 (L35, L72) | Studio |
 | Manual (the user manual) | Use: user manual. | my pick | user manual |
 | Output Screens (the place of the settings) | Use: Output Properties; an output screen is a display. | my pick | Output Properties |
 | live screen | Use: live window. | my pick | live window |
-| display screen (in Review) | Use: Review picture. | my pick | Review picture |
+| display screen (in Studio) | Use: Studio picture. | my pick | Studio picture |
+| Review picture | Use: Studio picture. | my pick | Studio picture |
 | composition (the level, the tab) | Use: Global. | your words, 2026-10-07 (L55) | Global |
 | composition (the file), Composition menu | Use: Show. | my pick (default 210 A, L1) | Show |
 | Compositions (tab) | Use: Shows. | my pick | Shows |
@@ -307,7 +321,7 @@ How to read the "From" column: "your words, <date>" = you named it (the quote is
 | Bar 1 .. Bar 4 text | Taken out; the circle alone shows the beat. | your words, 2026-10-04 ("146 b") | |
 | Beat play, Beat pause, Beat stop (the plan's words) | Use: tempo play, tempo pause, tempo stop. | your words, 2026-10-07 (L17, L72) | tempo play, tempo pause, tempo stop |
 | Tempo - , Tempo + , Tempo /2, Tempo x2 | Use: BPM -, BPM +, BPM /2, BPM x2. | my pick | BPM - and BPM + , BPM /2 and BPM x2 |
-| top-bar Quantize box, Snap box | Taken out of live use; Quantize lives in Review. | your words, 2026-10-04 (R81) | Quantize (Review) |
+| top-bar Quantize box, Snap box | Taken out of live use; Quantize lives in Studio. | your words, 2026-10-04 (R81) | Quantize (Studio) |
 | off beat by X ms | Use: nudge X ms. | your words, 2026-10-04 | nudge X ms |
 | BPM Sync (clip mode) | Use: BPM mode. | your words, 2026-10-07 (L21) | BPM mode |
 | Timeline (as a clip mode) | Use: Timeline mode. | your words, 2026-10-07 (L21) | Timeline mode |
@@ -321,7 +335,6 @@ How to read the "From" column: "your words, <date>" = you named it (the quote is
 | look | Use: preset. | your words, 2026-10-05 | preset |
 | Feedback preset | Use: Feedback style. | my pick | Feedback style |
 | V slider, opacity slider | Use: Transparency slider. | your words, 2026-10-07 (L111) | Transparency slider |
-| K slider, Keying (modes and slider) | Taken out; only the Transparency slider and Blend mode remain. | your words, 2026-10-07 (L111: "I want to remove the keying and slider") | |
 | Preview / Output tabs of the monitor | Use: preview monitor and output monitor. | your words, 2026-10-05 | preview monitor, output monitor |
 | layer monitor | Resolume's word. Use: preview monitor. | your words, 2026-10-05 | preview monitor |
 | output window (the in-app monitor) | Use: output monitor; a display is an output screen. | my pick | output monitor, output screen |
@@ -337,13 +350,14 @@ How to read the "From" column: "your words, <date>" = you named it (the quote is
 
 ## Notes for Harmony (not part of the list)
 
-- Open names (my pick, not yet his): Show menu and its items, Shows, Keyboard and MIDI Mapping... and Export / Import Mapping, tempo pause, cue transparency slider, cue / preview toggle, moving line, Ignore Global Actions, loop menu, start menu, Play Once and Eject / Hold, Time per picture, Digit Rain, Input gain, Output Properties, user manual, the picture, stop recording (label), Review picture, Record Show boxes, clip in point / out point, the two long forms of timeline, MIDI controller parts.
-- Review: his L114 asks for a better name; the only candidate on paper is Studio (answer review-name); keep Review until he says.
+- Open names (my pick, not yet his): Show menu and its items, Shows, Keyboard and MIDI Mapping... and Export / Import Mapping, tempo pause, cue transparency slider, cue / preview toggle, moving line, Ignore Global Actions, loop menu, start menu, Play Once and Eject / Hold, Time per picture, Digit Rain, Input gain, Output Properties, user manual, the picture, stop recording (label), Studio picture, Record Show boxes, clip in point / out point, the two long forms of timeline, MIDI controller parts.
+- Studio: his words BF245 and BF263 (2026-10-09) took the name; it replaced Review, which is in section 11.
 - Timeline: signal-picker entry and Timeline mode share the word; always write "Timeline mode" in full. If he wants no overlap, the entry could read "Playhead".
 - The signal picker also holds an entry "BPM Sync" (a shape times a beat length). It collides with the retired clip mode name and his "BPM mode"; no paper settles its new name.
 - The menu now titled "Shortcuts" has no new title in any paper; its entries are renamed in section 9, the menu itself is not.
 - "Global" is also the word for the Global tab and for Global's effects, actions and macros; read each by its owner.
 - Sources of truth used: your message of 2026-10-07 (numbered lines), the earlier decisions file, the names the 2026-10-07 papers fixed, the next page's words, the 2026-10-05 area sheets and the app inventory for on-screen words.
+- 2026-10-09 (Harmony, after the names-update seat): block ids taken out of his copy (assumptions I3-2, B3-4, I3-5, I3-6, I3-7 stay marked "my reading" / "put to you"); and moved here from the Review row: old papers that still say "Review" outside a quote of his (the rules of C10, C11, C12, N5, U1, U5 and U11, the internal X-12 and X-14) mean Studio.
 
 ## Re-check (s-rta-1007)
 

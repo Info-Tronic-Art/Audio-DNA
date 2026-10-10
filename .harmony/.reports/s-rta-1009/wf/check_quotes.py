@@ -1,6 +1,7 @@
 # usage: python3 check_quotes.py <workflow.js> <file with his words> [more files ...]
 # Every value of the script's "const Q = {...}" / "const Q3 = {...}" tables must be a verbatim piece of one of his messages.
 import sys, re
+assert len(sys.argv) > 2, 'give at least one file with his words: with none, every quote reads as not verbatim'
 js = open(sys.argv[1], encoding='utf-8').read()
 src = '\n'.join(open(p, encoding='utf-8').read() for p in sys.argv[2:])
 tabs = re.findall(r'^const (Q\d?) = \{\n(.*?)^\}', js, re.M | re.S); assert tabs, 'no Q table'

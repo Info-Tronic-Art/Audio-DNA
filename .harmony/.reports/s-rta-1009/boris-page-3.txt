@@ -1,0 +1,155 @@
+>
+Audio-DNA — what your answers opened
+Page 3, after your answers of 9 October. Nothing is built.
+Your 33 comments are filed word for word and applied everywhere; the 31 items you left empty are rules now. You wrote: If I have explained something, use it to answer questions not answered. So what you explained once is not asked again.
+This page holds only what your answers opened. First the answers to what you asked me; where an answer ends in a choice, an empty box under it accepts what the answer says. Then what I still assume, each item one thing. It is shorter than page 2.
+How to answer: there is a box under every item. Type in it only where something is wrong or you want to add something: “b”, or your own words. Leave the others empty: an empty box counts as accepted. At the bottom press Save my answers for Claude, then start the next session; Claude reads your answers by itself. What you type is kept in this browser while you work, so you can stop and come back.
+First, 7 answers to what you asked me. Then 15 assumptions that matter: you or the audience would see a wrong guess, or it would be costly to change once built. Then 13 smaller ones, one line each. About 25 minutes in all.
+Where your newest words go against something you said or accepted before, I follow the newest and say so in a line you can strike.
+1 · What you asked me
+"what and where is the master cue? The layers have a cue button to display in the preview/cue monitor but where is the cue button and where would the master cue be displayed?"
+Master cue: what it is and where
+Master cue is one on / off button. It will sit with the layers' cue buttons, under the preview monitor, and has no picture of its own: it changes what the preview monitor shows. The name and the button are yours, from 7 October: "add a global effects and actions toggle button called master cue". What it does is my guess. Off: the preview monitor shows the layers you cue, mixed, without the global effects. On: the same mix goes through the global effects, moved by the global actions, so you see it as it would look on the output. As far as I can see without running it, none of the cue buttons is built yet, which is why you cannot find one in the app.
+Your choice is number 276 below.
+[comment box: answer 222]
+"What does shifting the beep mean to you? Does that mean moving the 1 forward or backwards in time?"
+What "shifting the beat" meant
+Yes: I meant sliding all the beats, the 1 with them, a little forward or backwards, so a beat falls where you tap; like a nudge, it never makes another beat the 1. The beat has three things: how fast it runs (the BPM), where the beats fall, and which beat is the 1. Tapping always sets how fast. Whether it also moves where the beats fall is open. You wrote on 4 October "If I tapped the tempo again, to set the tempo, the time does not change" and on 7 October that in your Resolume "the beat reacts instantly to the tapping on the second tap"; I read both as: it does not. You place the beats with Resync and the nudge.
+Your choice is number 275 below.
+[comment box: answer 250]
+"What do you mean by come first?" and "should all run at the same fps, no?"
+The same fps everywhere, and "come first"
+Yes: they should all run at the same fps, and I will build it so: the output monitor and the preview monitor will be drawn together. You are right about smaller and less smooth: I take both back. A layer you cue will be drawn from the same picture the output uses, trails included. By "come first" I now mean: a preview never changes what the audience sees, and if the computer cannot keep up, what the preview draws by itself (a clip previewed by its name, master cue) stops on a marked still picture, while the output and the cue of playing layers carry on. A short stutter may come first. None of this is measured: I measure it on your heaviest show before the preview is built.
+Your choice is number 292 below.
+[comment box: answer 252]
+"Why would we make HAP copies at all?" and "after we build the app can we test encoding and decoding of different codec to have a baseline of what codecs work good on this mac m1 32gb?"
+HAP copies, and your codec test
+Only if your clips are seen to wait; until your test shows that, I make no copies and build no command for them. Most video files store a few pictures whole and the others only as changes from the picture before. On a jump, backwards play or a random beat the app must first rebuild the picture, which can show as a short wait. A HAP file stores every picture whole, as Resolume's DXV does, so nothing is rebuilt; its price is a much bigger file (my estimate). Yes to your test: once the app is built I run it on this Mac with your own clips, playing and recording, and you get one short list of the codecs that work well here, and whether your clips wait at all.
+[comment box: answer 239]
+"Maybe something close to the output monitor resolution? 30 fps is the fastest or even 15 could be ok."
+The low-resolution show recording: size and rate
+Yes: small, like the output monitor inside the app. I take you to mean that one, not the projector: say so if not. I start at a quarter of the show's width and height (480 by 270 for full HD) and go larger if that is too small. As you wrote, it is just for reference: it runs next to every show recording by default, without sound, at 30 pictures a second at the most, or at 15 if the test shows that 30 is heavy. Its codec comes out of your test of codecs after the build. A very HD film comes from Render in Studio. None of this is measured: if a test shows it makes the live picture stutter, I tell you before anything is decided.
+Your choice is number 279 below.
+[comment box: answer lowres]
+"I want you to do some research online and figure out what people are doing and if this is worth doing? We need to only match what Dj or bands are doing and also look at Dj/producers."
+The hold setting: what people do
+Yes, I think it is worth doing, in a small form: one switch per pad and key, press or hold, set to press. I am medium sure. DJs hold buttons, but as a fixed habit of some buttons or one setting for all pads: Gate Cue on AlphaTheta (Pioneer), where a hot cue plays only while held, Momentary on Denon. For bands, the big lighting desks (grandMA, ChamSys, Avolites) have a Flash or Bump button, on only while held, for hits and strobes. A switch on each pad or clip is what Traktor and Ableton (Gate) and your Resolume (Piano, per clip and per shortcut) have, not most DJ gear. The DJ / producers who described their own visuals let Ableton trigger them; I found none who holds a pad for visuals, which does not prove that none does. Nobody has numbers on how many use it. [Resolume](https://resolume.com/support/en/clips) [AlphaTheta](https://downloads.support.alphatheta.com/manuals/all-in-one-dj-systems/XDJ-AZ/html/en/000COV_en/Using_the_Performance_Pads/Using_the_Performance_Pads.htm) [ChamSys](https://docs.chamsys.co.uk/magicq/1.9.9.x/manual/playback.html)
+Your choice is number 286 below.
+[comment box: answer 246-hold]
+"are mp3 and m4a files ok or do prefer a certain format?"
+Send both; M4A gets a WAV copy
+Yes, send them as you get them, and do not convert anything yourself. MP3 is on the list of sound files the app opens; I have not played one yet (read in the program, not run). M4A is not on that list, so the app would not open one as it stands: I make a WAV copy of each M4A myself and your files stay untouched. If the DJ can give you WAV or AIFF just as easily, take those: they are the safest. I take these to be the tracks for measuring how well the app finds the tempo and the 1 on your music. Nothing about automatic mode is promised before that. Say so if you meant them for something else.
+[comment box: answer general]
+2 · What I assume, where a wrong guess would matter
+Each one is what I will build unless you say otherwise. Where another way is possible it is given as b or c.
+Triggering clips and the tempo bar
+274I assume in automatic mode the app always tries to find the 1, as you wrote, also after the press that starts the beat. After your Resync, your 1 holds until the music clearly changes (a new track, not beat-matched) or you pause or stop.
+bAfter your first Resync the 1 is yours for the rest of the night: the app never places it again (the b you picked, read to the letter).
+cThe app may move the 1 whenever it is sure, in the middle of a track too, also right after your Resync (your "always", read to the letter).
+[comment box: 274]
+275I assume a tap only sets the BPM: it never moves the 1 or any other beat forward or backwards in time. Resync and the nudge do that.
+bEach tap also slides the beats, the 1 with them, a little forward or backwards, so that a beat falls on your tap. Which beat is the 1 never changes.
+[comment box: 275]
+The cue system
+276I assume master cue does this. On: the layers you cue show in the preview monitor with the global effects, moved by the global actions as on the output. Off: without them. It never touches the output or a clip you preview by its name.
+bIt also lets you switch a global effect or action on for the preview monitor only, to try it before the audience sees it.
+cOn, the preview monitor shows everything the audience sees, all layers, not only the ones you cue, as on a DJ mixer.
+[comment box: 276]
+Actions in a show
+277I assume the tempo stop and the Stop actions button stop every action. Layer and global action buttons go off; a clip's stay on, so its actions play again at its next trigger (Stop actions leaves the clip playing). Please answer: this, b or c?
+bEvery action's button goes off at both stops, also on every clip of the show, playing or not; after a stop you switch on again the ones you want.
+cAt the tempo stop no button goes off: every action waits and starts again from its beginning when the beat next runs. Only the Stop actions button switches buttons off.
+[comment box: 277]
+278I assume a layer's Clear button (the X) takes the clip off and also stops that layer's own actions: their buttons go off. A clip that leaves its layer another way (it ejects, you trigger an empty cell, you delete it) leaves them on.
+bClear takes only the clip off. The layer's own actions keep playing, and one that triggers clips fills the layer again.
+[comment box: 278]
+Studio and the recordings
+279I assume Studio plays the low-resolution show recording beside its own picture, both at the same moment of the show, also while you scrub. A mistake in the parameter recording then shows at once.
+bStudio does not show it: the pieces are plain film files that you open in any player and compare by eye.
+[comment box: 279]
+The show file, decks and saving
+280I assume a Snapshot is its own file beside the show (before: "no reason to save them separately"), with a picture of the output. Opening one replaces the open show, after asking to save it: clips and running actions back where they stood, tempo paused.
+bIt opens like any show, with the layers empty; you trigger the clips yourself.
+cIt never replaces the open show: you only look at its picture and take clips or decks from it.
+[comment box: 280]
+281I assume a click on a clip, anywhere but its name, triggers it and also selects it; a key or a pad on its cell does the same. So Delete then deletes the clip you just triggered, and it leaves its layer, without asking.
+bA key or a pad only triggers: what is selected stays as it was.
+cOnly an empty cell is selected by the click that triggers it; a clip only by a click on its name, and a key or a pad only triggers.
+[comment box: 281]
+Output screens
+282I assume after All Outputs Off no output comes on by itself, not even after a quit, when your last show opens (before: shows remember their outputs). Once you switch one on, or use Restore Last Outputs, a show brings its outputs on again.
+bIt ends when you quit: the next start of the app brings your last show's outputs on by themselves.
+cEach output stays off until you switch that very output on yourself, whatever show you open.
+[comment box: 282]
+How a clip plays
+283I assume a clip's end is cut when you first switch it to BPM mode: up to 4 bars are lost (8 seconds at 120 BPM), so a seamless loop can jump. In Timeline mode it stays cut until you move its out point out.
+bThe cut holds only in BPM mode: Timeline mode always plays the whole clip.
+[comment box: 283]
+Effects, signals and what moves a slider by itself
+284I assume by "adjust the sink" you mean a Sync slider on a strobe, a pulse and effects like them: it sets how fast they pulse, locked to the beat (every bar, beat, half beat ...). The common macro for them waits until you ask.
+bSync is a switch on each: on, locked to the beat; off, it runs free at the speed you set and keeps pulsing when the tempo is paused or stopped.
+cSync shifts the effect earlier or later against the beat, so its flash lands where you want it (how you used the word sync before).
+[comment box: 284]
+285I assume an envelope you draw for a clip is that clip's own: saved and copied with it, used only by its sliders and buttons; layer and Global sliders use the show's shared ones. A preset loaded on another clip sets the slider's value only.
+bA preset carries the envelope's shape too: loaded on another clip, it makes a copy of the envelope there and plugs it in.
+cEvery envelope is in one list for the whole show, and any clip, layer or Global slider can use any of them (a preset then keeps it by name).
+[comment box: 285]
+The keyboard and MIDI mapping, menus and messages
+286I assume nothing changes until you decide: no hold setting. A pad or a key only presses, and letting go does nothing (your answer of 7 October).
+bEvery pad and key gets one switch, press or hold, set to press: on hold, the clip or button it triggers is on only while you hold it (my recommendation).
+cThe same switch, but only for an effect's button and an action; a clip's pad always only presses.
+[comment box: 286]
+287I assume your "work smoothly" allows a jump: when a slider stands away from its knob (after an action, a preset or a deck switch), a knob that sends its position makes it jump to the knob when turned. An endless knob never jumps.
+bNo jump: the knob does nothing until it passes the slider's value, and the slider follows it from there.
+cNo jump: the slider moves from where it stands, faster or slower than the knob, until the two meet.
+[comment box: 287]
+Sources and the automatic features
+288I assume an audio file is not a clip on a layer, though your answer treats it as one: it is the music the app listens to, with its own play control. Tempo stop stops it, as you said; pausing the tempo never pauses it.
+bAn audio file can also be a clip in a cell, with Timeline mode and BPM mode like a video; in BPM mode pausing the tempo pauses it.
+cIt is not a clip, but one switch connects it to the BPM: then pausing the tempo pauses the music, and tempo play carries it on.
+[comment box: 288]
+3 · Smaller assumptions, one line each
+Read them at a glance; write a number only if it is wrong.
+Triggering clips and the tempo bar
+289I assume the tempo stop takes everything off the output, a MilkDrop picture you clicked onto it too, and a layer on autopilot stays empty until you trigger a clip.bA MilkDrop picture you clicked stays on the output after a stop; autopilot puts a clip on an empty layer again when the beat runs.
+[comment box: 289]
+The cue system
+290I assume your newest words hold: a previewed clip's actions start at your click, at the BPM but not on the 1 (before: "playing in time with the music").bThe picture starts at once, and its actions join on the next 1 (with the tempo paused or stopped, they start with the picture).
+[comment box: 290]
+291I assume "loaded into the layer" and "cueing" mean a clip you triggered on a layer, seen through that layer's cue button: it is in time because you triggered it.bWith a layer's cue button on, a click on a clip's name there plays it in the preview monitor, in time with the beat; the output does not change.
+[comment box: 291]
+292I assume in the first build a MilkDrop clip previewed while another one plays shows the playing one's picture, marked; the same for a source that runs a simulation.bIt shows no picture, only a note that it cannot be previewed while the other plays.
+[comment box: 292]
+Presets
+293I assume the window that asks which version of a preset to keep comes whenever the show's and this computer's differ, also for a show saved on this computer.bA show saved on this computer never asks: this computer's version stays. Otherwise the window comes at every show that holds a preset you changed here since (my recommendation).
+[comment box: 293]
+Actions in a show
+294I assume a clip's action that plays once, switched on while that clip is already playing, does not play now: it plays the next time that clip is triggered.bSwitching it on while its clip plays also plays it once, from the next 1.
+[comment box: 294]
+Studio and the recordings
+295I assume opening Studio stops everything like the tempo stop (the clips leave their layers), but no action's button goes off: after Studio every button is as you left it.bOpening Studio switches action buttons off just as the tempo stop does, whichever way you choose for the tempo stop.
+[comment box: 295]
+The show file, decks and saving
+296I assume your words on a deleted clip hold also when its column or its deck is removed: the clip leaves its layer at once (before: it played on).bA clip whose column or deck is removed plays on until you trigger something else on its layer.
+[comment box: 296]
+297I assume a Snapshot does not bring back the MilkDrop preset that was showing, because you said to keep MilkDrop as it is; its picture shows how the moment looked.bA Snapshot remembers the MilkDrop preset and loads it when it is opened: an exception to keeping MilkDrop as it is, small as far as I can see (an estimate).
+[comment box: 297]
+Effects, signals and what moves a slider by itself
+298I assume your newest words hold: all the blend modes and the keying, with its slider, stay and are built later (before: remove the keying and its slider).bThe keying list stays, but its slider goes.
+[comment box: 298]
+299I assume masks are built later too, with the blend modes and the keying; what a mask does I ask you when that part is planned.bMasks are planned into the coming build: I ask you what a mask does on the next page, and nothing of masks is built before you answer.
+[comment box: 299]
+The keyboard and MIDI mapping, menus and messages
+300I assume, as you chose: after a deck switch a knob mapped to a clip's slider moves that cell's clip in the new deck, not the old clip still playing.bWhile a clip from that cell of another deck is still playing, the knob stays with it.
+[comment box: 300]
+Sources and the automatic features
+301I assume after tempo stop the audio file is back at its beginning and silent until you start it yourself; tempo play or a triggered clip does not start it.bThe audio file starts again together with the beat: on tempo play or on the first clip you trigger; pausing the tempo still never pauses it.
+[comment box: 301]
+4 · Made as you asked
+The list of what everything is called, brought up to date with your answers: the screen is called Studio everywhere, and a Snapshot is a save of the whole show. Nothing in it has to be read now.
+Saving with every box empty means “all good”, except the one item that says “Please answer”: that one I need from you. I then tell you what is still open. Nothing is built until you say that all is clear; the build starts in the session after that.
+Anything else? A general comment, or something no item covers.
+[comment box: general]
+Every box you left empty counts as accepted.
+Save my answers for Claude
+The button saves your comments as a small text file (audio-dna-page3-answers.txt, usually in your Downloads folder) and copies them to the clipboard. Then start the next session with the prompt: Claude reads the file by itself. You can change a box and press again; the newest file counts. Shortcut here: Cmd+Enter.

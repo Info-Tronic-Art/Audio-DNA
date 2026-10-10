@@ -182,6 +182,6 @@ origin:
 why-routed:  Boris 2026-10-08: this is the format moving forward; the system-wide tool now exists
 source-idea: idea-2026-10-08-RealTimeAudio-1791512605797713961
 routed-by:   harmony-2257     date: 2026-10-08
-status:      SENT
-status-note:
+status:      DONE
+status-note: s-rta-1009: page 2 was read with this repo's own reader (exit 0; 33 comments) and page 3 is rendered, linted and read with the shared tool (render --project audio-dna --page page3). TO REPORT UP: the real Save press in his browser WORKED on its first use (file in Downloads, 5,094 bytes, no paste needed). Kept here because the shared tool does not carry it: the editorial lint (wf/page3_build.py --check).
 --- /ROUTED-ITEM ---
