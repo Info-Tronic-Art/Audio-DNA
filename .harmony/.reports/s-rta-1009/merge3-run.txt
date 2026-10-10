@@ -1,0 +1,16 @@
+A: ITEM 6/6 | AMEND 15 | ASSUME 5 (YES 2, LINE 2, NO 1) | DROP 0 | ANSWER 1 | NAME 1 | ruling yes (replaced 14, new 6, dropped 0) | format problems 0
+B: ITEM 5/5 | AMEND 16 | ASSUME 10 (YES 2, LINE 3, NO 5) | DROP 0 | ANSWER 2 | NAME 5 | ruling yes (replaced 13, new 8, dropped 0) | format problems 0
+C: ITEM 2/2 | AMEND 11 | ASSUME 9 (YES 1, LINE 2, NO 6) | DROP 0 | ANSWER 0 | NAME 0 | ruling yes (replaced 10, new 9, dropped 0) | format problems 0
+D: ITEM 7/7 | AMEND 16 | ASSUME 10 (YES 2, LINE 2, NO 6) | DROP 0 | ANSWER 0 | NAME 6 | ruling yes (replaced 14, new 5, dropped 0) | format problems 0
+E: ITEM 11/11 | AMEND 25 | ASSUME 9 (YES 1, LINE 3, NO 5) | DROP 1 | ANSWER 1 | NAME 4 | ruling yes (replaced 14, new 7, dropped 1) | format problems 0
+F: ITEM 4/4 | AMEND 26 | ASSUME 15 (YES 1, LINE 3, NO 11) | DROP 0 | ANSWER 0 | NAME 3 | ruling yes (replaced 16, new 12, dropped 2) | format problems 0
+G: ITEM 4/4 | AMEND 9 | ASSUME 6 (YES 1, LINE 1, NO 4) | DROP 0 | ANSWER 0 | NAME 2 | ruling yes (replaced 10, new 4, dropped 0) | format problems 0
+H: ITEM 4/4 | AMEND 11 | ASSUME 9 (YES 1, LINE 1, NO 7) | DROP 1 | ANSWER 2 | NAME 1 | ruling yes (replaced 12, new 4, dropped 0) | format problems 0
+I: ITEM 5/5 | AMEND 23 | ASSUME 15 (YES 2, LINE 3, NO 10) | DROP 1 | ANSWER 0 | NAME 8 | ruling yes (replaced 23, new 5, dropped 1) | format problems 0
+J: ITEM 6/6 | AMEND 22 | ASSUME 15 (YES 2, LINE 2, NO 11) | DROP 0 | ANSWER 1 | NAME 6 | ruling yes (replaced 13, new 12, dropped 0) | format problems 0
+K: ITEM 3/3 | AMEND 15 | ASSUME 11 (YES 1, LINE 3, NO 7) | DROP 1 | ANSWER 1 | NAME 3 | ruling yes (replaced 11, new 13, dropped 1) | format problems 0
+X: ITEM 0/0 | AMEND 30 | ASSUME 5 (YES 0, LINE 0, NO 5) | DROP 1 | ANSWER 0 | NAME 2 | ruling yes (replaced 13, new 9, dropped 5) | format problems 0
+BOXES cited: 33 of 33
+ANSWERS owed: 250 222 252 lowres 239 codec general 246-hold | missing: none
+AMENDMENTS: 219 applied to 116 old items; 0 NOT applied; old items amended by more than one topic: C13(H+X), R224(D+J)
+TOTAL: page-2 items 57 of 57 | assumptions 119 (YES 16, LINE 25, NO 78) | old assumptions closed by this round 5, rewritten 28 | answers 8 | written
